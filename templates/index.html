@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SalahReminders - Your Prayer Companion</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+</head>
+<body>
+    <div id="app">
+        <!-- Navigation -->
+        <nav class="navbar">
+            <div class="nav-container">
+                <div class="nav-logo">
+                    <i class="fas fa-mosque"></i>
+                    <span>SalahReminders</span>
+                </div>
+                <div class="nav-menu" id="nav-menu">
+                    <a href="#home" class="nav-link active">Home</a>
+                    <a href="#prayers" class="nav-link">Prayers</a>
+                    <a href="#dashboard" class="nav-link">Dashboard</a>
+                    <a href="#family" class="nav-link">Family</a>
+                    <a href="#profile" class="nav-link">Profile</a>
+                </div>
+                <div class="nav-toggle" id="nav-toggle">
+                    <span class="bar"></span>
+                    <span class="bar"></span>
+                    <span class="bar"></span>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Home Section -->
+            <section id="home" class="section active">
+                <div class="hero">
+                    <div class="hero-content">
+                        <h1 class="hero-title">Welcome to SalahReminders</h1>
+                        <p class="hero-subtitle">Stay consistent with your daily prayers and grow spiritually with your community</p>
+                        <div class="hero-buttons">
+                            <button class="btn btn-primary" onclick="showLogin()">Get Started</button>
+                            <button class="btn btn-secondary" onclick="showRegister()">Create Account</button>
+                        </div>
+                    </div>
+                    <div class="hero-image">
+                        <i class="fas fa-mosque hero-icon"></i>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Login Modal -->
+            <div id="loginModal" class="modal">
+                <div class="modal-content">
+                    <span class="close" onclick="closeModal('loginModal')">&times;</span>
+                    <h2>Login to Your Account</h2>
+                    <form id="loginForm">
+                        <div class="form-group">
+                            <label for="loginUsername">Username or Email</label>
+                            <input type="text" id="loginUsername" name="username" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="loginPassword">Password</label>
+                            <input type="password" id="loginPassword" name="password" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-full">Login</button>
+                    </form>
+                    <p class="modal-footer">
+                        Don't have an account? <a href="#" onclick="showRegister()">Register here</a>
+                    </p>
+                </div>
+            </div>
+
+            <!-- Register Modal -->
+            <div id="registerModal" class="modal">
+                <div class="modal-content">
+                    <span class="close" onclick="closeModal('registerModal')">&times;</span>
+                    <h2>Create Your Account</h2>
+                    <form id="registerForm">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="regFirstName">First Name</label>
+                                <input type="text" id="regFirstName" name="first_name" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="regLastName">Last Name</label>
+                                <input type="text" id="regLastName" name="last_name" required>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="regUsername">Username</label>
+                            <input type="text" id="regUsername" name="username" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="regEmail">Email</label>
+                            <input type="email" id="regEmail" name="email" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="regPassword">Password</label>
+                            <input type="password" id="regPassword" name="password" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="regPhone">Phone Number (Optional)</label>
+                            <input type="tel" id="regPhone" name="phone_number">
+                        </div>
+                        <div class="form-group">
+                            <label>Location for Prayer Times</label>
+                            <div class="location-selection">
+                                <div class="location-info">
+                                    <i class="fas fa-map-marker-alt"></i>
+                                    <span>We'll automatically detect your location for accurate prayer times</span>
+                                </div>
+                                <div class="location-options" id="locationOptions" style="display: none;">
+                                    <div class="detected-location" id="detectedLocation">
+                                        <h4><i class="fas fa-crosshairs"></i> Detected Location</h4>
+                                        <div class="location-details" id="locationDetails"></div>
+                                        <button type="button" class="btn btn-outline-primary btn-sm" onclick="useDetectedLocation()">
+                                            <i class="fas fa-check"></i> Use This Location
+                                        </button>
+                                    </div>
+                                    <div class="common-cities">
+                                        <h4><i class="fas fa-globe"></i> Or Choose a City</h4>
+                                        <div class="city-grid">
+                                            <button type="button" class="city-btn" onclick="selectCity('Bangalore', 12.9716, 77.5946, 'Asia/Kolkata')">
+                                                <i class="fas fa-city"></i> Bangalore, India
+                                            </button>
+                                            <button type="button" class="city-btn" onclick="selectCity('Mumbai', 19.0760, 72.8777, 'Asia/Kolkata')">
+                                                <i class="fas fa-city"></i> Mumbai, India
+                                            </button>
+                                            <button type="button" class="city-btn" onclick="selectCity('Delhi', 28.7041, 77.1025, 'Asia/Kolkata')">
+                                                <i class="fas fa-city"></i> Delhi, India
+                                            </button>
+                                            <button type="button" class="city-btn" onclick="selectCity('Chennai', 13.0827, 80.2707, 'Asia/Kolkata')">
+                                                <i class="fas fa-city"></i> Chennai, India
+                                            </button>
+                                            <button type="button" class="city-btn" onclick="selectCity('Kolkata', 22.5726, 88.3639, 'Asia/Kolkata')">
+                                                <i class="fas fa-city"></i> Kolkata, India
+                                            </button>
+                                            <button type="button" class="city-btn" onclick="selectCity('Hyderabad', 17.3850, 78.4867, 'Asia/Kolkata')">
+                                                <i class="fas fa-city"></i> Hyderabad, India
+                                            </button>
+                                            <button type="button" class="city-btn" onclick="selectCity('Dubai', 25.2048, 55.2708, 'Asia/Dubai')">
+                                                <i class="fas fa-city"></i> Dubai, UAE
+                                            </button>
+                                            <button type="button" class="city-btn" onclick="selectCity('London', 51.5074, -0.1278, 'Europe/London')">
+                                                <i class="fas fa-city"></i> London, UK
+                                            </button>
+                                            <button type="button" class="city-btn" onclick="selectCity('New York', 40.7128, -74.0060, 'America/New_York')">
+                                                <i class="fas fa-city"></i> New York, USA
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="selected-location" id="selectedLocation" style="display: none;">
+                                    <h4><i class="fas fa-check-circle"></i> Selected Location</h4>
+                                    <div class="location-details" id="selectedLocationDetails"></div>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="changeLocation()">
+                                        <i class="fas fa-edit"></i> Change Location
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-full">Create Account</button>
+                    </form>
+                    <p class="modal-footer">
+                        Already have an account? <a href="#" onclick="showLogin()">Login here</a>
+                    </p>
+                </div>
+            </div>
+
+            <!-- Prayers Section -->
+            <section id="prayers" class="section">
+                <div class="container">
+                    <div class="prayer-header">
+                        <h2 class="section-title">Today's Prayers</h2>
+                        <div class="prayer-date" id="prayerDate">Loading...</div>
+                    </div>
+                    <div class="prayer-times" id="prayerTimes">
+                        <div class="loading">Loading prayer times...</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Dashboard Section -->
+            <section id="dashboard" class="section">
+                <div class="container">
+                    <h2 class="section-title">Your Prayer Dashboard</h2>
+                    
+                    <!-- Calendar Navigation -->
+                    <div class="calendar-header">
+                        <button class="btn btn-secondary" onclick="previousMonth()">
+                            <i class="fas fa-chevron-left"></i>
+                        </button>
+                        <h3 class="calendar-month" id="calendarMonth">September 2025</h3>
+                        <button class="btn btn-secondary" onclick="nextMonth()">
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+                    <div class="calendar-help">
+                        <i class="fas fa-info-circle"></i>
+                        <span>Click on any day to view prayers. You can mark missed prayers as Qada for past days.</span>
+                    </div>
+                    
+                    <!-- Calendar Grid -->
+                    <div class="calendar-container">
+                        <div class="calendar-grid" id="calendarGrid">
+                            <div class="loading">Loading calendar...</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Selected Day Prayer Times -->
+                    <div class="selected-day-prayers" id="selectedDayPrayers" style="display: none;">
+                        <h4 class="selected-day-title" id="selectedDayTitle">Prayer Times for Selected Day</h4>
+                        <div class="selected-day-content" id="selectedDayContent">
+                            <div class="loading">Loading prayer times...</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Dashboard Stats -->
+                    <div class="dashboard-stats" id="dashboardStats">
+                        <div class="loading">Loading dashboard...</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Family Section -->
+            <section id="family" class="section">
+                <div class="container">
+                    <h2 class="section-title">Family & Friends</h2>
+                    <div class="family-section">
+                        <button class="btn btn-primary" onclick="showAddFamilyModal()">
+                            <i class="fas fa-plus"></i> Add Family Member
+                        </button>
+                        <div class="family-members" id="familyMembers">
+                            <div class="loading">Loading family members...</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Profile Section -->
+            <section id="profile" class="section">
+                <div class="container">
+                    <h2 class="section-title">Your Profile</h2>
+                    <div class="profile-content" id="profileContent">
+                        <div class="loading">Loading profile...</div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Add Family Member Modal -->
+        <div id="addFamilyModal" class="modal">
+            <div class="modal-content">
+                <span class="close" onclick="closeModal('addFamilyModal')">&times;</span>
+                <h2>Add Family Member</h2>
+                <form id="addFamilyForm">
+                    <div class="form-group">
+                        <label for="familyName">Name</label>
+                        <input type="text" id="familyName" name="name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="familyRelationship">Relationship</label>
+                        <select id="familyRelationship" name="relationship" required>
+                            <option value="">Select Relationship</option>
+                            <option value="spouse">Spouse</option>
+                            <option value="child">Child</option>
+                            <option value="parent">Parent</option>
+                            <option value="sibling">Sibling</option>
+                            <option value="friend">Friend</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="familyEmail">Email (Optional)</label>
+                        <input type="email" id="familyEmail" name="email">
+                    </div>
+                    <div class="form-group">
+                        <label for="familyPhone">Phone Number (Optional)</label>
+                        <input type="tel" id="familyPhone" name="phone_number">
+                    </div>
+                    <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="familyReminders" name="reminder_enabled" checked>
+                            Enable prayer reminders for this person
+                        </label>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-full">Add Family Member</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

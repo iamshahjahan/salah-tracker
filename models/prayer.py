@@ -1,0 +1,68 @@
+from database import db
+from datetime import datetime, date
+from enum import Enum
+
+class PrayerType(Enum):
+    FAJR = "Fajr"
+    DHUHR = "Dhuhr"
+    ASR = "Asr"
+    MAGHRIB = "Maghrib"
+    ISHA = "Isha"
+
+class Prayer(db.Model):
+    __tablename__ = 'prayers'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    prayer_type = db.Column(db.Enum(PrayerType), nullable=False)
+    prayer_date = db.Column(db.Date, nullable=False)
+    prayer_time = db.Column(db.Time, nullable=False)
+    location_lat = db.Column(db.Float, nullable=True)
+    location_lng = db.Column(db.Float, nullable=True)
+    timezone = db.Column(db.String(50), default='UTC')
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    def to_dict(self):
+        """Convert prayer object to dictionary"""
+        return {
+            'id': self.id,
+            'prayer_type': self.prayer_type.value,
+            'prayer_date': self.prayer_date.isoformat(),
+            'prayer_time': self.prayer_time.strftime('%H:%M'),
+            'location_lat': self.location_lat,
+            'location_lng': self.location_lng,
+            'timezone': self.timezone,
+            'created_at': self.created_at.isoformat() if self.created_at else None
+        }
+    
+    def __repr__(self):
+        return f'<Prayer {self.prayer_type.value} on {self.prayer_date}>'
+
+class PrayerCompletion(db.Model):
+    __tablename__ = 'prayer_completions'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    prayer_id = db.Column(db.Integer, db.ForeignKey('prayers.id'), nullable=False)
+    completed_at = db.Column(db.DateTime, default=datetime.utcnow)
+    is_late = db.Column(db.Boolean, default=False)
+    is_qada = db.Column(db.Boolean, default=False)  # True if prayer was missed and completed later
+    notes = db.Column(db.Text, nullable=True)
+    
+    # Relationships
+    prayer = db.relationship('Prayer', backref='completions')
+    
+    def to_dict(self):
+        """Convert prayer completion object to dictionary"""
+        return {
+            'id': self.id,
+            'user_id': self.user_id,
+            'prayer_id': self.prayer_id,
+            'completed_at': self.completed_at.isoformat() if self.completed_at else None,
+            'is_late': self.is_late,
+            'is_qada': self.is_qada,
+            'notes': self.notes,
+            'prayer': self.prayer.to_dict() if self.prayer else None
+        }
+    
+    def __repr__(self):
+        return f'<PrayerCompletion user_id={self.user_id} prayer_id={self.prayer_id}>'

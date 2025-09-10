@@ -1,0 +1,159 @@
+# Salah Reminders - Cursor Rules
+
+## Project Overview
+This is a Flask-based prayer tracking application with a modern frontend. The app helps Muslims track their daily prayers, mark missed prayers as Qada, and view prayer statistics.
+
+## Architecture & Patterns
+
+### Backend (Flask)
+- **Framework**: Flask with SQLAlchemy ORM
+- **Database**: MySQL with proper migrations
+- **Authentication**: JWT-based authentication
+- **API Design**: RESTful APIs with proper error handling
+- **Structure**: Blueprint-based modular architecture
+- **Dependencies**: Use dependency injection patterns
+
+### Frontend (Vanilla JS)
+- **Architecture**: Modular JavaScript with separation of concerns
+- **State Management**: Centralized state management
+- **API Communication**: Consistent error handling and loading states
+- **UI Components**: Reusable component patterns
+- **Responsive Design**: Mobile-first approach
+
+## Code Quality Standards
+
+### General Principles
+- **DRY (Don't Repeat Yourself)**: Eliminate code duplication
+- **SOLID Principles**: Follow single responsibility, open/closed, etc.
+- **Clean Code**: Meaningful names, small functions, clear structure
+- **Error Handling**: Comprehensive error handling with user-friendly messages
+- **Logging**: Proper logging for debugging and monitoring
+
+### Documentation Requirements
+- **Function Documentation**: All functions must have docstrings
+- **API Documentation**: Clear API endpoint documentation
+- **Code Comments**: Complex logic must be commented
+- **README**: Comprehensive setup and usage instructions
+
+### Testing Requirements
+- **Backend**: Unit tests for all API endpoints and business logic
+- **Frontend**: Unit tests for utility functions and components
+- **Integration Tests**: End-to-end testing for critical flows
+- **Test Coverage**: Minimum 80% code coverage
+
+## File Structure Standards
+
+### Backend Structure
+```
+app/
+├── models/          # SQLAlchemy models
+├── routes/          # API route blueprints
+├── services/        # Business logic services
+├── utils/           # Utility functions
+├── config/          # Configuration management
+├── tests/           # Backend tests
+└── migrations/      # Database migrations
+```
+
+### Frontend Structure
+```
+static/
+├── js/
+│   ├── components/  # Reusable UI components
+│   ├── services/    # API communication
+│   ├── utils/       # Utility functions
+│   ├── state/       # State management
+│   └── tests/       # Frontend tests
+├── css/
+│   ├── components/  # Component-specific styles
+│   ├── layouts/     # Layout styles
+│   └── themes/      # Theme variables
+└── assets/          # Images, fonts, etc.
+```
+
+## Development Guidelines
+
+### Backend Development
+- Use type hints for all function parameters and return values
+- Implement proper validation using marshmallow or similar
+- Use database transactions for multi-step operations
+- Implement proper error handling with custom exceptions
+- Use dependency injection for database and external services
+- Follow RESTful API conventions
+
+### Frontend Development
+- Use ES6+ features and modern JavaScript
+- Implement proper error boundaries
+- Use consistent naming conventions (camelCase for variables, PascalCase for components)
+- Implement proper loading states and user feedback
+- Use semantic HTML and accessibility best practices
+- Implement proper form validation
+
+### Database Design
+- Use proper foreign key relationships
+- Implement database constraints
+- Use indexes for performance
+- Follow naming conventions (snake_case for tables/columns)
+- Implement soft deletes where appropriate
+
+## Security Guidelines
+- Validate all user inputs
+- Use parameterized queries (SQLAlchemy handles this)
+- Implement proper authentication and authorization
+- Use HTTPS in production
+- Sanitize user inputs
+- Implement rate limiting for API endpoints
+
+## Performance Guidelines
+- Use database indexes appropriately
+- Implement caching where beneficial
+- Optimize database queries
+- Minimize API calls from frontend
+- Use lazy loading for large datasets
+- Implement pagination for large lists
+
+## Testing Guidelines
+- Write tests before or alongside code (TDD/BDD)
+- Use descriptive test names
+- Test edge cases and error conditions
+- Mock external dependencies
+- Use fixtures for test data
+- Maintain test data consistency
+
+## Code Review Checklist
+- [ ] Code follows established patterns
+- [ ] No code duplication
+- [ ] Proper error handling
+- [ ] Comprehensive tests
+- [ ] Documentation is complete
+- [ ] Security considerations addressed
+- [ ] Performance implications considered
+- [ ] Accessibility requirements met
+
+## Deployment Guidelines
+- Use environment variables for configuration
+- Implement proper logging
+- Use process managers (PM2, Gunicorn)
+- Implement health checks
+- Use reverse proxy (Nginx)
+- Implement monitoring and alerting
+
+## Maintenance Guidelines
+- Regular dependency updates
+- Security patch management
+- Performance monitoring
+- Database maintenance
+- Backup strategies
+- Documentation updates
+
+## Feature Preservation
+When refactoring, ensure these features remain intact:
+- JWT-based authentication
+- Prayer time tracking with Qada marking
+- Calendar view with prayer status indicators
+- Dashboard with completion statistics
+- Location-based prayer times
+- Time-sensitive prayer completion
+- Automatic prayer status updates
+- Responsive design
+- Real-time UI updates
