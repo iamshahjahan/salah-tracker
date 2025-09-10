@@ -39,7 +39,7 @@ mail.init_app(app)
 CORS(app)
 
 # Import routes
-from routes import auth_bp, prayer_bp, dashboard_bp, social_bp
+from app.routes import auth_bp, prayer_bp, dashboard_bp, social_bp
 
 # Register blueprints
 app.register_blueprint(auth_bp, url_prefix='/api/auth')
