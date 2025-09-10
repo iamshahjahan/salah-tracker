@@ -350,7 +350,6 @@ tmp/
 # IDE and editor files
 *.sublime-*
 .vscode/
-.idea/
 *.swp
 *.swo
 
@@ -472,7 +471,6 @@ build/
 
 # IDE files
 .vscode/
-.idea/
 *.swp
 *.swo
 *~
