@@ -1,8 +1,8 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from database import db
-from models.user import User
-from models.prayer import Prayer, PrayerCompletion, PrayerType
+from app.models.user import User
+from app.models.prayer import Prayer, PrayerCompletion, PrayerType
 from datetime import datetime, date, timedelta
 from sqlalchemy import func, and_
 
@@ -15,10 +15,10 @@ def get_user_stats():
     try:
         user_id = get_jwt_identity()
         user = User.query.get(user_id)
-        
+
         if not user:
             return jsonify({'error': 'User not found'}), 404
-        
+
         # Use account creation date as start date, or last 30 days if requested
         end_date = date.today()
         if request.args.get('days'):
@@ -27,33 +27,33 @@ def get_user_stats():
         else:
             # Use account creation date as start date
             start_date = user.created_at.date() if user.created_at else end_date - timedelta(days=30)
-        
+
         # Calculate actual days since account creation
         actual_days = (end_date - start_date).days + 1
-        
+
         # Get total prayers in period
         total_prayers = db.session.query(Prayer).filter(
             Prayer.prayer_date >= start_date,
             Prayer.prayer_date <= end_date
         ).count()
-        
+
         # Get completed prayers
         completed_prayers = db.session.query(PrayerCompletion).join(Prayer).filter(
             PrayerCompletion.user_id == user_id,
             Prayer.prayer_date >= start_date,
             Prayer.prayer_date <= end_date
         ).count()
-        
+
         # Get completion rate
         completion_rate = (completed_prayers / total_prayers * 100) if total_prayers > 0 else 0
-        
+
         # Get prayers by type
         prayer_stats = db.session.query(
             Prayer.prayer_type,
             func.count(PrayerCompletion.id).label('completed'),
             func.count(Prayer.id).label('total')
         ).outerjoin(
-            PrayerCompletion, 
+            PrayerCompletion,
             and_(
                 PrayerCompletion.prayer_id == Prayer.id,
                 PrayerCompletion.user_id == user_id
@@ -62,7 +62,7 @@ def get_user_stats():
             Prayer.prayer_date >= start_date,
             Prayer.prayer_date <= end_date
         ).group_by(Prayer.prayer_type).all()
-        
+
         prayer_breakdown = []
         for prayer_type, completed, total in prayer_stats:
             prayer_breakdown.append({
@@ -71,10 +71,10 @@ def get_user_stats():
                 'total': total,
                 'rate': (completed / total * 100) if total > 0 else 0
             })
-        
+
         # Get current streak
         streak = get_prayer_streak(user_id)
-        
+
         return jsonify({
             'period': {
                 'start_date': start_date.isoformat(),
@@ -89,7 +89,7 @@ def get_user_stats():
             'prayer_breakdown': prayer_breakdown,
             'current_streak': streak
         }), 200
-        
+
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -99,27 +99,27 @@ def get_calendar_data(year, month):
     """Get prayer completion data for calendar view"""
     try:
         user_id = get_jwt_identity()
-        
+
         # Get start and end dates for the month
         start_date = date(int(year), int(month), 1)
         if int(month) == 12:
             end_date = date(int(year) + 1, 1, 1) - timedelta(days=1)
         else:
             end_date = date(int(year), int(month) + 1, 1) - timedelta(days=1)
-        
+
         # Get all prayers for the month
         prayers = Prayer.query.filter(
             Prayer.prayer_date >= start_date,
             Prayer.prayer_date <= end_date
         ).order_by(Prayer.prayer_date, Prayer.prayer_time).all()
-        
+
         # Get completions for the user
         completions = db.session.query(PrayerCompletion).join(Prayer).filter(
             PrayerCompletion.user_id == user_id,
             Prayer.prayer_date >= start_date,
             Prayer.prayer_date <= end_date
         ).all()
-        
+
         # Group by date
         calendar_data = {}
         for prayer in prayers:
@@ -131,28 +131,28 @@ def get_calendar_data(year, month):
                     'completed_count': 0,
                     'total_count': 0
                 }
-            
+
             # Check if this prayer was completed
             completion = next((c for c in completions if c.prayer_id == prayer.id), None)
-            
+
             prayer_data = prayer.to_dict()
             prayer_data['completed'] = completion is not None
             prayer_data['completion'] = completion.to_dict() if completion else None
-            
+
             calendar_data[prayer_date]['prayers'].append(prayer_data)
             calendar_data[prayer_date]['total_count'] += 1
             if completion:
                 calendar_data[prayer_date]['completed_count'] += 1
-        
+
         # Convert to list and sort by date
         calendar_list = sorted(calendar_data.values(), key=lambda x: x['date'])
-        
+
         return jsonify({
             'year': int(year),
             'month': int(month),
             'calendar_data': calendar_list
         }), 200
-        
+
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -163,16 +163,16 @@ def get_recent_activity():
     try:
         user_id = get_jwt_identity()
         limit = int(request.args.get('limit', 10))
-        
+
         # Get recent completions
         recent_completions = db.session.query(PrayerCompletion).join(Prayer).filter(
             PrayerCompletion.user_id == user_id
         ).order_by(PrayerCompletion.completed_at.desc()).limit(limit).all()
-        
+
         return jsonify({
             'recent_completions': [completion.to_dict() for completion in recent_completions]
         }), 200
-        
+
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -183,14 +183,14 @@ def get_prayer_streak(user_id):
         completions = db.session.query(PrayerCompletion).join(Prayer).filter(
             PrayerCompletion.user_id == user_id
         ).order_by(Prayer.prayer_date.desc()).all()
-        
+
         if not completions:
             return 0
-        
+
         # Calculate streak
         streak = 0
         current_date = date.today()
-        
+
         # Group completions by date
         completions_by_date = {}
         for completion in completions:
@@ -198,11 +198,11 @@ def get_prayer_streak(user_id):
             if prayer_date not in completions_by_date:
                 completions_by_date[prayer_date] = []
             completions_by_date[prayer_date].append(completion)
-        
+
         # Count consecutive days with all 5 prayers completed
         for i in range(365):  # Check up to 1 year back
             check_date = current_date - timedelta(days=i)
-            
+
             if check_date in completions_by_date:
                 # Check if all 5 prayers were completed on this date
                 daily_completions = completions_by_date[check_date]
@@ -212,8 +212,8 @@ def get_prayer_streak(user_id):
                     break
             else:
                 break
-        
+
         return streak
-        
+
     except Exception as e:
         return 0

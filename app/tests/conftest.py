@@ -12,7 +12,11 @@ from flask import Flask
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from app import create_app
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+
+from main import app
 from database import db
 from app.models.user import User
 from app.models.prayer import Prayer, PrayerCompletion
@@ -23,24 +27,24 @@ from app.config.settings import TestingConfig
 def app():
     """
     Create and configure a test Flask application.
-    
+
     Returns:
         Flask: Configured test application.
     """
     # Create temporary database file
     db_fd, db_path = tempfile.mkstemp()
-    
+
     # Configure test database
     os.environ['TEST_DATABASE_URL'] = f'sqlite:///{db_path}'
-    
+
     # Create test app
     app = create_app(TestingConfig)
-    
+
     with app.app_context():
         db.create_all()
         yield app
         db.drop_all()
-    
+
     # Clean up
     os.close(db_fd)
     os.unlink(db_path)
@@ -50,10 +54,10 @@ def app():
 def client(app):
     """
     Create a test client for the Flask application.
-    
+
     Args:
         app: Flask application instance.
-        
+
     Returns:
         FlaskClient: Test client.
     """
@@ -64,10 +68,10 @@ def client(app):
 def db_session(app):
     """
     Create a database session for testing.
-    
+
     Args:
         app: Flask application instance.
-        
+
     Returns:
         Session: Database session.
     """
@@ -80,7 +84,7 @@ def db_session(app):
 def sample_user_data():
     """
     Sample user data for testing.
-    
+
     Returns:
         dict: Sample user registration data.
     """
@@ -101,11 +105,11 @@ def sample_user_data():
 def sample_user(db_session, sample_user_data):
     """
     Create a sample user for testing.
-    
+
     Args:
         db_session: Database session.
         sample_user_data: Sample user data.
-        
+
     Returns:
         User: Created user instance.
     """
@@ -120,10 +124,10 @@ def sample_user(db_session, sample_user_data):
         location_lng=sample_user_data['location_lng'],
         timezone=sample_user_data['timezone']
     )
-    
+
     db_session.add(user)
     db_session.commit()
-    
+
     return user
 
 
@@ -131,7 +135,7 @@ def sample_user(db_session, sample_user_data):
 def sample_prayer_data():
     """
     Sample prayer data for testing.
-    
+
     Returns:
         dict: Sample prayer data.
     """
@@ -146,12 +150,12 @@ def sample_prayer_data():
 def sample_prayer(db_session, sample_user, sample_prayer_data):
     """
     Create a sample prayer for testing.
-    
+
     Args:
         db_session: Database session.
         sample_user: Sample user instance.
         sample_prayer_data: Sample prayer data.
-        
+
     Returns:
         Prayer: Created prayer instance.
     """
@@ -161,10 +165,10 @@ def sample_prayer(db_session, sample_user, sample_prayer_data):
         prayer_time=sample_prayer_data['prayer_time'],
         prayer_date=sample_prayer_data['prayer_date']
     )
-    
+
     db_session.add(prayer)
     db_session.commit()
-    
+
     return prayer
 
 
@@ -172,12 +176,12 @@ def sample_prayer(db_session, sample_user, sample_prayer_data):
 def sample_prayer_completion(db_session, sample_prayer, sample_user):
     """
     Create a sample prayer completion for testing.
-    
+
     Args:
         db_session: Database session.
         sample_prayer: Sample prayer instance.
         sample_user: Sample user instance.
-        
+
     Returns:
         PrayerCompletion: Created prayer completion instance.
     """
@@ -188,10 +192,10 @@ def sample_prayer_completion(db_session, sample_prayer, sample_user):
         is_late=False,
         is_qada=False
     )
-    
+
     db_session.add(completion)
     db_session.commit()
-    
+
     return completion
 
 
@@ -199,11 +203,11 @@ def sample_prayer_completion(db_session, sample_prayer, sample_user):
 def auth_headers(client, sample_user):
     """
     Create authentication headers for testing.
-    
+
     Args:
         client: Test client.
         sample_user: Sample user instance.
-        
+
     Returns:
         dict: Authentication headers.
     """
@@ -212,12 +216,12 @@ def auth_headers(client, sample_user):
         'email': sample_user.email,
         'password': 'TestPassword123!'
     })
-    
+
     if response.status_code == 200:
         data = response.get_json()
         token = data.get('access_token')
         return {'Authorization': f'Bearer {token}'}
-    
+
     return {}
 
 
@@ -225,7 +229,7 @@ def auth_headers(client, sample_user):
 def mock_prayer_times_api(monkeypatch):
     """
     Mock the prayer times API for testing.
-    
+
     Args:
         monkeypatch: Pytest monkeypatch fixture.
     """
@@ -237,8 +241,8 @@ def mock_prayer_times_api(monkeypatch):
             'Maghrib': '18:30',
             'Isha': '20:00'
         }, None
-    
-    monkeypatch.setattr('app.services.prayer_service.PrayerService._fetch_prayer_times_from_api', 
+
+    monkeypatch.setattr('app.services.prayer_service.PrayerService._fetch_prayer_times_from_api',
                        mock_fetch_prayer_times)
 
 
@@ -246,7 +250,7 @@ def mock_prayer_times_api(monkeypatch):
 def mock_geocoding_api(monkeypatch):
     """
     Mock the geocoding API for testing.
-    
+
     Args:
         monkeypatch: Pytest monkeypatch fixture.
     """
@@ -256,8 +260,8 @@ def mock_geocoding_api(monkeypatch):
             'country': 'India',
             'timezone': 'Asia/Kolkata'
         }, None
-    
-    monkeypatch.setattr('app.services.user_service.UserService._get_city_from_coordinates', 
+
+    monkeypatch.setattr('app.services.user_service.UserService._get_city_from_coordinates',
                        mock_fetch_city_from_coordinates)
 
 
@@ -265,37 +269,37 @@ def mock_geocoding_api(monkeypatch):
 def mock_mail_service(monkeypatch):
     """
     Mock the mail service for testing.
-    
+
     Args:
         monkeypatch: Pytest monkeypatch fixture.
     """
     def mock_send_email(*args, **kwargs):
         return True
-    
-    monkeypatch.setattr('app.services.notification_service.NotificationService._send_prayer_reminder_email', 
+
+    monkeypatch.setattr('app.services.notification_service.NotificationService._send_prayer_reminder_email',
                        mock_send_email)
-    monkeypatch.setattr('app.services.notification_service.NotificationService._send_welcome_email', 
+    monkeypatch.setattr('app.services.notification_service.NotificationService._send_welcome_email',
                        mock_send_email)
-    monkeypatch.setattr('app.services.notification_service.NotificationService._send_daily_summary_email', 
+    monkeypatch.setattr('app.services.notification_service.NotificationService._send_daily_summary_email',
                        mock_send_email)
 
 
 class TestDataFactory:
     """
     Factory class for creating test data.
-    
+
     This class provides methods for creating various test data objects
     with customizable parameters.
     """
-    
+
     @staticmethod
     def create_user_data(**kwargs):
         """
         Create user data with default values.
-        
+
         Args:
             **kwargs: Override default values.
-            
+
         Returns:
             dict: User data dictionary.
         """
@@ -310,19 +314,19 @@ class TestDataFactory:
             'location_lng': 77.5946,
             'timezone': 'Asia/Kolkata'
         }
-        
+
         default_data.update(kwargs)
         return default_data
-    
+
     @staticmethod
     def create_prayer_data(user_id, **kwargs):
         """
         Create prayer data with default values.
-        
+
         Args:
             user_id: ID of the user.
             **kwargs: Override default values.
-            
+
         Returns:
             dict: Prayer data dictionary.
         """
@@ -332,20 +336,20 @@ class TestDataFactory:
             'prayer_time': time(5, 30),
             'prayer_date': date.today()
         }
-        
+
         default_data.update(kwargs)
         return default_data
-    
+
     @staticmethod
     def create_prayer_completion_data(prayer_id, user_id, **kwargs):
         """
         Create prayer completion data with default values.
-        
+
         Args:
             prayer_id: ID of the prayer.
             user_id: ID of the user.
             **kwargs: Override default values.
-            
+
         Returns:
             dict: Prayer completion data dictionary.
         """
@@ -356,7 +360,7 @@ class TestDataFactory:
             'is_late': False,
             'is_qada': False
         }
-        
+
         default_data.update(kwargs)
         return default_data
 
@@ -365,7 +369,7 @@ class TestDataFactory:
 def test_data_factory():
     """
     Provide test data factory instance.
-    
+
     Returns:
         TestDataFactory: Test data factory instance.
     """

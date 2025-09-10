@@ -182,6 +182,42 @@ python3 run_tests.py --frontend-only
 python3 run_tests.py --integration-only
 ```
 
+### Git Hooks for Quality Assurance
+The repository includes automated Git hooks that run tests before commits and pushes:
+
+```bash
+# Install Git hooks (run once after cloning)
+./install-hooks.sh
+
+# Test hooks manually
+.git/hooks/pre-commit
+.git/hooks/pre-push
+```
+
+**Pre-commit Hook** checks for:
+- Large files (>10MB)
+- Sensitive information (passwords, API keys)
+- TODO/FIXME comments
+- Merge conflict markers
+- Trailing whitespace
+- Python syntax errors
+
+**Pre-push Hook** runs:
+- Python syntax check
+- Import validation
+- Application startup test
+- Database models test
+- Unit tests (pytest)
+- Frontend tests (Jest)
+- Code quality check (flake8)
+- Security check (bandit)
+
+To bypass hooks (not recommended):
+```bash
+git commit --no-verify
+git push --no-verify
+```
+
 ### Backend Tests
 ```bash
 # Run backend tests with coverage
