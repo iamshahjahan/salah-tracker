@@ -1,5 +1,5 @@
 """
-Utility functions for the Salah Reminders application.
+Utility functions for the Salah Tracker application.
 
 This module provides common utility functions for validation, formatting,
 date/time handling, and other shared functionality.
@@ -12,7 +12,7 @@ from .api_helpers import make_api_request, handle_api_response
 
 __all__ = [
     'validate_email',
-    'validate_password', 
+    'validate_password',
     'validate_coordinates',
     'format_prayer_time',
     'format_date',

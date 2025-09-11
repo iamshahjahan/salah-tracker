@@ -1,4 +1,4 @@
-# Testing dependencies for Salah Reminders
+# Testing dependencies for Salah Tracker
 # Install with: pip install -r requirements-test.txt
 
 # Core testing framework

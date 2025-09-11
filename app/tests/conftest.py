@@ -1,5 +1,5 @@
 """
-Pytest configuration and fixtures for the Salah Reminders application.
+Pytest configuration and fixtures for the Salah Tracker application.
 
 This module provides common test fixtures and configuration for all test modules.
 """

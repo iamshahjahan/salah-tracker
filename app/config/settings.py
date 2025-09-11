@@ -2,7 +2,7 @@
 Application configuration settings.
 
 This module provides environment-based configuration management with proper
-validation and type hints for the Salah Reminders application.
+validation and type hints for the Salah Tracker application.
 """
 
 import os
@@ -56,26 +56,26 @@ class ExternalAPIConfig:
 
 class Config:
     """Base configuration class."""
-    
+
     # Flask configuration
     SECRET_KEY: str = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-production')
     DEBUG: bool = False
     TESTING: bool = False
-    
+
     # Database configuration
     DATABASE_CONFIG: DatabaseConfig = DatabaseConfig(
         url=os.getenv('DATABASE_URL', 'mysql://root:password@localhost/salah_reminders'),
         echo=os.getenv('DATABASE_ECHO', 'False').lower() == 'true'
     )
-    
+
     # JWT configuration
     JWT_CONFIG: JWTConfig = JWTConfig(
         secret_key=os.getenv('JWT_SECRET_KEY', 'jwt-secret-key-change-in-production')
     )
-    
+
     # Mail configuration
     MAIL_CONFIG: Optional[MailConfig] = None
-    
+
     # External API configuration
     EXTERNAL_API_CONFIG: ExternalAPIConfig = ExternalAPIConfig(
         prayer_times_api_key=os.getenv('PRAYER_TIMES_API_KEY', ''),
@@ -83,7 +83,7 @@ class Config:
         prayer_times_base_url=os.getenv('PRAYER_TIMES_BASE_URL', 'http://api.aladhan.com/v1'),
         geocoding_base_url=os.getenv('GEOCODING_BASE_URL', 'https://api.bigdatacloud.net/data')
     )
-    
+
     # Application settings
     PRAYER_TIME_WINDOW_MINUTES: int = 30
     AUTO_UPDATE_INTERVAL_MINUTES: int = 5
@@ -94,7 +94,7 @@ class Config:
         'city': 'Bangalore',
         'country': 'India'
     }
-    
+
     def __post_init__(self):
         """Initialize mail configuration if credentials are provided."""
         if all([
@@ -143,17 +143,17 @@ class TestingConfig(Config):
 def get_config() -> Config:
     """
     Get configuration based on environment.
-    
+
     Returns:
         Config: The appropriate configuration instance based on FLASK_ENV.
     """
     env = os.getenv('FLASK_ENV', 'development').lower()
-    
+
     config_map = {
         'development': DevelopmentConfig,
         'production': ProductionConfig,
         'testing': TestingConfig
     }
-    
+
     config_class = config_map.get(env, DevelopmentConfig)
     return config_class()

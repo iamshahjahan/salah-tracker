@@ -1,4 +1,4 @@
-# Salah Reminders - Prayer Tracking Application
+# Salah Tracker - Prayer Tracking Application
 
 A modern, Flask-based prayer tracking application designed to help Muslims maintain consistency in their daily prayers with advanced features like Qada tracking, calendar views, and automatic status updates.
 
@@ -107,7 +107,7 @@ static/
 ### 1. Clone the Repository
 ```bash
 git clone <repository-url>
-cd salah-reminders
+cd salah-tracker
 ```
 
 ### 2. Backend Setup
@@ -278,10 +278,10 @@ npx tsc --noEmit
 ### Docker Deployment
 ```bash
 # Build Docker image
-docker build -t salah-reminders .
+docker build -t salah-tracker .
 
 # Run container
-docker run -p 5001:5001 --env-file .env salah-reminders
+docker run -p 5001:5001 --env-file .env salah-tracker
 ```
 
 ### Traditional Deployment

@@ -1,9 +1,9 @@
 #!/bin/bash
 
-# Install Git hooks for Salah Reminders
+# Install Git hooks for Salah Tracker
 # This script sets up pre-commit and pre-push hooks for code quality
 
-echo "🔧 Installing Git Hooks for Salah Reminders..."
+echo "🔧 Installing Git Hooks for Salah Tracker..."
 echo "=============================================="
 
 # Check if we're in a git repository

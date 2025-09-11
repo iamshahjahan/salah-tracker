@@ -1,5 +1,5 @@
 {
-  "name": "salah-reminders",
+  "name": "salah-tracker",
   "version": "2.0.0",
   "description": "A modern prayer tracking application for Muslims",
   "main": "static/js/app.js",
@@ -22,7 +22,7 @@
     "qada",
     "calendar"
   ],
-  "author": "Salah Reminders Team",
+  "author": "Salah Tracker Team",
   "license": "MIT",
   "devDependencies": {
     "@babel/core": "^7.23.6",
