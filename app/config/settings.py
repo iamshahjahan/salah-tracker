@@ -64,7 +64,7 @@ class Config:
 
     # Database configuration
     DATABASE_CONFIG: DatabaseConfig = DatabaseConfig(
-        url=os.getenv('DATABASE_URL', 'mysql://root:password@localhost/salah_reminders'),
+        url=os.getenv('DATABASE_URL', 'mysql://root:password@localhost/salah_tracker'),
         echo=os.getenv('DATABASE_ECHO', 'False').lower() == 'true'
     )
 
@@ -117,7 +117,7 @@ class DevelopmentConfig(Config):
     """Development configuration."""
     DEBUG: bool = True
     DATABASE_CONFIG: DatabaseConfig = DatabaseConfig(
-        url=os.getenv('DATABASE_URL', 'mysql://root:password@localhost/salah_reminders'),
+        url=os.getenv('DATABASE_URL', 'mysql://root:password@localhost/salah_tracker'),
         echo=True
     )
 

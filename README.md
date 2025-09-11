@@ -143,7 +143,7 @@ Create a `.env` file with the following variables:
 ```env
 SECRET_KEY=your-secret-key
 JWT_SECRET_KEY=your-jwt-secret-key
-DATABASE_URL=mysql://username:password@localhost/salah_reminders
+DATABASE_URL=mysql://username:password@localhost/salah_tracker
 PRAYER_TIMES_API_KEY=your-api-key
 GEOCODING_API_KEY=your-geocoding-api-key
 MAIL_SERVER=smtp.gmail.com
