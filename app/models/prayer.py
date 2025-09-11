@@ -11,7 +11,7 @@ class PrayerType(Enum):
 
 class Prayer(db.Model):
     __tablename__ = 'prayers'
-    
+
     id = db.Column(db.Integer, primary_key=True)
     prayer_type = db.Column(db.Enum(PrayerType), nullable=False)
     prayer_date = db.Column(db.Date, nullable=False)
@@ -20,7 +20,7 @@ class Prayer(db.Model):
     location_lng = db.Column(db.Float, nullable=True)
     timezone = db.Column(db.String(50), default='UTC')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
+
     def to_dict(self):
         """Convert prayer object to dictionary"""
         return {
@@ -33,13 +33,13 @@ class Prayer(db.Model):
             'timezone': self.timezone,
             'created_at': self.created_at.isoformat() if self.created_at else None
         }
-    
+
     def __repr__(self):
         return f'<Prayer {self.prayer_type.value} on {self.prayer_date}>'
 
 class PrayerCompletion(db.Model):
     __tablename__ = 'prayer_completions'
-    
+
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     prayer_id = db.Column(db.Integer, db.ForeignKey('prayers.id'), nullable=False)
@@ -47,10 +47,10 @@ class PrayerCompletion(db.Model):
     is_late = db.Column(db.Boolean, default=False)
     is_qada = db.Column(db.Boolean, default=False)  # True if prayer was missed and completed later
     notes = db.Column(db.Text, nullable=True)
-    
+
     # Relationships
     prayer = db.relationship('Prayer', backref='completions')
-    
+
     def to_dict(self):
         """Convert prayer completion object to dictionary"""
         return {
@@ -63,6 +63,6 @@ class PrayerCompletion(db.Model):
             'notes': self.notes,
             'prayer': self.prayer.to_dict() if self.prayer else None
         }
-    
+
     def __repr__(self):
         return f'<PrayerCompletion user_id={self.user_id} prayer_id={self.prayer_id}>'

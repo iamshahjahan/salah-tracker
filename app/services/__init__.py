@@ -12,7 +12,7 @@ from .notification_service import NotificationService
 
 __all__ = [
     'AuthService',
-    'PrayerService', 
+    'PrayerService',
     'UserService',
     'NotificationService'
 ]

@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 from database import db
 from app.models.user import User
+from app.services.auth_service import AuthService
 from datetime import datetime
 
 auth_bp = Blueprint('auth', __name__)
@@ -181,4 +182,126 @@ def change_password():
 
     except Exception as e:
         db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@auth_bp.route('/send-verification', methods=['POST'])
+@jwt_required()
+def send_email_verification():
+    """Send email verification code to current user"""
+    try:
+        user_id = get_jwt_identity()
+        auth_service = AuthService()
+
+        result = auth_service.send_email_verification(user_id)
+
+        if result['success']:
+            return jsonify(result), 200
+        else:
+            return jsonify(result), 400
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@auth_bp.route('/verify-email', methods=['POST'])
+def verify_email():
+    """Verify user's email with verification code"""
+    try:
+        data = request.get_json()
+
+        if not data.get('email') or not data.get('code'):
+            return jsonify({'error': 'Email and verification code are required'}), 400
+
+        auth_service = AuthService()
+        result = auth_service.verify_email(data['email'], data['code'])
+
+        if result['success']:
+            return jsonify(result), 200
+        else:
+            return jsonify(result), 400
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@auth_bp.route('/send-login-otp', methods=['POST'])
+def send_login_otp():
+    """Send OTP for login to user's email"""
+    try:
+        data = request.get_json()
+
+        if not data.get('email'):
+            return jsonify({'error': 'Email is required'}), 400
+
+        auth_service = AuthService()
+        result = auth_service.send_login_otp(data['email'])
+
+        if result['success']:
+            return jsonify(result), 200
+        else:
+            return jsonify(result), 400
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@auth_bp.route('/login-with-otp', methods=['POST'])
+def login_with_otp():
+    """Login user with OTP"""
+    try:
+        data = request.get_json()
+
+        if not data.get('email') or not data.get('otp'):
+            return jsonify({'error': 'Email and OTP are required'}), 400
+
+        auth_service = AuthService()
+        result = auth_service.authenticate_with_otp(data['email'], data['otp'])
+
+        if result['success']:
+            return jsonify({
+                'message': 'Login successful',
+                'access_token': result['access_token'],
+                'user': result['user']
+            }), 200
+        else:
+            return jsonify(result), 400
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@auth_bp.route('/forgot-password', methods=['POST'])
+def forgot_password():
+    """Send password reset link to user's email"""
+    try:
+        data = request.get_json()
+
+        if not data.get('email'):
+            return jsonify({'error': 'Email is required'}), 400
+
+        auth_service = AuthService()
+        result = auth_service.send_password_reset(data['email'])
+
+        if result['success']:
+            return jsonify(result), 200
+        else:
+            return jsonify(result), 400
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@auth_bp.route('/reset-password', methods=['POST'])
+def reset_password():
+    """Reset user's password using verification code"""
+    try:
+        data = request.get_json()
+
+        if not data.get('code') or not data.get('new_password'):
+            return jsonify({'error': 'Reset code and new password are required'}), 400
+
+        auth_service = AuthService()
+        result = auth_service.reset_password_with_code(data['code'], data['new_password'])
+
+        if result['success']:
+            return jsonify(result), 200
+        else:
+            return jsonify(result), 400
+
+    except Exception as e:
         return jsonify({'error': str(e)}), 500

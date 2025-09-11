@@ -1,6 +1,6 @@
 /**
  * Unit tests for utility functions.
- * 
+ *
  * This module contains comprehensive unit tests for utility functions
  * used throughout the frontend application.
  */
@@ -144,7 +144,7 @@ class UtilityTests {
      */
     async run() {
         console.log('Running utility tests...\n');
-        
+
         for (const test of this.tests) {
             try {
                 await test.testFn();
@@ -155,7 +155,7 @@ class UtilityTests {
                 this.failed++;
             }
         }
-        
+
         console.log(`\nTest Results: ${this.passed} passed, ${this.failed} failed`);
         return this.failed === 0;
     }
@@ -186,7 +186,7 @@ function testDateUtils() {
         const date1 = new Date('2024-01-15');
         const date2 = new Date('2024-01-15');
         const date3 = new Date('2024-01-16');
-        
+
         tests.assertEqual(isSameDate(date1, date2), true);
         tests.assertEqual(isSameDate(date1, date3), false);
     });
@@ -194,7 +194,7 @@ function testDateUtils() {
     tests.test('isToday should detect today correctly', () => {
         const today = new Date();
         const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000);
-        
+
         tests.assertEqual(isToday(today), true);
         tests.assertEqual(isToday(yesterday), false);
     });
@@ -209,14 +209,14 @@ function testAPIUtils() {
     tests.test('makeAPIRequest should handle successful requests', async () => {
         const mockResponse = { success: true, data: 'test' };
         global.fetch = () => mockFetch(mockResponse);
-        
+
         const result = await makeAPIRequest('/api/test');
         tests.assertDeepEqual(result, mockResponse);
     });
 
     tests.test('makeAPIRequest should handle failed requests', async () => {
         global.fetch = () => mockFetch({ error: 'Not found' }, 404);
-        
+
         try {
             await makeAPIRequest('/api/test');
             tests.assert(false, 'Should have thrown an error');
@@ -227,7 +227,7 @@ function testAPIUtils() {
 
     tests.test('makeAPIRequest should handle network errors', async () => {
         global.fetch = () => Promise.reject(new Error('Network error'));
-        
+
         try {
             await makeAPIRequest('/api/test');
             tests.assert(false, 'Should have thrown an error');
@@ -249,7 +249,7 @@ function testValidationUtils() {
             'user.name@domain.co.uk',
             'user+tag@example.org'
         ];
-        
+
         validEmails.forEach(email => {
             const result = validateEmail(email);
             tests.assertEqual(result.isValid, true, `Email ${email} should be valid`);
@@ -263,7 +263,7 @@ function testValidationUtils() {
             'user@',
             'user@.com'
         ];
-        
+
         invalidEmails.forEach(email => {
             const result = validateEmail(email);
             tests.assertEqual(result.isValid, false, `Email ${email} should be invalid`);
@@ -276,7 +276,7 @@ function testValidationUtils() {
             'MySecurePass1@',
             'Test123#Pass'
         ];
-        
+
         validPasswords.forEach(password => {
             const result = validatePassword(password);
             tests.assertEqual(result.isValid, true, `Password should be valid`);
@@ -291,7 +291,7 @@ function testValidationUtils() {
             'NoNumbers!',
             'NoSpecialChars123'
         ];
-        
+
         invalidPasswords.forEach(password => {
             const result = validatePassword(password);
             tests.assertEqual(result.isValid, false, `Password should be invalid`);
@@ -308,7 +308,7 @@ function testLocalStorageUtils() {
     tests.test('setAuthToken should store token in localStorage', () => {
         const token = 'test-token-123';
         setAuthToken(token);
-        
+
         const stored = localStorage.getItem('authToken');
         tests.assertEqual(stored, token);
     });
@@ -316,7 +316,7 @@ function testLocalStorageUtils() {
     tests.test('getAuthToken should retrieve token from localStorage', () => {
         const token = 'test-token-456';
         localStorage.setItem('authToken', token);
-        
+
         const retrieved = getAuthToken();
         tests.assertEqual(retrieved, token);
     });
@@ -324,7 +324,7 @@ function testLocalStorageUtils() {
     tests.test('removeAuthToken should remove token from localStorage', () => {
         localStorage.setItem('authToken', 'test-token');
         removeAuthToken();
-        
+
         const retrieved = getAuthToken();
         tests.assertEqual(retrieved, null);
     });
@@ -349,7 +349,7 @@ function testUIUtils() {
     tests.test('showNotification should display success message', () => {
         const message = 'Test success message';
         showNotification(message, 'success');
-        
+
         // In a real test environment, you would check if the notification was displayed
         tests.assert(true, 'Notification should be displayed');
     });
@@ -357,21 +357,21 @@ function testUIUtils() {
     tests.test('showNotification should display error message', () => {
         const message = 'Test error message';
         showNotification(message, 'error');
-        
+
         tests.assert(true, 'Error notification should be displayed');
     });
 
     tests.test('hideElement should hide element', () => {
         const element = { style: { display: '' } };
         hideElement(element);
-        
+
         tests.assertEqual(element.style.display, 'none');
     });
 
     tests.test('showElement should show element', () => {
         const element = { style: { display: 'none' } };
         showElement(element);
-        
+
         tests.assertEqual(element.style.display, 'block');
     });
 
@@ -387,7 +387,7 @@ function testPrayerUtils() {
             completed: true,
             completion: { is_late: false, is_qada: false }
         };
-        
+
         const status = getPrayerStatus(prayer);
         tests.assertEqual(status, 'completed');
     });
@@ -397,7 +397,7 @@ function testPrayerUtils() {
             completed: true,
             completion: { is_late: true, is_qada: true }
         };
-        
+
         const status = getPrayerStatus(prayer);
         tests.assertEqual(status, 'qada');
     });
@@ -407,7 +407,7 @@ function testPrayerUtils() {
             completed: false,
             is_missed: true
         };
-        
+
         const status = getPrayerStatus(prayer);
         tests.assertEqual(status, 'missed');
     });
@@ -418,7 +418,7 @@ function testPrayerUtils() {
             is_missed: true,
             can_mark_qada: true
         };
-        
+
         tests.assertEqual(canMarkQada(prayer), true);
     });
 
@@ -428,7 +428,7 @@ function testPrayerUtils() {
             is_missed: false,
             can_mark_qada: false
         };
-        
+
         tests.assertEqual(canMarkQada(prayer), false);
     });
 
@@ -438,7 +438,7 @@ function testPrayerUtils() {
 // Run all utility tests
 async function runAllUtilityTests() {
     console.log('=== Running Frontend Utility Tests ===\n');
-    
+
     const testSuites = [
         { name: 'Date Utils', fn: testDateUtils },
         { name: 'API Utils', fn: testAPIUtils },
@@ -447,10 +447,10 @@ async function runAllUtilityTests() {
         { name: 'UI Utils', fn: testUIUtils },
         { name: 'Prayer Utils', fn: testPrayerUtils }
     ];
-    
+
     let totalPassed = 0;
     let totalFailed = 0;
-    
+
     for (const suite of testSuites) {
         console.log(`\n--- ${suite.name} ---`);
         try {
@@ -465,12 +465,12 @@ async function runAllUtilityTests() {
             totalFailed++;
         }
     }
-    
+
     console.log(`\n=== Test Summary ===`);
     console.log(`Total Suites: ${testSuites.length}`);
     console.log(`Passed: ${totalPassed}`);
     console.log(`Failed: ${totalFailed}`);
-    
+
     return totalFailed === 0;
 }
 

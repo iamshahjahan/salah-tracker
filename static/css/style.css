@@ -442,11 +442,11 @@ select:focus {
     .city-grid {
         grid-template-columns: 1fr;
     }
-    
+
     .location-selection {
         padding: 10px;
     }
-    
+
     .detected-location, .selected-location {
         padding: 10px;
     }
@@ -485,7 +485,7 @@ select:focus {
         text-align: center;
         gap: 10px;
     }
-    
+
     .prayer-date {
         font-size: 1rem;
         padding: 8px 16px;
@@ -1006,7 +1006,7 @@ select:focus {
     .modal {
         padding: 10px 0;
     }
-    
+
     .modal-content {
         margin: 10px auto;
         padding: 30px 20px;
@@ -1014,6 +1014,77 @@ select:focus {
         max-height: 90vh;
         overflow-y: auto;
     }
+}
+
+/* Login Method Tabs */
+.login-method-selection {
+    margin-bottom: 20px;
+}
+
+.method-tabs {
+    display: flex;
+    background: #f8f9fa;
+    border-radius: 10px;
+    padding: 4px;
+    margin-bottom: 20px;
+}
+
+.method-tab {
+    flex: 1;
+    padding: 12px 16px;
+    border: none;
+    background: transparent;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: #666;
+}
+
+.method-tab.active {
+    background: white;
+    color: #667eea;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.method-tab:hover:not(.active) {
+    color: #667eea;
+    background: rgba(102, 126, 234, 0.1);
+}
+
+.login-form {
+    display: none;
+}
+
+.login-form.active {
+    display: block;
+}
+
+/* Email Verification Styles */
+.verification-info {
+    background: rgba(102, 126, 234, 0.1);
+    border: 1px solid rgba(102, 126, 234, 0.2);
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 20px;
+    color: #667eea;
+    font-size: 0.9rem;
+}
+
+.verification-info i {
+    margin-right: 8px;
+}
+
+/* OTP Input Styles */
+#otpCode {
+    text-align: center;
+    font-size: 1.2rem;
+    letter-spacing: 0.2em;
+    font-weight: 600;
 }
 
 /* Utility Classes */

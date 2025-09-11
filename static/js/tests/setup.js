@@ -1,6 +1,6 @@
 /**
  * Jest setup file for frontend tests.
- * 
+ *
  * This file configures the test environment and provides
  * global mocks and utilities for testing.
  */
@@ -134,7 +134,7 @@ global.testUtils = {
     setAttribute: jest.fn(),
     getAttribute: jest.fn(() => null)
   }),
-  
+
   createMockUser: () => ({
     id: 1,
     email: 'test@example.com',
@@ -145,7 +145,7 @@ global.testUtils = {
     timezone: 'Asia/Kolkata',
     created_at: '2024-01-01T00:00:00Z'
   }),
-  
+
   createMockPrayer: () => ({
     id: 1,
     name: 'Fajr',
@@ -156,7 +156,7 @@ global.testUtils = {
     can_mark_qada: false,
     completion: null
   }),
-  
+
   createMockAPIResponse: (data, success = true) => ({
     success,
     data,

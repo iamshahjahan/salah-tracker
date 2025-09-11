@@ -56,7 +56,21 @@
                 <div class="modal-content">
                     <span class="close" onclick="closeModal('loginModal')">&times;</span>
                     <h2>Login to Your Account</h2>
-                    <form id="loginForm">
+
+                    <!-- Login Method Selection -->
+                    <div class="login-method-selection">
+                        <div class="method-tabs">
+                            <button type="button" class="method-tab active" onclick="switchLoginMethod('password')">
+                                <i class="fas fa-key"></i> Password
+                            </button>
+                            <button type="button" class="method-tab" onclick="switchLoginMethod('otp')">
+                                <i class="fas fa-envelope"></i> Email Code
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Password Login Form -->
+                    <form id="loginForm" class="login-form active">
                         <div class="form-group">
                             <label for="loginUsername">Username or Email</label>
                             <input type="text" id="loginUsername" name="username" required>
@@ -67,9 +81,35 @@
                         </div>
                         <button type="submit" class="btn btn-primary btn-full">Login</button>
                     </form>
-                    <p class="modal-footer">
-                        Don't have an account? <a href="#" onclick="showRegister()">Register here</a>
-                    </p>
+
+                    <!-- OTP Login Form -->
+                    <form id="otpLoginForm" class="login-form">
+                        <div class="form-group">
+                            <label for="otpEmail">Email Address</label>
+                            <input type="email" id="otpEmail" name="email" required>
+                        </div>
+                        <div class="form-group">
+                            <button type="button" class="btn btn-secondary btn-full" onclick="sendLoginOTP()">
+                                <i class="fas fa-paper-plane"></i> Send Login Code
+                            </button>
+                        </div>
+                        <div class="form-group" id="otpCodeGroup" style="display: none;">
+                            <label for="otpCode">Enter 6-digit code</label>
+                            <input type="text" id="otpCode" name="otp" maxlength="6" pattern="[0-9]{6}" placeholder="123456">
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-full" id="otpLoginBtn" style="display: none;">
+                            <i class="fas fa-sign-in-alt"></i> Login with Code
+                        </button>
+                    </form>
+
+                    <div class="modal-footer">
+                        <p>
+                            <a href="#" onclick="showForgotPassword()">Forgot Password?</a>
+                        </p>
+                        <p>
+                            Don't have an account? <a href="#" onclick="showRegister()">Register here</a>
+                        </p>
+                    </div>
                 </div>
             </div>
 
@@ -187,7 +227,7 @@
             <section id="dashboard" class="section">
                 <div class="container">
                     <h2 class="section-title">Your Prayer Dashboard</h2>
-                    
+
                     <!-- Calendar Navigation -->
                     <div class="calendar-header">
                         <button class="btn btn-secondary" onclick="previousMonth()">
@@ -202,14 +242,14 @@
                         <i class="fas fa-info-circle"></i>
                         <span>Click on any day to view prayers. You can mark missed prayers as Qada for past days.</span>
                     </div>
-                    
+
                     <!-- Calendar Grid -->
                     <div class="calendar-container">
                         <div class="calendar-grid" id="calendarGrid">
                             <div class="loading">Loading calendar...</div>
                         </div>
                     </div>
-                    
+
                     <!-- Selected Day Prayer Times -->
                     <div class="selected-day-prayers" id="selectedDayPrayers" style="display: none;">
                         <h4 class="selected-day-title" id="selectedDayTitle">Prayer Times for Selected Day</h4>
@@ -217,7 +257,7 @@
                             <div class="loading">Loading prayer times...</div>
                         </div>
                     </div>
-                    
+
                     <!-- Dashboard Stats -->
                     <div class="dashboard-stats" id="dashboardStats">
                         <div class="loading">Loading dashboard...</div>
@@ -288,6 +328,78 @@
                         </label>
                     </div>
                     <button type="submit" class="btn btn-primary btn-full">Add Family Member</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Email Verification Modal -->
+        <div id="emailVerificationModal" class="modal">
+            <div class="modal-content">
+                <span class="close" onclick="closeModal('emailVerificationModal')">&times;</span>
+                <h2>Verify Your Email</h2>
+                <p>We've sent a 6-digit verification code to your email address. Please enter it below.</p>
+                <form id="emailVerificationForm">
+                    <div class="form-group">
+                        <label for="verificationEmail">Email Address</label>
+                        <input type="email" id="verificationEmail" name="email" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label for="verificationCode">Verification Code</label>
+                        <input type="text" id="verificationCode" name="code" maxlength="6" pattern="[0-9]{6}" placeholder="123456" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-full">Verify Email</button>
+                </form>
+                <div class="modal-footer">
+                    <p>
+                        Didn't receive the code?
+                        <a href="#" onclick="resendVerificationCode()">Resend Code</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Forgot Password Modal -->
+        <div id="forgotPasswordModal" class="modal">
+            <div class="modal-content">
+                <span class="close" onclick="closeModal('forgotPasswordModal')">&times;</span>
+                <h2>Reset Your Password</h2>
+                <p>Enter your email address and we'll send you a password reset link.</p>
+                <form id="forgotPasswordForm">
+                    <div class="form-group">
+                        <label for="forgotPasswordEmail">Email Address</label>
+                        <input type="email" id="forgotPasswordEmail" name="email" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-full">Send Reset Link</button>
+                </form>
+                <div class="modal-footer">
+                    <p>
+                        Remember your password?
+                        <a href="#" onclick="showLogin()">Back to Login</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Reset Password Modal -->
+        <div id="resetPasswordModal" class="modal">
+            <div class="modal-content">
+                <span class="close" onclick="closeModal('resetPasswordModal')">&times;</span>
+                <h2>Set New Password</h2>
+                <p>Enter your new password below.</p>
+                <form id="resetPasswordForm">
+                    <div class="form-group">
+                        <label for="resetCode">Reset Code</label>
+                        <input type="text" id="resetCode" name="code" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label for="newPassword">New Password</label>
+                        <input type="password" id="newPassword" name="new_password" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="confirmNewPassword">Confirm New Password</label>
+                        <input type="password" id="confirmNewPassword" name="confirm_password" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-full">Reset Password</button>
                 </form>
             </div>
         </div>

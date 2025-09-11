@@ -9,9 +9,12 @@ const API_BASE = '';
 document.addEventListener('DOMContentLoaded', function() {
     initializeApp();
     setupEventListeners();
-    
+
     // Clean up any existing user info elements first
     cleanupUserInfo();
+
+    // Check for URL parameters (for password reset)
+    checkURLParameters();
 
     // Check if user is logged in
     if (authToken) {
@@ -22,7 +25,7 @@ document.addEventListener('DOMContentLoaded', function() {
     } else {
         updateUIForLoggedOutUser();
     }
-    
+
     // Set up automatic prayer status updates every 5 minutes
     setInterval(() => {
         if (authToken && document.getElementById('prayerTimes')) {
@@ -37,6 +40,19 @@ function cleanupUserInfo() {
     existingUserInfos.forEach(element => element.remove());
 }
 
+function checkURLParameters() {
+    // Check for password reset code in URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const resetCode = urlParams.get('code');
+
+    if (resetCode) {
+        // Show reset password modal
+        showResetPassword(resetCode);
+        // Clean up URL
+        window.history.replaceState({}, document.title, window.location.pathname);
+    }
+}
+
 function initializeApp() {
     // Setup navigation
     const navLinks = document.querySelectorAll('.nav-link');
@@ -45,7 +61,7 @@ function initializeApp() {
             e.preventDefault();
             const sectionId = this.getAttribute('href').substring(1);
             showSection(sectionId);
-            
+
             // Update active nav link
             navLinks.forEach(l => l.classList.remove('active'));
             this.classList.add('active');
@@ -55,7 +71,7 @@ function initializeApp() {
     // Setup mobile menu toggle
     const navToggle = document.getElementById('nav-toggle');
     const navMenu = document.getElementById('nav-menu');
-    
+
     navToggle.addEventListener('click', function() {
         navMenu.classList.toggle('active');
     });
@@ -86,6 +102,30 @@ function setupEventListeners() {
     if (addFamilyForm) {
         addFamilyForm.addEventListener('submit', handleAddFamily);
     }
+
+    // OTP login form
+    const otpLoginForm = document.getElementById('otpLoginForm');
+    if (otpLoginForm) {
+        otpLoginForm.addEventListener('submit', handleOTPLogin);
+    }
+
+    // Email verification form
+    const emailVerificationForm = document.getElementById('emailVerificationForm');
+    if (emailVerificationForm) {
+        emailVerificationForm.addEventListener('submit', handleEmailVerification);
+    }
+
+    // Forgot password form
+    const forgotPasswordForm = document.getElementById('forgotPasswordForm');
+    if (forgotPasswordForm) {
+        forgotPasswordForm.addEventListener('submit', handleForgotPassword);
+    }
+
+    // Reset password form
+    const resetPasswordForm = document.getElementById('resetPasswordForm');
+    if (resetPasswordForm) {
+        resetPasswordForm.addEventListener('submit', handleResetPassword);
+    }
 }
 
 // Navigation functions
@@ -93,12 +133,12 @@ function showSection(sectionId) {
     // Hide all sections
     const sections = document.querySelectorAll('.section');
     sections.forEach(section => section.classList.remove('active'));
-    
+
     // Show selected section
     const targetSection = document.getElementById(sectionId);
     if (targetSection) {
         targetSection.classList.add('active');
-        
+
         // Load section data
         switch(sectionId) {
             case 'prayers':
@@ -132,8 +172,43 @@ function showAddFamilyModal() {
     document.getElementById('addFamilyModal').style.display = 'block';
 }
 
+function showForgotPassword() {
+    closeModal('loginModal');
+    document.getElementById('forgotPasswordModal').style.display = 'block';
+}
+
+function showEmailVerification(email) {
+    document.getElementById('verificationEmail').value = email;
+    document.getElementById('emailVerificationModal').style.display = 'block';
+}
+
+function showResetPassword(code) {
+    document.getElementById('resetCode').value = code;
+    document.getElementById('resetPasswordModal').style.display = 'block';
+}
+
 function closeModal(modalId) {
     document.getElementById(modalId).style.display = 'none';
+}
+
+// Login method switching
+function switchLoginMethod(method) {
+    const passwordForm = document.getElementById('loginForm');
+    const otpForm = document.getElementById('otpLoginForm');
+    const tabs = document.querySelectorAll('.method-tab');
+
+    // Update tab states
+    tabs.forEach(tab => tab.classList.remove('active'));
+    event.target.classList.add('active');
+
+    // Show/hide forms
+    if (method === 'password') {
+        passwordForm.classList.add('active');
+        otpForm.classList.remove('active');
+    } else {
+        passwordForm.classList.remove('active');
+        otpForm.classList.add('active');
+    }
 }
 
 // Close modals when clicking outside
@@ -149,7 +224,7 @@ window.addEventListener('click', function(event) {
 // Authentication functions
 async function handleLogin(e) {
     e.preventDefault();
-    
+
     const formData = new FormData(e.target);
     const loginData = {
         username: formData.get('username'),
@@ -171,7 +246,7 @@ async function handleLogin(e) {
             authToken = data.access_token;
             currentUser = data.user;
             localStorage.setItem('authToken', authToken);
-            
+
             closeModal('loginModal');
             loadUserProfile().then(() => {
                 updateUIForLoggedInUser();
@@ -192,15 +267,15 @@ let selectedLocationData = {};
 
 async function handleRegister(e) {
     e.preventDefault();
-    
+
     const formData = new FormData(e.target);
-    
+
     // Use selected location data if available, otherwise use detected or default
     let locationData = selectedLocationData;
     if (!locationData.lat || !locationData.lng) {
         locationData = detectedLocationData;
     }
-    
+
     // If still no location, use default (Bangalore, India)
     if (!locationData.lat || !locationData.lng) {
         locationData = {
@@ -210,7 +285,7 @@ async function handleRegister(e) {
             city: 'Bangalore, India'
         };
     }
-    
+
     const registerData = {
         username: formData.get('username'),
         email: formData.get('email'),
@@ -238,15 +313,231 @@ async function handleRegister(e) {
             authToken = data.access_token;
             currentUser = data.user;
             localStorage.setItem('authToken', authToken);
-            
+
             closeModal('registerModal');
             loadUserProfile().then(() => {
                 updateUIForLoggedInUser();
                 showSection('prayers');
             });
             showNotification('Account created successfully!', 'success');
+
+            // Show email verification modal for new users
+            if (currentUser && !currentUser.email_verified) {
+                setTimeout(() => {
+                    showEmailVerification(currentUser.email);
+                }, 1000);
+            }
         } else {
             showNotification(data.error || 'Registration failed', 'error');
+        }
+    } catch (error) {
+        showNotification('Network error. Please try again.', 'error');
+    }
+}
+
+// OTP Login Functions
+async function sendLoginOTP() {
+    const email = document.getElementById('otpEmail').value;
+
+    if (!email) {
+        showNotification('Please enter your email address', 'error');
+        return;
+    }
+
+    try {
+        const response = await fetch(`${API_BASE}/api/auth/send-login-otp`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ email: email })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            showNotification('Login code sent to your email!', 'success');
+            // Show OTP input fields
+            document.getElementById('otpCodeGroup').style.display = 'block';
+            document.getElementById('otpLoginBtn').style.display = 'block';
+        } else {
+            showNotification(data.error || 'Failed to send login code', 'error');
+        }
+    } catch (error) {
+        showNotification('Network error. Please try again.', 'error');
+    }
+}
+
+async function handleOTPLogin(e) {
+    e.preventDefault();
+
+    const formData = new FormData(e.target);
+    const loginData = {
+        email: formData.get('email'),
+        otp: formData.get('otp')
+    };
+
+    if (!loginData.email || !loginData.otp) {
+        showNotification('Please enter email and OTP code', 'error');
+        return;
+    }
+
+    try {
+        const response = await fetch(`${API_BASE}/api/auth/login-with-otp`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(loginData)
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            authToken = data.access_token;
+            currentUser = data.user;
+            localStorage.setItem('authToken', authToken);
+
+            closeModal('loginModal');
+            loadUserProfile().then(() => {
+                updateUIForLoggedInUser();
+                showSection('prayers');
+            });
+            showNotification('Login successful!', 'success');
+        } else {
+            showNotification(data.error || 'Login failed', 'error');
+        }
+    } catch (error) {
+        showNotification('Network error. Please try again.', 'error');
+    }
+}
+
+// Email Verification Functions
+async function handleEmailVerification(e) {
+    e.preventDefault();
+
+    const formData = new FormData(e.target);
+    const verificationData = {
+        email: formData.get('email'),
+        code: formData.get('code')
+    };
+
+    try {
+        const response = await fetch(`${API_BASE}/api/auth/verify-email`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(verificationData)
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            showNotification('Email verified successfully!', 'success');
+            closeModal('emailVerificationModal');
+            // Update user profile to reflect verified status
+            if (currentUser) {
+                currentUser.email_verified = true;
+            }
+        } else {
+            showNotification(data.error || 'Verification failed', 'error');
+        }
+    } catch (error) {
+        showNotification('Network error. Please try again.', 'error');
+    }
+}
+
+async function resendVerificationCode() {
+    if (!authToken) {
+        showNotification('Please login first', 'error');
+        return;
+    }
+
+    try {
+        const response = await fetch(`${API_BASE}/api/auth/send-verification`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${authToken}`
+            }
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            showNotification('Verification code sent!', 'success');
+        } else {
+            showNotification(data.error || 'Failed to send verification code', 'error');
+        }
+    } catch (error) {
+        showNotification('Network error. Please try again.', 'error');
+    }
+}
+
+// Password Reset Functions
+async function handleForgotPassword(e) {
+    e.preventDefault();
+
+    const formData = new FormData(e.target);
+    const email = formData.get('email');
+
+    try {
+        const response = await fetch(`${API_BASE}/api/auth/forgot-password`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ email: email })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            showNotification('Password reset link sent to your email!', 'success');
+            closeModal('forgotPasswordModal');
+        } else {
+            showNotification(data.error || 'Failed to send reset link', 'error');
+        }
+    } catch (error) {
+        showNotification('Network error. Please try again.', 'error');
+    }
+}
+
+async function handleResetPassword(e) {
+    e.preventDefault();
+
+    const formData = new FormData(e.target);
+    const resetData = {
+        code: formData.get('code'),
+        new_password: formData.get('new_password'),
+        confirm_password: formData.get('confirm_password')
+    };
+
+    if (resetData.new_password !== resetData.confirm_password) {
+        showNotification('Passwords do not match', 'error');
+        return;
+    }
+
+    try {
+        const response = await fetch(`${API_BASE}/api/auth/reset-password`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                code: resetData.code,
+                new_password: resetData.new_password
+            })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            showNotification('Password reset successfully!', 'success');
+            closeModal('resetPasswordModal');
+            showLogin();
+        } else {
+            showNotification(data.error || 'Password reset failed', 'error');
         }
     } catch (error) {
         showNotification('Network error. Please try again.', 'error');
@@ -291,26 +582,26 @@ async function getUserLocation() {
                 try {
                     const lat = position.coords.latitude;
                     const lng = position.coords.longitude;
-                    
+
                     // Get timezone from coordinates
                     const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-                    
+
                     // Get city name from coordinates (simplified)
                     const city = await getCityFromCoordinates(lat, lng);
-                    
+
                     const locationData = {
                         lat: lat,
                         lng: lng,
                         timezone: timezone,
                         city: city
                     };
-                    
+
                     // Store detected location data
                     detectedLocationData = locationData;
-                    
+
                     // Show detected location in UI
                     showDetectedLocation(locationData);
-                    
+
                     resolve(locationData);
                 } catch (error) {
                     reject(error);
@@ -363,10 +654,10 @@ function selectCity(cityName, lat, lng, timezone) {
         timezone: timezone,
         city: cityName
     };
-    
+
     selectedLocationData = locationData;
     showSelectedLocation(locationData);
-    
+
     // Update button states
     document.querySelectorAll('.city-btn').forEach(btn => {
         btn.classList.remove('selected');
@@ -378,14 +669,14 @@ function showSelectedLocation(locationData) {
     const selectedLocation = document.getElementById('selectedLocation');
     const selectedLocationDetails = document.getElementById('selectedLocationDetails');
     const locationOptions = document.getElementById('locationOptions');
-    
+
     if (selectedLocation && selectedLocationDetails) {
         selectedLocationDetails.innerHTML = `
             <div><strong>City:</strong> ${locationData.city}</div>
             <div><strong>Coordinates:</strong> ${locationData.lat.toFixed(4)}, ${locationData.lng.toFixed(4)}</div>
             <div><strong>Timezone:</strong> ${locationData.timezone}</div>
         `;
-        
+
         selectedLocation.style.display = 'block';
         if (locationOptions) {
             locationOptions.style.display = 'none';
@@ -396,7 +687,7 @@ function showSelectedLocation(locationData) {
 function changeLocation() {
     const selectedLocation = document.getElementById('selectedLocation');
     const locationOptions = document.getElementById('locationOptions');
-    
+
     if (selectedLocation && locationOptions) {
         selectedLocation.style.display = 'none';
         locationOptions.style.display = 'block';
@@ -408,7 +699,7 @@ async function getCityFromCoordinates(lat, lng) {
         // Use a simple reverse geocoding service
         const response = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lng}&localityLanguage=en`);
         const data = await response.json();
-        
+
         if (data.city && data.countryName) {
             return `${data.city}, ${data.countryName}`;
         } else if (data.locality && data.countryName) {
@@ -492,7 +783,7 @@ async function loadPrayerTimes() {
 function displayPrayerTimes(prayers) {
     const container = document.getElementById('prayerTimes');
     const dateElement = document.getElementById('prayerDate');
-    
+
     if (!prayers || prayers.length === 0) {
         container.innerHTML = '<div class="loading">No prayer times available</div>';
         dateElement.textContent = 'No date available';
@@ -501,11 +792,11 @@ function displayPrayerTimes(prayers) {
 
     // Display today's date
     const today = new Date();
-    const options = { 
-        weekday: 'long', 
-        year: 'numeric', 
-        month: 'long', 
-        day: 'numeric' 
+    const options = {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
     };
     dateElement.textContent = today.toLocaleDateString('en-US', options);
 
@@ -516,7 +807,7 @@ function displayPrayerTimes(prayers) {
         const canComplete = prayer.can_complete || false;
         const isMissed = prayer.is_missed || false;
         const canMarkQada = prayer.can_mark_qada || false;
-        
+
         // Debug logging (remove in production)
         // console.log(`Prayer ${prayer.prayer_type}:`, {
         //     completed: isCompleted,
@@ -526,14 +817,14 @@ function displayPrayerTimes(prayers) {
         //     canMarkQada: canMarkQada,
         //     prayerData: prayer
         // });
-        
+
         // Determine card status and button state
         let cardClass = '';
         let statusText = '';
         let buttonText = '';
         let buttonDisabled = false;
         let buttonClass = 'complete-btn';
-        
+
         if (isCompleted) {
             if (isQada) {
                 cardClass = 'qada';
@@ -579,7 +870,7 @@ function displayPrayerTimes(prayers) {
             buttonText = 'Not Yet Available';
             buttonDisabled = true;
         }
-        
+
         // Debug button state (remove in production)
         // console.log(`Button for ${prayer.prayer_type}:`, {
         //     buttonClass,
@@ -587,17 +878,17 @@ function displayPrayerTimes(prayers) {
         //     buttonDisabled,
         //     canMarkQada
         // });
-        
+
         const buttonHTML = `
-            <button class="${buttonClass}" 
-                    onclick="${buttonClass === 'qada-btn' ? 'markPrayerQada' : 'completePrayer'}(${prayer.id})" 
+            <button class="${buttonClass}"
+                    onclick="${buttonClass === 'qada-btn' ? 'markPrayerQada' : 'completePrayer'}(${prayer.id})"
                     ${buttonDisabled ? 'disabled' : ''}>
                 ${buttonText}
             </button>
         `;
-        
+
         // console.log(`HTML for ${prayer.prayer_type}:`, buttonHTML);
-        
+
         return `
             <div class="prayer-card ${cardClass}">
                 <div class="prayer-name">${prayer.prayer_type}</div>
@@ -670,14 +961,14 @@ async function loadDashboard() {
     } catch (error) {
         document.getElementById('dashboardStats').innerHTML = '<div class="loading">Error loading dashboard</div>';
     }
-    
+
     // Load calendar
     loadCalendar();
 }
 
 function displayDashboardStats(stats) {
     const container = document.getElementById('dashboardStats');
-    
+
     const statsHTML = `
         <div class="stat-card">
             <div class="stat-number">${stats.overall.completion_rate}%</div>
@@ -713,21 +1004,21 @@ function loadCalendar() {
         }
         return;
     }
-    
+
     // If account creation date is set and current calendar date is before it,
     // set calendar to account creation month
     if (accountCreationDate && currentCalendarDate < accountCreationDate) {
         currentCalendarDate = new Date(accountCreationDate);
     }
-    
+
     const year = currentCalendarDate.getFullYear();
     const month = currentCalendarDate.getMonth();
-    
+
     // Update month display
     const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
         'July', 'August', 'September', 'October', 'November', 'December'];
     document.getElementById('calendarMonth').textContent = `${monthNames[month]} ${year}`;
-    
+
     // Generate calendar
     generateCalendar(year, month);
 }
@@ -737,34 +1028,34 @@ function generateCalendar(year, month) {
     const lastDay = new Date(year, month + 1, 0);
     const daysInMonth = lastDay.getDate();
     const startingDayOfWeek = firstDay.getDay();
-    
+
     const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    
+
     let calendarHTML = '';
-    
+
     // Add day headers
     dayNames.forEach(day => {
         calendarHTML += `<div class="calendar-day-header">${day}</div>`;
     });
-    
+
     // Add empty cells for days before the first day of the month
     for (let i = 0; i < startingDayOfWeek; i++) {
         const prevMonth = new Date(year, month, 0);
         const dayNumber = prevMonth.getDate() - startingDayOfWeek + i + 1;
         calendarHTML += `<div class="calendar-day other-month">${dayNumber}</div>`;
     }
-    
+
     // Add days of the month
     for (let day = 1; day <= daysInMonth; day++) {
         const date = new Date(year, month, day);
         const isToday = isSameDate(date, new Date());
         const isSelected = selectedDate && isSameDate(date, selectedDate);
-        
+
         // Check if this date is before account creation
         const isBeforeAccountCreation = accountCreationDate && date < accountCreationDate;
-        
+
         calendarHTML += `
-            <div class="calendar-day ${isToday ? 'today' : ''} ${isSelected ? 'selected' : ''} ${isBeforeAccountCreation ? 'disabled' : ''}" 
+            <div class="calendar-day ${isToday ? 'today' : ''} ${isSelected ? 'selected' : ''} ${isBeforeAccountCreation ? 'disabled' : ''}"
                  ${isBeforeAccountCreation ? '' : `onclick="selectDate('${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}')"`}>
                 <div class="calendar-day-number">${day}</div>
                 <div class="calendar-day-prayers" id="prayers-${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}">
@@ -773,15 +1064,15 @@ function generateCalendar(year, month) {
             </div>
         `;
     }
-    
+
     // Add empty cells for days after the last day of the month
     const remainingCells = 42 - (startingDayOfWeek + daysInMonth);
     for (let i = 1; i <= remainingCells; i++) {
         calendarHTML += `<div class="calendar-day other-month">${i}</div>`;
     }
-    
+
     document.getElementById('calendarGrid').innerHTML = calendarHTML;
-    
+
     // Load prayer data for visible days
     loadPrayerDataForMonth(year, month);
 }
@@ -794,26 +1085,26 @@ function isSameDate(date1, date2) {
 
 async function loadPrayerDataForMonth(year, month) {
     if (!authToken) return;
-    
+
     const daysInMonth = new Date(year, month + 1, 0).getDate();
-    
+
     for (let day = 1; day <= daysInMonth; day++) {
         const date = new Date(year, month, day);
-        
+
         // Skip dates before account creation
         if (accountCreationDate && date < accountCreationDate) {
             continue;
         }
-        
+
         const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-        
+
         try {
             const response = await fetch(`${API_BASE}/api/prayers/times/${dateStr}`, {
                 headers: {
                     'Authorization': `Bearer ${authToken}`
                 }
             });
-            
+
             if (response.ok) {
                 const data = await response.json();
                 updatePrayerDots(dateStr, data.prayers);
@@ -827,11 +1118,11 @@ async function loadPrayerDataForMonth(year, month) {
 function updatePrayerDots(dateStr, prayers) {
     const container = document.getElementById(`prayers-${dateStr}`);
     if (!container) return;
-    
+
     let dotsHTML = '';
     prayers.forEach(prayer => {
         let status = 'pending'; // Default orange for pending
-        
+
         if (prayer.completed) {
             if (prayer.completion && prayer.completion.is_qada) {
                 status = 'qada'; // Yellow for Qada
@@ -841,22 +1132,22 @@ function updatePrayerDots(dateStr, prayers) {
         } else if (prayer.is_missed) {
             status = 'missed'; // Red for missed
         }
-        
+
         dotsHTML += `<div class="prayer-dot ${status}"></div>`;
     });
-    
+
     container.innerHTML = dotsHTML;
 }
 
 function previousMonth() {
     const newDate = new Date(currentCalendarDate);
     newDate.setMonth(newDate.getMonth() - 1);
-    
+
     // Don't go before account creation date
     if (accountCreationDate && newDate < accountCreationDate) {
         return;
     }
-    
+
     currentCalendarDate = newDate;
     loadCalendar();
 }
@@ -864,39 +1155,39 @@ function previousMonth() {
 function nextMonth() {
     const newDate = new Date(currentCalendarDate);
     newDate.setMonth(newDate.getMonth() + 1);
-    
+
     // Don't go beyond current month
     const today = new Date();
     if (newDate > today) {
         return;
     }
-    
+
     currentCalendarDate = newDate;
     loadCalendar();
 }
 
 async function selectDate(dateStr) {
     const selectedDateObj = new Date(dateStr);
-    
+
     // Don't allow selection of dates before account creation
     if (accountCreationDate && selectedDateObj < accountCreationDate) {
         return;
     }
-    
+
     // Store the date string, not the Date object
     selectedDate = dateStr;
-    
+
     // Update calendar display
     document.querySelectorAll('.calendar-day').forEach(day => {
         day.classList.remove('selected');
     });
-    
+
     // Highlight selected day
     const selectedDayElement = document.querySelector(`[onclick="selectDate('${dateStr}')"]`);
     if (selectedDayElement) {
         selectedDayElement.classList.add('selected');
     }
-    
+
     // Show selected day prayers
     await loadSelectedDayPrayers(dateStr);
 }
@@ -905,30 +1196,30 @@ async function loadSelectedDayPrayers(dateStr) {
     if (!authToken) {
         return;
     }
-    
+
     const selectedDayPrayers = document.getElementById('selectedDayPrayers');
     const selectedDayTitle = document.getElementById('selectedDayTitle');
     const selectedDayContent = document.getElementById('selectedDayContent');
-    
+
     if (selectedDayPrayers) {
         selectedDayPrayers.style.display = 'block';
     }
-    
+
     if (selectedDayTitle) {
         selectedDayTitle.textContent = `Prayer Times for ${formatDate(dateStr)}`;
     }
-    
+
     if (selectedDayContent) {
         selectedDayContent.innerHTML = '<div class="loading">Loading prayer times...</div>';
     }
-    
+
     try {
         const response = await fetch(`${API_BASE}/api/prayers/times/${dateStr}`, {
             headers: {
                 'Authorization': `Bearer ${authToken}`
             }
         });
-        
+
         if (response.ok) {
             const data = await response.json();
             displaySelectedDayPrayers(data.prayers);
@@ -942,17 +1233,17 @@ async function loadSelectedDayPrayers(dateStr) {
 
 function displaySelectedDayPrayers(prayers) {
     const container = document.getElementById('selectedDayContent');
-    
+
     const prayersHTML = prayers.map(prayer => {
         const isCompleted = prayer.completed || false;
         const isLate = prayer.completion ? prayer.completion.is_late : false;
         const isQada = prayer.completion ? prayer.completion.is_qada : false;
         const canMarkQada = prayer.can_mark_qada || false;
         const isMissed = prayer.is_missed || false;
-        
+
         let status = 'pending';
         let statusText = '⏰ Pending';
-        
+
         if (isCompleted) {
             if (isQada) {
                 status = 'qada';
@@ -968,7 +1259,7 @@ function displaySelectedDayPrayers(prayers) {
             status = 'missed';
             statusText = '❌ Missed';
         }
-        
+
         let buttonHTML = '';
         // Show Qada button for missed prayers OR late prayers that can be marked as Qada
         if (canMarkQada) {
@@ -978,7 +1269,7 @@ function displaySelectedDayPrayers(prayers) {
                 </button>
             `;
         }
-        
+
         return `
             <div class="selected-day-prayer ${status}">
                 <div class="selected-day-prayer-name">${prayer.prayer_type}</div>
@@ -988,17 +1279,17 @@ function displaySelectedDayPrayers(prayers) {
             </div>
         `;
     }).join('');
-    
+
     container.innerHTML = prayersHTML;
 }
 
 function formatDate(dateStr) {
     const date = new Date(dateStr);
-    const options = { 
-        weekday: 'long', 
-        year: 'numeric', 
-        month: 'long', 
-        day: 'numeric' 
+    const options = {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
     };
     return date.toLocaleDateString('en-US', options);
 }
@@ -1030,7 +1321,7 @@ async function loadFamilyMembers() {
 
 function displayFamilyMembers(members) {
     const container = document.getElementById('familyMembers');
-    
+
     if (!members || members.length === 0) {
         container.innerHTML = '<div class="loading">No family members added yet</div>';
         return;
@@ -1060,7 +1351,7 @@ function displayFamilyMembers(members) {
 
 async function handleAddFamily(e) {
     e.preventDefault();
-    
+
     if (!authToken) {
         showNotification('Please login to add family members', 'error');
         return;
@@ -1153,7 +1444,7 @@ async function loadProfile() {
 
 function displayProfile(user) {
     const container = document.getElementById('profileContent');
-    
+
     const profileHTML = `
         <div class="profile-form">
             <div class="form-group">
@@ -1268,7 +1559,7 @@ function updateUIForLoggedInUser() {
             <button class="btn btn-secondary" onclick="showSection('dashboard')">Dashboard</button>
         `;
     }
-    
+
     // Update navigation to show user is logged in
     const navMenu = document.querySelector('.nav-menu');
     if (navMenu) {
@@ -1277,7 +1568,7 @@ function updateUIForLoggedInUser() {
         if (existingUserInfo) {
             existingUserInfo.remove();
         }
-        
+
         // Add user info to navigation
         const userInfo = document.createElement('div');
         userInfo.className = 'user-info';
@@ -1300,18 +1591,18 @@ function updateUIForLoggedOutUser() {
             <button class="btn btn-secondary" onclick="showRegister()">Create Account</button>
         `;
     }
-    
+
     // Remove user info from navigation
     const userInfo = document.querySelector('.user-info');
     if (userInfo) {
         userInfo.remove();
     }
-    
+
     // Hide calendar elements if they exist
     const calendarHeader = document.querySelector('.calendar-header');
     const calendarContainer = document.querySelector('.calendar-container');
     const selectedDayPrayers = document.querySelector('.selected-day-prayers');
-    
+
     if (calendarHeader) calendarHeader.style.display = 'none';
     if (calendarContainer) calendarContainer.style.display = 'none';
     if (selectedDayPrayers) selectedDayPrayers.style.display = 'none';
@@ -1323,7 +1614,7 @@ function showNotification(message, type = 'info') {
     const notification = document.createElement('div');
     notification.className = `notification notification-${type}`;
     notification.textContent = message;
-    
+
     // Style the notification
     notification.style.cssText = `
         position: fixed;
@@ -1337,7 +1628,7 @@ function showNotification(message, type = 'info') {
         animation: slideIn 0.3s ease;
         max-width: 300px;
     `;
-    
+
     // Set background color based on type
     switch(type) {
         case 'success':
@@ -1352,10 +1643,10 @@ function showNotification(message, type = 'info') {
         default:
             notification.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
     }
-    
+
     // Add to page
     document.body.appendChild(notification);
-    
+
     // Remove after 3 seconds
     setTimeout(() => {
         notification.style.animation = 'slideOut 0.3s ease';
