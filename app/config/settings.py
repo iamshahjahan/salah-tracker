@@ -110,6 +110,7 @@ class Config:
     PRAYER_TIME_WINDOW_MINUTES: int = 30
     AUTO_UPDATE_INTERVAL_MINUTES: int = 5
     DEFAULT_TIMEZONE: str = 'Asia/Kolkata'
+    FRONTEND_URL: str = os.getenv('FRONTEND_URL', 'https://salahtracker.app')
     DEFAULT_LOCATION: dict = {
         'lat': 12.9716,
         'lng': 77.5946,

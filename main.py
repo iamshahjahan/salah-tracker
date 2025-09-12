@@ -35,6 +35,7 @@ app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(days=30)
 # Add external API config to Flask config
 app.config['EXTERNAL_API_CONFIG'] = config.EXTERNAL_API_CONFIG
 app.config['PRAYER_TIME_WINDOW_MINUTES'] = config.PRAYER_TIME_WINDOW_MINUTES
+app.config['FRONTEND_URL'] = config.FRONTEND_URL
 
 # Mail configuration
 app.config['MAIL_SERVER'] = os.getenv('MAIL_SERVER', 'smtp.gmail.com')

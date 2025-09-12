@@ -13,21 +13,21 @@ from datetime import datetime
 
 def get_prayer_reminder_template(user: User, prayer_type: str, prayer_time: datetime, 
                                 verse: Optional[QuranicVerse], hadith: Optional[Hadith], 
-                                completion_link: str) -> str:
+                                completion_link: str, frontend_url: str = 'https://salahtracker.app') -> str:
     """Get prayer reminder email template."""
     prayer_name_arabic = get_prayer_name_arabic(prayer_type)
     prayer_name_english = get_prayer_name_english(prayer_type)
     
     # Use user's language preference
     if user.language == 'en':
-        return get_english_prayer_reminder_template(user, prayer_type, prayer_time, verse, hadith, completion_link)
+        return get_english_prayer_reminder_template(user, prayer_type, prayer_time, verse, hadith, completion_link, frontend_url)
     else:
-        return get_arabic_prayer_reminder_template(user, prayer_type, prayer_time, verse, hadith, completion_link)
+        return get_arabic_prayer_reminder_template(user, prayer_type, prayer_time, verse, hadith, completion_link, frontend_url)
 
 
 def get_arabic_prayer_reminder_template(user: User, prayer_type: str, prayer_time: datetime, 
                                        verse: Optional[QuranicVerse], hadith: Optional[Hadith], 
-                                       completion_link: str) -> str:
+                                       completion_link: str, frontend_url: str = 'https://salahtracker.app') -> str:
     """Get Arabic prayer reminder email template."""
     prayer_name_arabic = get_prayer_name_arabic(prayer_type)
     
@@ -168,7 +168,7 @@ def get_consistency_nudge_template(user: User, verse: Optional[QuranicVerse],
                 ''' if hadith else ''}
                 
                 <div style="text-align: center; margin: 30px 0;">
-                    <a href="http://localhost:5001" 
+                    <a href="{frontend_url}" 
                        style="display: inline-block; background: #4CAF50; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-weight: bold;">
                         🕌 ابدأ من جديد
                     </a>
@@ -212,7 +212,7 @@ def get_prayer_name_english(prayer_type: str) -> str:
 
 def get_english_prayer_reminder_template(user: User, prayer_type: str, prayer_time: datetime, 
                                         verse: Optional[QuranicVerse], hadith: Optional[Hadith], 
-                                        completion_link: str) -> str:
+                                        completion_link: str, frontend_url: str = 'https://salahtracker.app') -> str:
     """Get English prayer reminder email template."""
     prayer_name_english = get_prayer_name_english(prayer_type)
     

@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 """Test database models accessibility."""
 
+import sys
+import os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
+
 from main import app
 from app.models import User, Prayer, PrayerCompletion
 

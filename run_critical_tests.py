@@ -60,14 +60,14 @@ def test_imports():
 def test_application_startup():
     """Test that the Flask application starts correctly."""
     return run_command(
-        "python3 test_app_startup.py",
+        "python3 tests/critical/test_app_startup.py",
         "Application Startup Test"
     )
 
 def test_database_models():
     """Test that database models are accessible."""
     return run_command(
-        "python3 test_database_models.py",
+        "python3 tests/critical/test_database_models.py",
         "Database Models Test"
     )
 
@@ -81,7 +81,7 @@ def test_email_templates():
 def test_notification_service():
     """Test notification service initialization."""
     return run_command(
-        "python3 test_notification_service.py",
+        "python3 tests/critical/test_notification_service.py",
         "Notification Service Test"
     )
 
@@ -95,14 +95,14 @@ def test_celery_configuration():
 def test_email_notifications_unit():
     """Test email notification functionality without database."""
     return run_command(
-        "python3 test_email_notifications_unit.py",
+        "python3 tests/critical/test_email_notifications_unit.py",
         "Email Notifications Unit Test"
     )
 
 def test_prayer_time_api():
     """Test prayer time API functionality."""
     return run_command(
-        "python3 test_prayer_time_api.py",
+        "python3 tests/critical/test_prayer_time_api.py",
         "Prayer Time API Test"
     )
 
