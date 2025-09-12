@@ -36,9 +36,11 @@ def app():
 
     # Configure test database
     os.environ['TEST_DATABASE_URL'] = f'sqlite:///{db_path}'
-
-    # Create test app
-    app = create_app(TestingConfig)
+    
+    # Configure app for testing
+    app.config['TESTING'] = True
+    app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
+    app.config['WTF_CSRF_ENABLED'] = False
 
     with app.app_context():
         db.create_all()
@@ -161,7 +163,7 @@ def sample_prayer(db_session, sample_user, sample_prayer_data):
     """
     prayer = Prayer(
         user_id=sample_user.id,
-        name=sample_prayer_data['name'],
+        prayer_type=sample_prayer_data['name'],
         prayer_time=sample_prayer_data['prayer_time'],
         prayer_date=sample_prayer_data['prayer_date']
     )
