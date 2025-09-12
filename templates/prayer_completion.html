@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Complete Prayer - SalahTracker</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        .logo {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+
+        .prayer-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 1.8rem;
+        }
+
+        .prayer-info {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .prayer-type {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .prayer-time {
+            color: #666;
+            font-size: 1.1rem;
+        }
+
+        .user-greeting {
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 1.1rem;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+            margin: 10px;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(76, 175, 80, 0.3);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #6c757d, #5a6268);
+        }
+
+        .btn-secondary:hover {
+            box-shadow: 0 5px 15px rgba(108, 117, 125, 0.3);
+        }
+
+        .loading {
+            display: none;
+            color: #667eea;
+            margin-top: 20px;
+        }
+
+        .success-message {
+            display: none;
+            color: #4CAF50;
+            font-weight: 600;
+            margin-top: 20px;
+        }
+
+        .error-message {
+            display: none;
+            color: #f44336;
+            font-weight: 600;
+            margin-top: 20px;
+        }
+
+        .footer {
+            margin-top: 30px;
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 30px 20px;
+            }
+            
+            .prayer-icon {
+                font-size: 3rem;
+            }
+            
+            h1 {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">🕌 SalahTracker</div>
+        <div class="prayer-icon">🕌</div>
+        
+        <h1>Complete Your Prayer</h1>
+        
+        <div class="user-greeting">
+            Assalamu Alaikum, {{ user_name }}!
+        </div>
+        
+        <div class="prayer-info">
+            <div class="prayer-type">{{ prayer_type.title() }} Prayer</div>
+            {% if prayer_date %}
+            <div class="prayer-time">
+                Date: {{ prayer_date.strftime('%B %d, %Y') }}
+            </div>
+            {% endif %}
+        </div>
+        
+        <p style="color: #666; margin-bottom: 30px;">
+            Click the button below to confirm that you have performed this prayer.
+        </p>
+        
+        <button class="btn" onclick="completePrayer()">
+            ✅ I have completed this prayer
+        </button>
+        
+        <div style="margin-top: 15px;">
+            <a href="/" class="btn" style="background: linear-gradient(135deg, #6c757d, #5a6268);">
+                🏠 Go to Dashboard
+            </a>
+        </div>
+        
+        <div class="loading" id="loading">
+            Processing your completion...
+        </div>
+        
+        <div class="success-message" id="success">
+            ✅ Prayer completed successfully! May Allah accept your prayers.
+            <div id="redirect-countdown" style="margin-top: 15px; font-size: 0.9rem; color: #666;">
+                Redirecting to dashboard in <span id="countdown">3</span> seconds...
+            </div>
+            <div style="margin-top: 15px;">
+                <a href="/" class="btn" style="background: linear-gradient(135deg, #667eea, #764ba2);">
+                    🏠 Go to Dashboard Now
+                </a>
+            </div>
+        </div>
+        
+        <div class="error-message" id="error">
+            ❌ An error occurred. Please try again.
+            <div style="margin-top: 15px;">
+                <a href="/" class="btn" style="background: linear-gradient(135deg, #6c757d, #5a6268);">
+                    🏠 Go to Dashboard
+                </a>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>This link is valid for 2 hours after the prayer time.</p>
+            <p>If you didn't request this, you can safely ignore this email.</p>
+        </div>
+    </div>
+
+    <script>
+        async function completePrayer() {
+            const loading = document.getElementById('loading');
+            const success = document.getElementById('success');
+            const error = document.getElementById('error');
+            const button = document.querySelector('.btn');
+            
+            // Show loading state
+            loading.style.display = 'block';
+            success.style.display = 'none';
+            error.style.display = 'none';
+            button.style.display = 'none';
+            
+            try {
+                const response = await fetch(window.location.href, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    success.style.display = 'block';
+                    loading.style.display = 'none';
+                    
+                    // Start countdown and redirect
+                    let countdown = 3;
+                    const countdownElement = document.getElementById('countdown');
+                    
+                    const countdownInterval = setInterval(() => {
+                        countdown--;
+                        countdownElement.textContent = countdown;
+                        
+                        if (countdown <= 0) {
+                            clearInterval(countdownInterval);
+                            window.location.href = '/';
+                        }
+                    }, 1000);
+                } else {
+                    throw new Error(data.error || 'Failed to complete prayer');
+                }
+            } catch (err) {
+                console.error('Error:', err);
+                error.style.display = 'block';
+                loading.style.display = 'none';
+                button.style.display = 'inline-block';
+            }
+        }
+    </script>
+</body>
+</html>

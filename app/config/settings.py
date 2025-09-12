@@ -54,6 +54,22 @@ class ExternalAPIConfig:
     geocoding_base_url: str = "https://api.bigdatacloud.net/data"
 
 
+@dataclass
+class CeleryConfig:
+    """Celery configuration settings."""
+    broker_url: str = "redis://localhost:6379/0"
+    result_backend: str = "redis://localhost:6379/0"
+    task_serializer: str = "json"
+    accept_content: list = None
+    result_serializer: str = "json"
+    timezone: str = "UTC"
+    enable_utc: bool = True
+    
+    def __post_init__(self):
+        if self.accept_content is None:
+            self.accept_content = ["json"]
+
+
 class Config:
     """Base configuration class."""
 
@@ -82,6 +98,12 @@ class Config:
         geocoding_api_key=os.getenv('GEOCODING_API_KEY', ''),
         prayer_times_base_url=os.getenv('PRAYER_TIMES_BASE_URL', 'http://api.aladhan.com/v1'),
         geocoding_base_url=os.getenv('GEOCODING_BASE_URL', 'https://api.bigdatacloud.net/data')
+    )
+
+    # Celery configuration
+    CELERY_CONFIG: CeleryConfig = CeleryConfig(
+        broker_url=os.getenv('CELERY_BROKER_URL', 'redis://localhost:6379/0'),
+        result_backend=os.getenv('CELERY_RESULT_BACKEND', 'redis://localhost:6379/0')
     )
 
     # Application settings

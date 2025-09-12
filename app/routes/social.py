@@ -231,7 +231,7 @@ Assalamu Alaikum {family_member.name},
 May Allah accept your prayers and grant you peace.
 
 Best regards,
-SalahReminders Team
+SalahTracker Team
         """
         mail.send(msg)
     except Exception as e:

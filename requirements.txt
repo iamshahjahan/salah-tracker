@@ -12,3 +12,5 @@ Werkzeug==2.3.7
 gunicorn==21.2.0
 PyJWT==2.8.0
 mysql-connector-python==8.0.33
+celery==5.3.4
+redis==5.0.1

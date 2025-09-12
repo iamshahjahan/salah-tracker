@@ -61,7 +61,7 @@ class EmailService(BaseService):
             )
 
             # Send email
-            subject = "Verify Your Email - SalahReminders"
+            subject = "Verify Your Email - SalahTracker"
             template = self._get_email_verification_template(user, verification.verification_code)
 
             success = self._send_email(user.email, subject, template)
@@ -102,7 +102,7 @@ class EmailService(BaseService):
             )
 
             # Send email
-            subject = "Your Login Code - SalahReminders"
+            subject = "Your Login Code - SalahTracker"
             template = self._get_login_otp_template(user, verification.verification_code)
 
             success = self._send_email(user.email, subject, template)
@@ -146,7 +146,7 @@ class EmailService(BaseService):
             reset_link = self._generate_password_reset_link(verification.verification_code)
 
             # Send email
-            subject = "Reset Your Password - SalahReminders"
+            subject = "Reset Your Password - SalahTracker"
             template = self._get_password_reset_template(user, reset_link)
 
             success = self._send_email(user.email, subject, template)
@@ -248,7 +248,7 @@ class EmailService(BaseService):
                 sender=self.mail_config['username'],
                 recipients=[to_email]
             )
-            msg.body = template
+            msg.html = template
 
             from mail_config import mail
             mail.send(msg)
@@ -263,18 +263,18 @@ class EmailService(BaseService):
         return f"""
 Assalamu Alaikum {user.first_name},
 
-Welcome to SalahReminders! Please verify your email address to complete your registration.
+Welcome to SalahTracker! Please verify your email address to complete your registration.
 
 Your verification code is: {code}
 
 This code will expire in 30 minutes.
 
-If you didn't create an account with SalahReminders, please ignore this email.
+If you didn't create an account with SalahTracker, please ignore this email.
 
 May Allah bless you and accept your prayers.
 
 Best regards,
-SalahReminders Team
+SalahTracker Team
         """.strip()
 
     def _get_login_otp_template(self, user: User, code: str) -> str:
@@ -282,7 +282,7 @@ SalahReminders Team
         return f"""
 Assalamu Alaikum {user.first_name},
 
-You requested a login code for your SalahReminders account.
+You requested a login code for your SalahTracker account.
 
 Your login code is: {code}
 
@@ -293,7 +293,7 @@ If you didn't request this code, please ignore this email and consider changing 
 May Allah bless you and accept your prayers.
 
 Best regards,
-SalahReminders Team
+SalahTracker Team
         """.strip()
 
     def _get_password_reset_template(self, user: User, reset_link: str) -> str:
@@ -301,7 +301,7 @@ SalahReminders Team
         return f"""
 Assalamu Alaikum {user.first_name},
 
-You requested to reset your password for your SalahReminders account.
+You requested to reset your password for your SalahTracker account.
 
 Click the link below to reset your password:
 {reset_link}
@@ -313,7 +313,7 @@ If you didn't request a password reset, please ignore this email and your passwo
 May Allah bless you and accept your prayers.
 
 Best regards,
-SalahReminders Team
+SalahTracker Team
         """.strip()
 
     def _generate_password_reset_link(self, code: str) -> str:

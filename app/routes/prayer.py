@@ -99,8 +99,18 @@ def get_prayer_times(lat, lng, date_str=None):
     if not date_str:
         date_str = date.today().isoformat()
 
-    # Using Aladhan API (free, no API key required)
-    url = f"http://api.aladhan.com/v1/timings/{date_str}"
+    # Parse the date to get year, month, day
+    try:
+        target_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+        year = target_date.year
+        month = target_date.month
+        day = target_date.day
+    except ValueError:
+        print(f"Invalid date format: {date_str}")
+        return None
+
+    # Using Aladhan Calendar API (more reliable than timings API)
+    url = f"https://api.aladhan.com/v1/calendar/{year}/{month}"
     params = {
         'latitude': lat,
         'longitude': lng,
@@ -114,18 +124,24 @@ def get_prayer_times(lat, lng, date_str=None):
         data = response.json()
 
         if data['status'] == 'OK':
-            timings = data['data']['timings']
-            return {
-                'Fajr': timings['Fajr'],
-                'Dhuhr': timings['Dhuhr'],
-                'Asr': timings['Asr'],
-                'Maghrib': timings['Maghrib'],
-                'Isha': timings['Isha']
-            }
+            # Find the specific day in the calendar data
+            for day_data in data['data']:
+                if day_data['date']['gregorian']['day'] == str(day):
+                    timings = day_data['timings']
+                    # Remove timezone info from times (e.g., "05:10 (IST)" -> "05:10")
+                    return {
+                        'Fajr': timings['Fajr'].split(' ')[0],
+                        'Dhuhr': timings['Dhuhr'].split(' ')[0],
+                        'Asr': timings['Asr'].split(' ')[0],
+                        'Maghrib': timings['Maghrib'].split(' ')[0],
+                        'Isha': timings['Isha'].split(' ')[0]
+                    }
+            
+            print(f"Date {date_str} not found in calendar data")
+            return None
     except Exception as e:
         print(f"Error fetching prayer times: {e}")
-
-    return None
+        return None
 
 @prayer_bp.route('/times', methods=['GET'])
 @jwt_required()
@@ -168,6 +184,7 @@ def get_prayer_times_for_user():
                 prayer_time = datetime.strptime(time_str, '%H:%M').time()
 
                 prayer = Prayer(
+                    user_id=user.id,
                     prayer_type=PrayerType(prayer_type),
                     prayer_date=prayer_date,
                     prayer_time=prayer_time,
@@ -460,6 +477,7 @@ def get_prayer_times_for_date(date_str):
                 prayer_time = datetime.strptime(time_str, '%H:%M').time()
 
                 prayer = Prayer(
+                    user_id=user.id,
                     prayer_type=PrayerType(prayer_type),
                     prayer_date=target_date,
                     prayer_time=prayer_time,

@@ -13,6 +13,7 @@ class Prayer(db.Model):
     __tablename__ = 'prayers'
 
     id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     prayer_type = db.Column(db.Enum(PrayerType), nullable=False)
     prayer_date = db.Column(db.Date, nullable=False)
     prayer_time = db.Column(db.Time, nullable=False)
@@ -20,6 +21,9 @@ class Prayer(db.Model):
     location_lng = db.Column(db.Float, nullable=True)
     timezone = db.Column(db.String(50), default='UTC')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    user = db.relationship('User', backref='prayers')
 
     def to_dict(self):
         """Convert prayer object to dictionary"""

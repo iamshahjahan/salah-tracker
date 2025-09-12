@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SalahReminders - Your Prayer Companion</title>
+    <title>SalahTracker - Your Prayer Companion</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
@@ -15,7 +15,7 @@
             <div class="nav-container">
                 <div class="nav-logo">
                     <i class="fas fa-mosque"></i>
-                    <span>SalahReminders</span>
+                    <span>SalahTracker</span>
                 </div>
                 <div class="nav-menu" id="nav-menu">
                     <a href="#home" class="nav-link active">Home</a>
@@ -36,9 +36,10 @@
         <main class="main-content">
             <!-- Home Section -->
             <section id="home" class="section active">
+                <!-- Hero Section -->
                 <div class="hero">
                     <div class="hero-content">
-                        <h1 class="hero-title">Welcome to SalahReminders</h1>
+                        <h1 class="hero-title">Welcome to SalahTracker</h1>
                         <p class="hero-subtitle">Stay consistent with your daily prayers and grow spiritually with your community</p>
                         <div class="hero-buttons">
                             <button class="btn btn-primary" onclick="showLogin()">Get Started</button>
@@ -47,6 +48,104 @@
                     </div>
                     <div class="hero-image">
                         <i class="fas fa-mosque hero-icon"></i>
+                    </div>
+                </div>
+
+                <!-- Features Section -->
+                <div class="features-section">
+                    <div class="container">
+                        <h2 class="section-title">Why Choose SalahTracker?</h2>
+                        <div class="features-grid">
+                            <div class="feature-card">
+                                <div class="feature-icon">
+                                    <i class="fas fa-clock"></i>
+                                </div>
+                                <h3>Smart Reminders</h3>
+                                <p>Get personalized prayer time reminders via email with beautiful Quranic verses and Hadith</p>
+                            </div>
+                            <div class="feature-card">
+                                <div class="feature-icon">
+                                    <i class="fas fa-chart-line"></i>
+                                </div>
+                                <h3>Track Progress</h3>
+                                <p>Monitor your prayer consistency with detailed analytics and beautiful visualizations</p>
+                            </div>
+                            <div class="feature-card">
+                                <div class="feature-icon">
+                                    <i class="fas fa-users"></i>
+                                </div>
+                                <h3>Family Groups</h3>
+                                <p>Create family prayer groups and encourage each other in your spiritual journey</p>
+                            </div>
+                            <div class="feature-card">
+                                <div class="feature-icon">
+                                    <i class="fas fa-mobile-alt"></i>
+                                </div>
+                                <h3>One-Click Completion</h3>
+                                <p>Mark prayers as completed directly from email links for ultimate convenience</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Prayer Times Preview -->
+                <div class="prayer-times-preview">
+                    <div class="container">
+                        <h2 class="section-title">Today's Prayer Times</h2>
+                        <div class="prayer-times-grid" id="prayerTimesPreview">
+                            <div class="prayer-time-card">
+                                <div class="prayer-name">Fajr</div>
+                                <div class="prayer-time">05:10</div>
+                            </div>
+                            <div class="prayer-time-card">
+                                <div class="prayer-name">Dhuhr</div>
+                                <div class="prayer-time">12:16</div>
+                            </div>
+                            <div class="prayer-time-card">
+                                <div class="prayer-name">Asr</div>
+                                <div class="prayer-time">16:38</div>
+                            </div>
+                            <div class="prayer-time-card">
+                                <div class="prayer-name">Maghrib</div>
+                                <div class="prayer-time">18:23</div>
+                            </div>
+                            <div class="prayer-time-card">
+                                <div class="prayer-name">Isha</div>
+                                <div class="prayer-time">19:21</div>
+                            </div>
+                        </div>
+                        <p class="prayer-times-note">* Times shown for Bangalore, India. Create an account to get personalized prayer times for your location.</p>
+                    </div>
+                </div>
+
+                <!-- Inspirational Quote -->
+                <div class="inspirational-section">
+                    <div class="container">
+                        <div class="quote-card">
+                            <div class="quote-icon">
+                                <i class="fas fa-quote-left"></i>
+                            </div>
+                            <blockquote class="quote-text">
+                                "And establish prayer for My remembrance."
+                            </blockquote>
+                            <cite class="quote-source">- Quran 20:14</cite>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Call to Action -->
+                <div class="cta-section">
+                    <div class="container">
+                        <h2 class="cta-title">Ready to Transform Your Prayer Journey?</h2>
+                        <p class="cta-subtitle">Join thousands of Muslims who are building consistent prayer habits with SalahTracker</p>
+                        <div class="cta-buttons">
+                            <button class="btn btn-primary btn-large" onclick="showRegister()">
+                                <i class="fas fa-user-plus"></i> Start Your Journey
+                            </button>
+                            <button class="btn btn-secondary btn-large" onclick="showLogin()">
+                                <i class="fas fa-sign-in-alt"></i> Already Have Account?
+                            </button>
+                        </div>
                     </div>
                 </div>
             </section>
@@ -228,25 +327,38 @@
                 <div class="container">
                     <h2 class="section-title">Your Prayer Dashboard</h2>
 
-                    <!-- Calendar Navigation -->
-                    <div class="calendar-header">
-                        <button class="btn btn-secondary" onclick="previousMonth()">
+                    <!-- Weekly Calendar Navigation -->
+                    <div class="weekly-calendar-header">
+                        <button class="week-nav-btn" onclick="previousWeek()">
                             <i class="fas fa-chevron-left"></i>
                         </button>
-                        <h3 class="calendar-month" id="calendarMonth">September 2025</h3>
-                        <button class="btn btn-secondary" onclick="nextMonth()">
+                        <div class="week-info">
+                            <h3 class="week-title" id="weekTitle">Week of September 9, 2025</h3>
+                            <p class="week-subtitle" id="weekSubtitle">Track your daily prayers</p>
+                        </div>
+                        <button class="week-nav-btn" onclick="nextWeek()">
                             <i class="fas fa-chevron-right"></i>
                         </button>
                     </div>
-                    <div class="calendar-help">
-                        <i class="fas fa-info-circle"></i>
-                        <span>Click on any day to view prayers. You can mark missed prayers as Qada for past days.</span>
-                    </div>
 
-                    <!-- Calendar Grid -->
-                    <div class="calendar-container">
-                        <div class="calendar-grid" id="calendarGrid">
-                            <div class="loading">Loading calendar...</div>
+                    <!-- Weekly Calendar Grid -->
+                    <div class="weekly-calendar-container">
+                        <!-- Mobile Day Navigation (hidden on desktop) -->
+                        <div class="mobile-day-nav" id="mobileDayNav" style="display: none;">
+                            <button class="mobile-day-nav-btn" id="prevDayBtn" onclick="previousDay()">
+                                <i class="fas fa-chevron-left"></i>
+                            </button>
+                            <div class="mobile-day-info">
+                                <div class="mobile-day-title" id="mobileDayTitle">Thursday, Sep 11</div>
+                                <div class="mobile-day-subtitle" id="mobileDaySubtitle">5/5 Complete</div>
+                            </div>
+                            <button class="mobile-day-nav-btn" id="nextDayBtn" onclick="nextDay()">
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+                        </div>
+                        
+                        <div class="weekly-calendar-grid" id="weeklyCalendarGrid">
+                            <div class="loading">Loading weekly calendar...</div>
                         </div>
                     </div>
 

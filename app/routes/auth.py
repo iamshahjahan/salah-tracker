@@ -138,8 +138,24 @@ def update_profile():
             user.location_lng = data['location_lng']
         if 'timezone' in data:
             user.timezone = data['timezone']
+        if 'city' in data:
+            user.city = data['city']
+        if 'country' in data:
+            user.country = data['country']
+        if 'fiqh_method' in data:
+            user.fiqh_method = data['fiqh_method']
+        if 'language' in data:
+            # Validate language option
+            if data['language'] in ['ar', 'en']:
+                user.language = data['language']
+            else:
+                return jsonify({'error': 'Language must be either "ar" or "en"'}), 400
         if 'notification_enabled' in data:
             user.notification_enabled = data['notification_enabled']
+        if 'email_notifications' in data:
+            user.email_notifications = data['email_notifications']
+        if 'reminder_times' in data:
+            user.reminder_times = data['reminder_times']
 
         user.updated_at = datetime.utcnow()
         db.session.commit()

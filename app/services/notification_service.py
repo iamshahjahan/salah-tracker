@@ -1,448 +1,240 @@
 """
 Notification service for managing prayer reminders and notifications.
 
-This service handles email notifications, prayer reminders, and notification
-preferences with proper scheduling and delivery management.
+This service handles sending prayer reminders, completion links,
+and managing notification preferences for users.
 """
 
 from typing import Dict, Any, List, Optional
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
+from flask import current_app, url_for
 from flask_mail import Message
 
 from .base_service import BaseService
+from .email_service import EmailService
+from .email_templates import get_prayer_reminder_template, get_consistency_nudge_template, get_prayer_name_arabic
 from app.models.user import User
-from app.models.prayer import Prayer
-from app.config.settings import Config
+from app.models.prayer_notification import PrayerNotification
+from app.models.inspirational_content import QuranicVerse, Hadith
+from app.models.prayer import PrayerCompletion
 
 
 class NotificationService(BaseService):
     """
-    Service for managing notifications and reminders.
-
-    This service provides methods for sending email notifications, managing
-    prayer reminders, and handling notification preferences.
+    Service for managing prayer notifications and reminders.
+    
+    This service provides methods for sending prayer reminders,
+    managing completion links, and handling notification preferences.
     """
-
-    def __init__(self, config: Optional[Config] = None):
-        """
-        Initialize the notification service.
-
-        Args:
-            config: Configuration instance. If None, will use current app config.
-        """
+    
+    def __init__(self, config=None):
+        """Initialize the notification service."""
         super().__init__(config)
-        self.mail_config = self.config.MAIL_CONFIG
-
-    def send_prayer_reminder(self, user_id: int, prayer_id: int) -> Dict[str, Any]:
+        self.email_service = EmailService(config)
+    
+    def send_prayer_reminder(self, user: User, prayer_type: str, prayer_time: datetime) -> Dict[str, Any]:
         """
-        Send prayer reminder notification to user.
-
+        Send a prayer reminder to a user.
+        
         Args:
-            user_id: ID of the user to send reminder to.
-            prayer_id: ID of the prayer to remind about.
-
+            user: User to send reminder to.
+            prayer_type: Type of prayer (fajr, dhuhr, asr, maghrib, isha).
+            prayer_time: Time of the prayer.
+            
         Returns:
-            Dict[str, Any]: Notification result with success status or error.
+            Dict[str, Any]: Result with success status or error.
         """
         try:
-            if not self.mail_config:
+            if not user.email_notifications:
                 return {
                     'success': False,
-                    'error': 'Email service not configured'
+                    'error': 'User has disabled email notifications'
                 }
-
-            # Get user and prayer
-            user = self.get_record_by_id(User, user_id)
-            if not user:
+            
+            # Get inspirational content
+            verse = QuranicVerse.get_random_verse('prayer')
+            hadith = Hadith.get_random_hadith('prayer')
+            
+            # Create notification record
+            notification = self.create_record(
+                PrayerNotification,
+                user_id=user.id,
+                prayer_type=prayer_type,
+                prayer_date=prayer_time.date(),
+                notification_type='reminder'
+            )
+            
+            # Generate completion link
+            completion_link = notification.get_completion_link(
+                current_app.config.get('FRONTEND_URL', 'http://localhost:5001')
+            )
+            
+            # Send email
+            if user.language == 'en':
+                from app.services.email_templates import get_prayer_name_english
+                subject = f"🕌 {get_prayer_name_english(prayer_type)} Prayer Reminder - SalahTracker"
+            else:
+                from app.services.email_templates import get_prayer_name_arabic
+                subject = f"🕌 وقت صلاة {get_prayer_name_arabic(prayer_type)} - SalahTracker"
+            
+            template = get_prayer_reminder_template(
+                user, prayer_type, prayer_time, verse, hadith, completion_link
+            )
+            
+            success = self.email_service._send_email(user.email, subject, template)
+            
+            if success:
+                # Update notification as sent
+                notification.sent_at = datetime.utcnow()
+                self.db_session.commit()
+                
+                self.logger.info(f"Prayer reminder sent to {user.email} for {prayer_type}")
+                return {
+                    'success': True,
+                    'message': 'Prayer reminder sent successfully',
+                    'notification_id': notification.id
+                }
+            else:
+                print(f"error while sending reminder to: {user.email}")
                 return {
                     'success': False,
-                    'error': 'User not found'
+                    'error': 'Failed to send prayer reminder email'
                 }
-
-            prayer = self.get_record_by_id(Prayer, prayer_id)
+                
+        except Exception as e:
+            self.rollback_session()
+            return self.handle_service_error(e, 'send_prayer_reminder')
+    
+    def mark_prayer_completed_via_link(self, completion_link_id: str) -> Dict[str, Any]:
+        """
+        Mark a prayer as completed via completion link.
+        
+        Args:
+            completion_link_id: The completion link ID.
+            
+        Returns:
+            Dict[str, Any]: Result with success status or error.
+        """
+        try:
+            # Find the notification
+            notification = PrayerNotification.query.filter_by(
+                completion_link_id=completion_link_id
+            ).first()
+            
+            if not notification:
+                return {
+                    'success': False,
+                    'error': 'Invalid completion link'
+                }
+            
+            if not notification.is_completion_link_valid():
+                return {
+                    'success': False,
+                    'error': 'Completion link has expired'
+                }
+            
+            if notification.completed_via_link:
+                return {
+                    'success': False,
+                    'error': 'Prayer already marked as completed via this link'
+                }
+            
+            # Mark prayer as completed
+            user = notification.user
+            prayer_date = notification.prayer_date
+            
+            # Find the prayer record for this date and type
+            from app.models.prayer import Prayer
+            prayer = Prayer.query.filter_by(
+                user_id=user.id,
+                prayer_type=notification.prayer_type,
+                prayer_date=prayer_date
+            ).first()
+            
             if not prayer:
                 return {
                     'success': False,
-                    'error': 'Prayer not found'
+                    'error': 'Prayer record not found for this date'
                 }
-
-            # Check if user has notifications enabled
-            if not user.notification_enabled:
+            
+            # Check if already completed
+            existing_completion = PrayerCompletion.query.filter_by(
+                user_id=user.id,
+                prayer_id=prayer.id
+            ).first()
+            
+            if existing_completion:
                 return {
                     'success': False,
-                    'error': 'User has notifications disabled'
+                    'error': 'Prayer already marked as completed'
                 }
-
-            # Send email notification
-            success = self._send_prayer_reminder_email(user, prayer)
-
-            if success:
-                self.logger.info(f"Prayer reminder sent to {user.email} for {prayer.name}")
-                return {
-                    'success': True,
-                    'message': 'Prayer reminder sent successfully'
-                }
-            else:
-                return {
-                    'success': False,
-                    'error': 'Failed to send prayer reminder'
-                }
-
-        except Exception as e:
-            return self.handle_service_error(e, 'send_prayer_reminder')
-
-    def send_welcome_email(self, user_id: int) -> Dict[str, Any]:
-        """
-        Send welcome email to newly registered user.
-
-        Args:
-            user_id: ID of the newly registered user.
-
-        Returns:
-            Dict[str, Any]: Email result with success status or error.
-        """
-        try:
-            if not self.mail_config:
-                return {
-                    'success': False,
-                    'error': 'Email service not configured'
-                }
-
-            user = self.get_record_by_id(User, user_id)
-            if not user:
-                return {
-                    'success': False,
-                    'error': 'User not found'
-                }
-
-            # Send welcome email
-            success = self._send_welcome_email(user)
-
-            if success:
-                self.logger.info(f"Welcome email sent to {user.email}")
-                return {
-                    'success': True,
-                    'message': 'Welcome email sent successfully'
-                }
-            else:
-                return {
-                    'success': False,
-                    'error': 'Failed to send welcome email'
-                }
-
-        except Exception as e:
-            return self.handle_service_error(e, 'send_welcome_email')
-
-    def send_daily_summary(self, user_id: int, date: Optional[str] = None) -> Dict[str, Any]:
-        """
-        Send daily prayer summary to user.
-
-        Args:
-            user_id: ID of the user to send summary to.
-            date: Date string in YYYY-MM-DD format. If None, uses yesterday.
-
-        Returns:
-            Dict[str, Any]: Summary result with success status or error.
-        """
-        try:
-            if not self.mail_config:
-                return {
-                    'success': False,
-                    'error': 'Email service not configured'
-                }
-
-            user = self.get_record_by_id(User, user_id)
-            if not user:
-                return {
-                    'success': False,
-                    'error': 'User not found'
-                }
-
-            # Check if user has notifications enabled
-            if not user.notification_enabled:
-                return {
-                    'success': False,
-                    'error': 'User has notifications disabled'
-                }
-
-            # Parse date
-            if date:
-                try:
-                    target_date = datetime.strptime(date, '%Y-%m-%d').date()
-                except ValueError:
-                    return {
-                        'success': False,
-                        'error': 'Invalid date format. Use YYYY-MM-DD'
-                    }
-            else:
-                target_date = (datetime.now() - timedelta(days=1)).date()
-
-            # Get prayer data for the date
-            prayer_data = self._get_daily_prayer_data(user, target_date)
-
-            # Send daily summary email
-            success = self._send_daily_summary_email(user, target_date, prayer_data)
-
-            if success:
-                self.logger.info(f"Daily summary sent to {user.email} for {target_date}")
-                return {
-                    'success': True,
-                    'message': 'Daily summary sent successfully'
-                }
-            else:
-                return {
-                    'success': False,
-                    'error': 'Failed to send daily summary'
-                }
-
-        except Exception as e:
-            return self.handle_service_error(e, 'send_daily_summary')
-
-    def update_notification_preferences(self, user_id: int, enabled: bool) -> Dict[str, Any]:
-        """
-        Update user notification preferences.
-
-        Args:
-            user_id: ID of the user.
-            enabled: Whether notifications should be enabled.
-
-        Returns:
-            Dict[str, Any]: Update result with success status or error.
-        """
-        try:
-            user = self.get_record_by_id(User, user_id)
-            if not user:
-                return {
-                    'success': False,
-                    'error': 'User not found'
-                }
-
-            # Update notification preference
-            self.update_record(user, notification_enabled=enabled)
-
-            self.logger.info(f"Notification preferences updated for {user.email}: {enabled}")
-
+            
+            # Create prayer completion record
+            self.create_record(
+                PrayerCompletion,
+                user_id=user.id,
+                prayer_id=prayer.id,
+                completed_at=datetime.utcnow(),
+                is_late=False,
+                is_qada=False
+            )
+            
+            # Mark notification as completed via link
+            notification.completed_via_link = True
+            self.db_session.commit()
+            
+            self.logger.info(f"Prayer {notification.prayer_type} marked as completed via link for user {user.email}")
+            
             return {
                 'success': True,
-                'user': user.to_dict(),
-                'message': f'Notifications {"enabled" if enabled else "disabled"} successfully'
+                'message': 'Prayer marked as completed successfully',
+                'prayer_type': notification.prayer_type,
+                'prayer_date': prayer_date.isoformat()
             }
-
+            
         except Exception as e:
-            return self.handle_service_error(e, 'update_notification_preferences')
-
-    def _send_prayer_reminder_email(self, user: User, prayer: Prayer) -> bool:
+            self.rollback_session()
+            return self.handle_service_error(e, 'mark_prayer_completed_via_link')
+    
+    def send_consistency_nudge(self, user: User) -> Dict[str, Any]:
         """
-        Send prayer reminder email to user.
-
+        Send a consistency nudge to a user who has been missing prayers.
+        
         Args:
-            user: User instance.
-            prayer: Prayer instance.
-
+            user: User to send nudge to.
+            
         Returns:
-            bool: True if email was sent successfully, False otherwise.
+            Dict[str, Any]: Result with success status or error.
         """
         try:
-            from mail_config import mail
-
-            subject = f"Prayer Reminder - {prayer.name}"
-            body = f"""
-            Assalamu Alaikum {user.first_name},
-
-            This is a reminder that {prayer.name} prayer time is approaching.
-
-            Prayer Time: {prayer.prayer_time.strftime('%H:%M')}
-            Date: {prayer.prayer_date.strftime('%B %d, %Y')}
-
-            May Allah accept your prayers.
-
-            Best regards,
-            Salah Tracker Team
-            """
-
-            msg = Message(
-                subject=subject,
-                recipients=[user.email],
-                body=body
-            )
-
-            mail.send(msg)
-            return True
-
+            if not user.email_notifications:
+                return {
+                    'success': False,
+                    'error': 'User has disabled email notifications'
+                }
+            
+            # Get inspirational content for motivation
+            from app.models.inspirational_content import QuranicVerse, Hadith
+            verse = QuranicVerse.get_random_verse('patience')
+            hadith = Hadith.get_random_hadith('motivation')
+            
+            subject = "💪 دعنا نعود إلى المسار الصحيح - SalahTracker"
+            template = get_consistency_nudge_template(user, verse, hadith)
+            
+            success = self.email_service._send_email(user.email, subject, template)
+            
+            if success:
+                self.logger.info(f"Consistency nudge sent to {user.email}")
+                return {
+                    'success': True,
+                    'message': 'Consistency nudge sent successfully'
+                }
+            else:
+                return {
+                    'success': False,
+                    'error': 'Failed to send consistency nudge email'
+                }
+                
         except Exception as e:
-            self.logger.error(f"Error sending prayer reminder email: {str(e)}")
-            return False
-
-    def _send_welcome_email(self, user: User) -> bool:
-        """
-        Send welcome email to newly registered user.
-
-        Args:
-            user: User instance.
-
-        Returns:
-            bool: True if email was sent successfully, False otherwise.
-        """
-        try:
-            from mail_config import mail
-
-            subject = "Welcome to Salah Tracker!"
-            body = f"""
-            Assalamu Alaikum {user.first_name},
-
-            Welcome to Salah Tracker! We're excited to help you maintain consistency in your daily prayers.
-
-            Your account has been created successfully with the following details:
-            - Name: {user.first_name} {user.last_name}
-            - Email: {user.email}
-            - Location: {user.location_lat}, {user.location_lng}
-            - Timezone: {user.timezone}
-
-            You can now:
-            - Track your daily prayers
-            - Mark missed prayers as Qada
-            - View your prayer statistics
-            - Set up prayer reminders
-
-            If you have any questions or need assistance, please don't hesitate to contact us.
-
-            May Allah bless you and accept your prayers.
-
-            Best regards,
-            Salah Tracker Team
-            """
-
-            msg = Message(
-                subject=subject,
-                recipients=[user.email],
-                body=body
-            )
-
-            mail.send(msg)
-            return True
-
-        except Exception as e:
-            self.logger.error(f"Error sending welcome email: {str(e)}")
-            return False
-
-    def _send_daily_summary_email(self, user: User, date: datetime.date,
-                                 prayer_data: Dict[str, Any]) -> bool:
-        """
-        Send daily prayer summary email to user.
-
-        Args:
-            user: User instance.
-            date: Date of the summary.
-            prayer_data: Prayer completion data for the date.
-
-        Returns:
-            bool: True if email was sent successfully, False otherwise.
-        """
-        try:
-            from mail_config import mail
-
-            # Calculate summary statistics
-            total_prayers = prayer_data.get('total_prayers', 0)
-            completed_prayers = prayer_data.get('completed_prayers', 0)
-            completion_rate = (completed_prayers / total_prayers * 100) if total_prayers > 0 else 0
-
-            subject = f"Daily Prayer Summary - {date.strftime('%B %d, %Y')}"
-            body = f"""
-            Assalamu Alaikum {user.first_name},
-
-            Here's your prayer summary for {date.strftime('%B %d, %Y')}:
-
-            📊 Daily Statistics:
-            - Total Prayers: {total_prayers}
-            - Completed Prayers: {completed_prayers}
-            - Completion Rate: {completion_rate:.1f}%
-
-            🕌 Prayer Details:
-            """
-
-            # Add prayer details
-            for prayer in prayer_data.get('prayers', []):
-                status = "✅ Completed" if prayer.get('completed') else "❌ Missed"
-                if prayer.get('completion', {}).get('is_qada'):
-                    status = "🔄 Qada"
-                elif prayer.get('completion', {}).get('is_late'):
-                    status = "⏰ Late"
-
-                body += f"- {prayer.get('name', 'Unknown')} ({prayer.get('time', 'N/A')}): {status}\n"
-
-            body += f"""
-
-            Keep up the great work! Consistency in prayer is a blessing from Allah.
-
-            May Allah accept your prayers and grant you success in this world and the next.
-
-            Best regards,
-            Salah Tracker Team
-            """
-
-            msg = Message(
-                subject=subject,
-                recipients=[user.email],
-                body=body
-            )
-
-            mail.send(msg)
-            return True
-
-        except Exception as e:
-            self.logger.error(f"Error sending daily summary email: {str(e)}")
-            return False
-
-    def _get_daily_prayer_data(self, user: User, date: datetime.date) -> Dict[str, Any]:
-        """
-        Get prayer data for a specific date.
-
-        Args:
-            user: User instance.
-            date: Date to get prayer data for.
-
-        Returns:
-            Dict[str, Any]: Prayer data for the date.
-        """
-        try:
-            from app.models.prayer import PrayerCompletion
-
-            # Get prayers for the date
-            prayers = Prayer.query.filter(
-                Prayer.user_id == user.id,
-                Prayer.prayer_date == date
-            ).all()
-
-            # Get completions
-            prayer_ids = [prayer.id for prayer in prayers]
-            completions = PrayerCompletion.query.filter(
-                PrayerCompletion.prayer_id.in_(prayer_ids)
-            ).all()
-
-            # Group completions by prayer_id
-            completions_by_prayer = {c.prayer_id: c for c in completions}
-
-            # Build prayer data
-            prayer_list = []
-            for prayer in prayers:
-                completion = completions_by_prayer.get(prayer.id)
-                prayer_list.append({
-                    'name': prayer.name,
-                    'time': prayer.prayer_time.strftime('%H:%M'),
-                    'completed': completion is not None,
-                    'completion': completion.to_dict() if completion else None
-                })
-
-            return {
-                'total_prayers': len(prayers),
-                'completed_prayers': len(completions),
-                'prayers': prayer_list
-            }
-
-        except Exception as e:
-            self.logger.error(f"Error getting daily prayer data: {str(e)}")
-            return {
-                'total_prayers': 0,
-                'completed_prayers': 0,
-                'prayers': []
-            }
+            return self.handle_service_error(e, 'send_consistency_nudge')
+    

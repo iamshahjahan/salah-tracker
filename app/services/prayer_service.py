@@ -154,7 +154,7 @@ class PrayerService(BaseService):
                 is_qada=False
             )
 
-            self.logger.info(f"Prayer completed: {prayer.name} for user {user.email}")
+            self.logger.info(f"Prayer completed: {prayer.prayer_type.value} for user {user.email}")
 
             return {
                 'success': True,
@@ -222,7 +222,7 @@ class PrayerService(BaseService):
                     is_qada=True
                 )
 
-            self.logger.info(f"Prayer marked as Qada: {prayer.name} for user {user.email}")
+            self.logger.info(f"Prayer marked as Qada: {prayer.prayer_type.value} for user {user.email}")
 
             return {
                 'success': True,
@@ -418,7 +418,7 @@ class PrayerService(BaseService):
 
         prayer_info = {
             'id': prayer.id,
-            'name': prayer.name,
+            'name': prayer.prayer_type.value,
             'time': prayer.prayer_time.strftime('%H:%M'),
             'completed': completion is not None,
             'can_complete': can_complete,

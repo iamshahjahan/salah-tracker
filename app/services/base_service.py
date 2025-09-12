@@ -34,7 +34,16 @@ class BaseService:
         Args:
             config: Configuration instance. If None, will use current app config.
         """
-        self.config = config or current_app.config
+        if config is None:
+            # Try to get config from Flask app first
+            try:
+                self.config = current_app.config
+            except RuntimeError:
+                # If no app context, use default config
+                from app.config.settings import get_config
+                self.config = get_config()
+        else:
+            self.config = config
         self.logger = logger
 
     @property

@@ -15,7 +15,15 @@ class User(db.Model):
     location_lat = db.Column(db.Float, nullable=True)
     location_lng = db.Column(db.Float, nullable=True)
     timezone = db.Column(db.String(50), default='UTC')
+    city = db.Column(db.String(100), nullable=True)
+    country = db.Column(db.String(100), nullable=True)
+    fiqh_method = db.Column(db.String(20), default='shafi')  # shafi, hanafi, maliki, hanbali
+    language = db.Column(db.String(10), default='en')  # ar, en
     notification_enabled = db.Column(db.Boolean, default=True)
+    email_notifications = db.Column(db.Boolean, default=True)
+    reminder_times = db.Column(db.JSON, default=lambda: {
+        'fajr': 15, 'dhuhr': 10, 'asr': 10, 'maghrib': 5, 'isha': 10
+    })  # Minutes before prayer time
     email_verified = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -44,7 +52,13 @@ class User(db.Model):
             'location_lat': self.location_lat,
             'location_lng': self.location_lng,
             'timezone': self.timezone,
+            'city': self.city,
+            'country': self.country,
+            'fiqh_method': self.fiqh_method,
+            'language': self.language,
             'notification_enabled': self.notification_enabled,
+            'email_notifications': self.email_notifications,
+            'reminder_times': self.reminder_times,
             'email_verified': self.email_verified,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None

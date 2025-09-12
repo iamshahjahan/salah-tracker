@@ -16,6 +16,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // Check for URL parameters (for password reset)
     checkURLParameters();
 
+    // Load prayer times preview for home page
+    loadPrayerTimesPreview();
+
     // Check if user is logged in
     if (authToken) {
         loadUserProfile().then(() => {
@@ -934,16 +937,16 @@ async function completePrayer(prayerId) {
 async function loadDashboard() {
     if (!authToken) {
         // Hide calendar and show login message
-        document.querySelector('.calendar-header').style.display = 'none';
-        document.querySelector('.calendar-container').style.display = 'none';
+        document.querySelector('.weekly-calendar-header').style.display = 'none';
+        document.querySelector('.weekly-calendar-container').style.display = 'none';
         document.querySelector('.selected-day-prayers').style.display = 'none';
         document.getElementById('dashboardStats').innerHTML = '<div class="loading">Please login to view dashboard</div>';
         return;
     }
 
     // Show calendar for logged-in users
-    document.querySelector('.calendar-header').style.display = 'flex';
-    document.querySelector('.calendar-container').style.display = 'block';
+    document.querySelector('.weekly-calendar-header').style.display = 'flex';
+    document.querySelector('.weekly-calendar-container').style.display = 'block';
 
     try {
         const response = await fetch(`${API_BASE}/api/dashboard/stats`, {
@@ -962,8 +965,8 @@ async function loadDashboard() {
         document.getElementById('dashboardStats').innerHTML = '<div class="loading">Error loading dashboard</div>';
     }
 
-    // Load calendar
-    loadCalendar();
+    // Load weekly calendar
+    loadWeeklyCalendar();
 }
 
 function displayDashboardStats(stats) {
@@ -990,37 +993,43 @@ function displayDashboardStats(stats) {
     container.innerHTML = statsHTML;
 }
 
-// Calendar functions
-let currentCalendarDate = new Date();
+// Weekly Calendar functions
+let currentWeekStart = new Date();
 let selectedDate = null;
 let accountCreationDate = null;
+let currentMobileDayIndex = 0; // For mobile day navigation
+let isMobileView = false;
 
-function loadCalendar() {
+function loadWeeklyCalendar() {
     if (!authToken) {
         // Calendar should be hidden by loadDashboard, but just in case
-        const calendarGrid = document.getElementById('calendarGrid');
+        const calendarGrid = document.getElementById('weeklyCalendarGrid');
         if (calendarGrid) {
             calendarGrid.innerHTML = '<div class="loading">Please login to view calendar</div>';
         }
         return;
     }
 
-    // If account creation date is set and current calendar date is before it,
-    // set calendar to account creation month
-    if (accountCreationDate && currentCalendarDate < accountCreationDate) {
-        currentCalendarDate = new Date(accountCreationDate);
+    // Set current week start to Monday of current week
+    const today = new Date();
+    const dayOfWeek = today.getDay();
+    const daysToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek; // Sunday = 0, so go back 6 days
+    currentWeekStart = new Date(today);
+    currentWeekStart.setDate(today.getDate() + daysToMonday);
+    currentWeekStart.setHours(0, 0, 0, 0);
+
+    // If account creation date is set and current week is before it,
+    // set week to account creation week
+    if (accountCreationDate && currentWeekStart < accountCreationDate) {
+        const accountDay = accountCreationDate.getDay();
+        const accountDaysToMonday = accountDay === 0 ? -6 : 1 - accountDay;
+        currentWeekStart = new Date(accountCreationDate);
+        currentWeekStart.setDate(accountCreationDate.getDate() + accountDaysToMonday);
+        currentWeekStart.setHours(0, 0, 0, 0);
     }
 
-    const year = currentCalendarDate.getFullYear();
-    const month = currentCalendarDate.getMonth();
-
-    // Update month display
-    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
-        'July', 'August', 'September', 'October', 'November', 'December'];
-    document.getElementById('calendarMonth').textContent = `${monthNames[month]} ${year}`;
-
-    // Generate calendar
-    generateCalendar(year, month);
+    updateWeekDisplay();
+    generateWeeklyCalendar();
 }
 
 function generateCalendar(year, month) {
@@ -1071,10 +1080,108 @@ function generateCalendar(year, month) {
         calendarHTML += `<div class="calendar-day other-month">${i}</div>`;
     }
 
-    document.getElementById('calendarGrid').innerHTML = calendarHTML;
+    document.getElementById('weeklyCalendarGrid').innerHTML = calendarHTML;
+    loadPrayerDataForWeek();
+}
 
-    // Load prayer data for visible days
-    loadPrayerDataForMonth(year, month);
+function updateWeekDisplay() {
+    const weekEnd = new Date(currentWeekStart);
+    weekEnd.setDate(currentWeekStart.getDate() + 6);
+    
+    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+        'July', 'August', 'September', 'October', 'November', 'December'];
+    
+    const startMonth = monthNames[currentWeekStart.getMonth()];
+    const startDay = currentWeekStart.getDate();
+    const startYear = currentWeekStart.getFullYear();
+    
+    const endMonth = monthNames[weekEnd.getMonth()];
+    const endDay = weekEnd.getDate();
+    const endYear = weekEnd.getFullYear();
+    
+    let weekTitle;
+    if (startMonth === endMonth && startYear === endYear) {
+        weekTitle = `Week of ${startMonth} ${startDay}, ${startYear}`;
+    } else if (startYear === endYear) {
+        weekTitle = `Week of ${startMonth} ${startDay} - ${endMonth} ${endDay}, ${startYear}`;
+    } else {
+        weekTitle = `Week of ${startMonth} ${startDay}, ${startYear} - ${endMonth} ${endDay}, ${endYear}`;
+    }
+    
+    document.getElementById('weekTitle').textContent = weekTitle;
+    
+    // Update subtitle based on current week
+    const today = new Date();
+    const isCurrentWeek = currentWeekStart <= today && weekEnd >= today;
+    document.getElementById('weekSubtitle').textContent = isCurrentWeek ? 
+        'Track your daily prayers' : 'View past prayer history';
+}
+
+function generateWeeklyCalendar() {
+    const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const dayNamesFull = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    
+    // Check if mobile view
+    isMobileView = window.innerWidth <= 480;
+    
+    let calendarHTML = '';
+    
+    for (let i = 0; i < 7; i++) {
+        const currentDate = new Date(currentWeekStart);
+        currentDate.setDate(currentWeekStart.getDate() + i);
+        
+        const dateString = formatDateString(currentDate);
+        const isToday = isSameDate(currentDate, new Date());
+        const isSelected = selectedDate && (selectedDate === dateString || isSameDate(currentDate, new Date(selectedDate)));
+        const isBeforeAccountCreation = accountCreationDate && currentDate < accountCreationDate;
+        const isFuture = currentDate > new Date();
+        
+        // Determine base classes
+        let cardClasses = 'weekly-day-card';
+        if (isToday) cardClasses += ' today';
+        if (isSelected) cardClasses += ' selected';
+        if (isBeforeAccountCreation) cardClasses += ' disabled';
+        if (isFuture) cardClasses += ' pending';
+        
+        // For mobile, only show the current day
+        const shouldShow = !isMobileView || i === currentMobileDayIndex;
+        const displayStyle = shouldShow ? '' : 'style="display: none;"';
+        
+        calendarHTML += `
+            <div class="${cardClasses}" id="card-${dateString}" ${displayStyle}
+                 ${isBeforeAccountCreation ? '' : `onclick="selectDate('${dateString}')"`}>
+                <div class="weekly-day-header">
+                    <div class="weekly-day-name">${dayNames[i]}</div>
+                    <div class="weekly-day-number">${currentDate.getDate()}</div>
+                </div>
+                <div class="weekly-day-prayers" id="prayers-${dateString}">
+                    ${isBeforeAccountCreation ? 
+                        '<div class="prayer-status-indicator future">Before Account</div>' :
+                        isFuture ?
+                        '<div class="prayer-status-indicator future">Future</div>' :
+                        '<!-- Prayer status will be loaded here -->'
+                    }
+                </div>
+                <div class="weekly-day-summary" id="summary-${dateString}">
+                    <!-- Summary will be loaded here -->
+                </div>
+            </div>
+        `;
+    }
+    
+    document.getElementById('weeklyCalendarGrid').innerHTML = calendarHTML;
+    
+    // Show/hide mobile navigation
+    const mobileNav = document.getElementById('mobileDayNav');
+    if (isMobileView) {
+        mobileNav.style.display = 'flex';
+        updateMobileDayNavigation();
+    } else {
+        mobileNav.style.display = 'none';
+    }
+    
+    loadPrayerDataForWeek();
 }
 
 function isSameDate(date1, date2) {
@@ -1082,6 +1189,225 @@ function isSameDate(date1, date2) {
            date1.getMonth() === date2.getMonth() &&
            date1.getDate() === date2.getDate();
 }
+
+function formatDateString(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
+function previousWeek() {
+    currentWeekStart.setDate(currentWeekStart.getDate() - 7);
+    updateWeekDisplay();
+    generateWeeklyCalendar();
+    // Reset mobile day index to first day of new week
+    currentMobileDayIndex = 0;
+    // Clear selected date to avoid showing old prayer times
+    selectedDate = null;
+    hideSelectedDayPrayers();
+}
+
+function nextWeek() {
+    currentWeekStart.setDate(currentWeekStart.getDate() + 7);
+    updateWeekDisplay();
+    generateWeeklyCalendar();
+    // Reset mobile day index to first day of new week
+    currentMobileDayIndex = 0;
+    // Clear selected date to avoid showing old prayer times
+    selectedDate = null;
+    hideSelectedDayPrayers();
+}
+
+// Mobile day navigation functions
+function previousDay() {
+    if (currentMobileDayIndex > 0) {
+        currentMobileDayIndex--;
+        showMobileDay(currentMobileDayIndex);
+        updateMobileDayNavigation();
+    }
+}
+
+function nextDay() {
+    if (currentMobileDayIndex < 6) {
+        currentMobileDayIndex++;
+        showMobileDay(currentMobileDayIndex);
+        updateMobileDayNavigation();
+    }
+}
+
+function showMobileDay(dayIndex) {
+    // Hide all day cards
+    const allCards = document.querySelectorAll('.weekly-day-card');
+    allCards.forEach(card => card.style.display = 'none');
+    
+    // Show the selected day card
+    const targetDate = new Date(currentWeekStart);
+    targetDate.setDate(currentWeekStart.getDate() + dayIndex);
+    const dateString = formatDateString(targetDate);
+    const targetCard = document.getElementById(`card-${dateString}`);
+    if (targetCard) {
+        targetCard.style.display = 'block';
+    }
+    
+    // Update selected date and load prayer times
+    selectedDate = dateString;
+    loadSelectedDayPrayers(dateString);
+}
+
+function updateMobileDayNavigation() {
+    const dayNamesFull = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    
+    const currentDate = new Date(currentWeekStart);
+    currentDate.setDate(currentWeekStart.getDate() + currentMobileDayIndex);
+    
+    const dayName = dayNamesFull[currentMobileDayIndex];
+    const monthName = monthNames[currentDate.getMonth()];
+    const dayNumber = currentDate.getDate();
+    
+    document.getElementById('mobileDayTitle').textContent = `${dayName}, ${monthName} ${dayNumber}`;
+    
+    // Update navigation buttons
+    const prevBtn = document.getElementById('prevDayBtn');
+    const nextBtn = document.getElementById('nextDayBtn');
+    
+    prevBtn.disabled = currentMobileDayIndex === 0;
+    nextBtn.disabled = currentMobileDayIndex === 6;
+    
+    // Update subtitle with prayer status
+    const dateString = formatDateString(currentDate);
+    const summaryElement = document.getElementById(`summary-${dateString}`);
+    if (summaryElement && summaryElement.textContent) {
+        document.getElementById('mobileDaySubtitle').textContent = summaryElement.textContent;
+    } else {
+        document.getElementById('mobileDaySubtitle').textContent = 'Loading...';
+    }
+}
+
+function loadPrayerDataForWeek() {
+    // Load prayer data for the current week
+    for (let i = 0; i < 7; i++) {
+        const currentDate = new Date(currentWeekStart);
+        currentDate.setDate(currentWeekStart.getDate() + i);
+        const dateString = formatDateString(currentDate);
+        
+        // Skip if before account creation or future
+        if (accountCreationDate && currentDate < accountCreationDate) continue;
+        if (currentDate > new Date()) continue;
+        
+        loadPrayerDataForDate(dateString);
+    }
+}
+
+function loadPrayerDataForDate(dateString) {
+    if (!authToken) return;
+    
+    console.log(`Loading prayer data for ${dateString}`);
+    
+    fetch(`${API_BASE}/api/prayers/times/${dateString}`, {
+        headers: {
+            'Authorization': `Bearer ${authToken}`
+        }
+    })
+    .then(response => {
+        console.log(`Response status for ${dateString}:`, response.status);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log(`API response for ${dateString}:`, data);
+        if (data.prayers) {
+            updatePrayerStatusForDate(dateString, data.prayers);
+        } else {
+            console.log(`No prayers data for ${dateString}:`, data);
+        }
+    })
+    .catch(error => {
+        console.error('Error loading prayer data:', error);
+    });
+}
+
+function updatePrayerStatusForDate(dateString, prayers) {
+    const prayersContainer = document.getElementById(`prayers-${dateString}`);
+    const summaryContainer = document.getElementById(`summary-${dateString}`);
+    const cardElement = document.getElementById(`card-${dateString}`);
+    
+    if (!prayersContainer || !prayers || !cardElement) return;
+    
+    // Debug logging
+    console.log(`Prayer data for ${dateString}:`, prayers);
+    
+    const completedCount = prayers.filter(prayer => prayer.completed).length;
+    const totalCount = prayers.length;
+    const qadaCount = prayers.filter(prayer => prayer.completion && prayer.completion.is_qada).length;
+    const missedCount = prayers.filter(prayer => prayer.is_missed).length;
+    
+    // Debug logging
+    console.log(`Status for ${dateString}: completed=${completedCount}, total=${totalCount}, qada=${qadaCount}, missed=${missedCount}`);
+    
+    // Remove existing status classes
+    cardElement.classList.remove('all-complete', 'has-qada', 'all-missed', 'pending');
+    
+    let statusClass, statusText, summaryText, cardStatusClass;
+    
+    if (completedCount === totalCount && qadaCount === 0) {
+        // All prayers completed, no Qada
+        statusClass = 'completed';
+        statusText = 'All Complete';
+        summaryText = `${completedCount}/${totalCount} prayers`;
+        cardStatusClass = 'all-complete';
+    } else if (qadaCount > 0) {
+        // Some prayers are Qada (missed but marked as Qada)
+        statusClass = 'partial';
+        statusText = `${completedCount}/${totalCount} Complete`;
+        summaryText = `${qadaCount} Qada prayers`;
+        cardStatusClass = 'has-qada';
+    } else if (missedCount > 0 && completedCount === 0) {
+        // All prayers missed
+        statusClass = 'missed';
+        statusText = 'All Missed';
+        summaryText = `${missedCount} missed prayers`;
+        cardStatusClass = 'all-missed';
+    } else if (completedCount > 0 && missedCount > 0) {
+        // Mixed: some completed, some missed
+        statusClass = 'partial';
+        statusText = `${completedCount}/${totalCount} Complete`;
+        summaryText = `${completedCount} completed, ${missedCount} missed`;
+        cardStatusClass = 'has-qada';
+    } else {
+        // No prayers yet or pending
+        statusClass = 'future';
+        statusText = 'Pending';
+        summaryText = 'No prayers yet';
+        cardStatusClass = 'pending';
+    }
+    
+    // Debug logging
+    console.log(`Applied status for ${dateString}: ${cardStatusClass}`);
+    
+    // Apply the card status class
+    if (cardStatusClass) {
+        cardElement.classList.add(cardStatusClass);
+    }
+    
+    prayersContainer.innerHTML = `<div class="prayer-status-indicator ${statusClass}">${statusText}</div>`;
+    summaryContainer.innerHTML = summaryText;
+    
+    // Update mobile navigation if in mobile view
+    if (isMobileView) {
+        updateMobileDayNavigation();
+    }
+}
+
+// Handle window resize for mobile/desktop switching
+window.addEventListener('resize', function() {
+    if (typeof generateWeeklyCalendar === 'function') {
+        generateWeeklyCalendar();
+    }
+});
 
 async function loadPrayerDataForMonth(year, month) {
     if (!authToken) return;
@@ -1190,6 +1516,13 @@ async function selectDate(dateStr) {
 
     // Show selected day prayers
     await loadSelectedDayPrayers(dateStr);
+}
+
+function hideSelectedDayPrayers() {
+    const selectedDayPrayers = document.getElementById('selectedDayPrayers');
+    if (selectedDayPrayers) {
+        selectedDayPrayers.style.display = 'none';
+    }
 }
 
 async function loadSelectedDayPrayers(dateStr) {
@@ -1480,8 +1813,38 @@ function displayProfile(user) {
                 <input type="text" id="timezone" value="${user.timezone || 'Asia/Kolkata'}" placeholder="e.g., Asia/Kolkata">
             </div>
             <div class="form-group">
+                <label>City</label>
+                <input type="text" id="city" value="${user.city || ''}" placeholder="e.g., Bangalore">
+            </div>
+            <div class="form-group">
+                <label>Country</label>
+                <input type="text" id="country" value="${user.country || ''}" placeholder="e.g., India">
+            </div>
+            <div class="form-group">
+                <label>Language</label>
+                <select id="language">
+                    <option value="ar" ${user.language === 'ar' ? 'selected' : ''}>العربية (Arabic)</option>
+                    <option value="en" ${user.language === 'en' ? 'selected' : ''}>English</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Fiqh Method</label>
+                <select id="fiqh_method">
+                    <option value="shafi" ${user.fiqh_method === 'shafi' ? 'selected' : ''}>Shafi'i</option>
+                    <option value="hanafi" ${user.fiqh_method === 'hanafi' ? 'selected' : ''}>Hanafi</option>
+                    <option value="maliki" ${user.fiqh_method === 'maliki' ? 'selected' : ''}>Maliki</option>
+                    <option value="hanbali" ${user.fiqh_method === 'hanbali' ? 'selected' : ''}>Hanbali</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="email_notifications" ${user.email_notifications ? 'checked' : ''}>
+                    Email Notifications
+                </label>
+            </div>
+            <div class="form-group">
                 <button class="btn btn-secondary" onclick="setBangaloreLocation()">Set to Bangalore, India</button>
-                <button class="btn btn-primary" onclick="updateLocation()">Update Location</button>
+                <button class="btn btn-primary" onclick="updateProfile()">Update Profile</button>
             </div>
         </div>
         <div class="text-center mt-20">
@@ -1499,15 +1862,20 @@ function setBangaloreLocation() {
     showNotification('Location set to Bangalore, India', 'success');
 }
 
-async function updateLocation() {
+async function updateProfile() {
     if (!authToken) {
-        showNotification('Please login to update location', 'error');
+        showNotification('Please login to update profile', 'error');
         return;
     }
 
     const locationLat = parseFloat(document.getElementById('locationLat').value);
     const locationLng = parseFloat(document.getElementById('locationLng').value);
     const timezone = document.getElementById('timezone').value;
+    const city = document.getElementById('city').value;
+    const country = document.getElementById('country').value;
+    const language = document.getElementById('language').value;
+    const fiqh_method = document.getElementById('fiqh_method').value;
+    const email_notifications = document.getElementById('email_notifications').checked;
 
     if (!locationLat || !locationLng) {
         showNotification('Please enter valid latitude and longitude', 'error');
@@ -1524,21 +1892,42 @@ async function updateLocation() {
             body: JSON.stringify({
                 location_lat: locationLat,
                 location_lng: locationLng,
-                timezone: timezone
+                timezone: timezone,
+                city: city,
+                country: country,
+                language: language,
+                fiqh_method: fiqh_method,
+                email_notifications: email_notifications
             })
         });
 
         if (response.ok) {
-            showNotification('Location updated successfully!', 'success');
+            showNotification('Profile updated successfully!', 'success');
+            // Update current user data
+            if (currentUser) {
+                currentUser.location_lat = locationLat;
+                currentUser.location_lng = locationLng;
+                currentUser.timezone = timezone;
+                currentUser.city = city;
+                currentUser.country = country;
+                currentUser.language = language;
+                currentUser.fiqh_method = fiqh_method;
+                currentUser.email_notifications = email_notifications;
+            }
             // Reload prayer times
             loadPrayerTimes();
         } else {
             const data = await response.json();
-            showNotification(data.error || 'Failed to update location', 'error');
+            showNotification(data.error || 'Failed to update profile', 'error');
         }
     } catch (error) {
         showNotification('Network error. Please try again.', 'error');
     }
+}
+
+// Keep the old function for backward compatibility
+async function updateLocation() {
+    await updateProfile();
 }
 
 function logout() {
@@ -1558,6 +1947,12 @@ function updateUIForLoggedInUser() {
             <button class="btn btn-primary" onclick="showSection('prayers')">View Prayers</button>
             <button class="btn btn-secondary" onclick="showSection('dashboard')">Dashboard</button>
         `;
+    }
+
+    // Hide call-to-action section for logged-in users
+    const ctaSection = document.querySelector('.cta-section');
+    if (ctaSection) {
+        ctaSection.style.display = 'none';
     }
 
     // Update navigation to show user is logged in
@@ -1590,6 +1985,12 @@ function updateUIForLoggedOutUser() {
             <button class="btn btn-primary" onclick="showLogin()">Get Started</button>
             <button class="btn btn-secondary" onclick="showRegister()">Create Account</button>
         `;
+    }
+
+    // Show call-to-action section for logged-out users
+    const ctaSection = document.querySelector('.cta-section');
+    if (ctaSection) {
+        ctaSection.style.display = 'block';
     }
 
     // Remove user info from navigation
@@ -1671,3 +2072,87 @@ style.textContent = `
     }
 `;
 document.head.appendChild(style);
+
+// Load prayer times preview for home page
+async function loadPrayerTimesPreview() {
+    const prayerTimesGrid = document.getElementById('prayerTimesPreview');
+    if (!prayerTimesGrid) return;
+
+    try {
+        // Use a default location (Bangalore, India) for preview
+        const response = await fetch('https://api.aladhan.com/v1/timingsByCity?city=Bangalore&country=India&method=2');
+        const data = await response.json();
+        
+        if (data.code === 200) {
+            const timings = data.data.timings;
+            const prayerCards = prayerTimesGrid.querySelectorAll('.prayer-time-card');
+            
+            const prayerMapping = {
+                0: 'Fajr',
+                1: 'Dhuhr', 
+                2: 'Asr',
+                3: 'Maghrib',
+                4: 'Isha'
+            };
+            
+            const prayerKeys = ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
+            
+            prayerCards.forEach((card, index) => {
+                const prayerName = card.querySelector('.prayer-name');
+                const prayerTime = card.querySelector('.prayer-time');
+                
+                if (prayerName && prayerTime && prayerKeys[index]) {
+                    const time = timings[prayerKeys[index]];
+                    if (time) {
+                        // Format time to HH:MM
+                        const [hours, minutes] = time.split(':');
+                        prayerTime.textContent = `${hours}:${minutes}`;
+                    }
+                }
+            });
+        }
+    } catch (error) {
+        console.log('Could not load prayer times for preview:', error);
+        // Keep default times if API fails
+    }
+}
+
+// Add smooth scrolling for anchor links
+document.addEventListener('DOMContentLoaded', function() {
+    // Add smooth scrolling to all anchor links
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function (e) {
+            e.preventDefault();
+            const target = document.querySelector(this.getAttribute('href'));
+            if (target) {
+                target.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start'
+                });
+            }
+        });
+    });
+    
+    // Add animation on scroll
+    const observerOptions = {
+        threshold: 0.1,
+        rootMargin: '0px 0px -50px 0px'
+    };
+    
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.style.opacity = '1';
+                entry.target.style.transform = 'translateY(0)';
+            }
+        });
+    }, observerOptions);
+    
+    // Observe feature cards and other elements
+    document.querySelectorAll('.feature-card, .prayer-time-card, .quote-card').forEach(el => {
+        el.style.opacity = '0';
+        el.style.transform = 'translateY(30px)';
+        el.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+        observer.observe(el);
+    });
+});
