@@ -2,37 +2,75 @@ from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from database import db
 from app.models.user import User
-from app.models.prayer import Prayer, PrayerCompletion, PrayerType
+from app.models.prayer import Prayer, PrayerCompletion, PrayerType, PrayerStatus
 from datetime import datetime, date, timedelta, time
 import requests
 import pytz
 
 prayer_bp = Blueprint('prayer', __name__)
 
-def get_prayer_time_window(prayer_type, prayer_time, prayer_date):
-    """Get the valid time window for completing a prayer"""
+def get_prayer_time_window(prayer_type, prayer_time, prayer_date, all_prayer_times=None):
+    """
+    Get the valid time window for completing a prayer using Islamic methodology.
+    Each prayer ends when the next prayer begins.
+    """
     prayer_time_obj = datetime.strptime(prayer_time, '%H:%M').time()
-
-    # Define prayer time windows (in minutes)
-    time_windows = {
-        PrayerType.FAJR: 30,      # 30 minutes after Fajr time
-        PrayerType.DHUHR: 30,     # 30 minutes after Dhuhr time
-        PrayerType.ASR: 30,       # 30 minutes after Asr time
-        PrayerType.MAGHRIB: 20,   # 20 minutes after Maghrib time
-        PrayerType.ISHA: 30       # 30 minutes after Isha time
-    }
-
-    window_minutes = time_windows.get(prayer_type, 30)
-
-    # Calculate start and end times
     prayer_datetime = datetime.combine(prayer_date, prayer_time_obj)
     start_time = prayer_datetime
-    end_time = prayer_datetime + timedelta(minutes=window_minutes)
 
-    # Special case for Fajr - it can be completed until sunrise (next prayer time)
+    # If prayer times are provided, use them; otherwise use fallbacks
+    if all_prayer_times:
+        prayer_times = all_prayer_times
+    else:
+        # Fallback prayer times for basic calculation
+        prayer_times = {
+            PrayerType.FAJR: prayer_time_obj,
+            PrayerType.DHUHR: (datetime.combine(prayer_date, prayer_time_obj) + timedelta(hours=6)).time(),
+            PrayerType.ASR: (datetime.combine(prayer_date, prayer_time_obj) + timedelta(hours=9)).time(),
+            PrayerType.MAGHRIB: (datetime.combine(prayer_date, prayer_time_obj) + timedelta(hours=12)).time(),
+            PrayerType.ISHA: (datetime.combine(prayer_date, prayer_time_obj) + timedelta(hours=14)).time()
+        }
+
+    # Determine end time based on Islamic methodology
     if prayer_type == PrayerType.FAJR:
-        # For Fajr, extend until Dhuhr time (simplified)
-        end_time = prayer_datetime + timedelta(hours=6)  # Approximate sunrise time
+        # Fajr ends at Sunrise (use Dhuhr as approximation)
+        if PrayerType.DHUHR in prayer_times:
+            end_time = datetime.combine(prayer_date, prayer_times[PrayerType.DHUHR])
+        else:
+            # Fallback: 6 hours after Fajr (approximate sunrise)
+            end_time = prayer_datetime + timedelta(hours=6)
+            
+    elif prayer_type == PrayerType.DHUHR:
+        # Dhuhr ends at Asr
+        if PrayerType.ASR in prayer_times:
+            end_time = datetime.combine(prayer_date, prayer_times[PrayerType.ASR])
+        else:
+            # Fallback: 3 hours after Dhuhr
+            end_time = prayer_datetime + timedelta(hours=3)
+            
+    elif prayer_type == PrayerType.ASR:
+        # Asr ends at Maghrib
+        if PrayerType.MAGHRIB in prayer_times:
+            end_time = datetime.combine(prayer_date, prayer_times[PrayerType.MAGHRIB])
+        else:
+            # Fallback: 2 hours after Asr
+            end_time = prayer_datetime + timedelta(hours=2)
+            
+    elif prayer_type == PrayerType.MAGHRIB:
+        # Maghrib ends at Isha
+        if PrayerType.ISHA in prayer_times:
+            end_time = datetime.combine(prayer_date, prayer_times[PrayerType.ISHA])
+        else:
+            # Fallback: 1.5 hours after Maghrib
+            end_time = prayer_datetime + timedelta(hours=1, minutes=30)
+            
+    elif prayer_type == PrayerType.ISHA:
+        # Isha ends at next day's Fajr
+        # For simplicity, we'll use 8 hours after Isha (until approximately next day's Fajr)
+        end_time = prayer_datetime + timedelta(hours=8)
+    else:
+        # Default fallback
+        end_time = prayer_datetime + timedelta(hours=2)
 
     return start_time, end_time
 
@@ -79,9 +117,8 @@ def auto_update_prayer_status(user_id, prayer_date):
                 missed_completion = PrayerCompletion(
                     user_id=user_id,
                     prayer_id=prayer.id,
-                    completed_at=current_time,
-                    is_late=True,
-                    is_qada=False,  # This is a missed prayer, not Qada
+                    marked_at=None,  # No completion timestamp for missed prayers
+                    status=PrayerStatus.MISSED,  # Mark as missed (can be moved to qada)
                     notes="Automatically marked as missed"
                 )
                 db.session.add(missed_completion)
@@ -211,34 +248,20 @@ def get_prayer_times_for_user():
         # Create completion map
         completion_map = {comp.prayer_id: comp for comp in completions}
 
-        # Add completion status to prayers
+        # Use the enhanced prayer service to get detailed prayer information
+        from app.config.settings import get_config
+        from app.services.prayer_service import PrayerService
+        
+        config = get_config()
+        prayer_service = PrayerService(config)
+        
         prayers_with_status = []
         for prayer in prayers:
-            prayer_dict = prayer.to_dict()
             completion = completion_map.get(prayer.id)
-
-            # Check time validation for this prayer
-            prayer_time_str = prayer.prayer_time.strftime('%H:%M')
-            current_time = datetime.now()
-
-            can_complete = is_prayer_time_valid(prayer.prayer_type, prayer_time_str, prayer.prayer_date, current_time)
-            is_missed = is_prayer_missed(prayer.prayer_type, prayer_time_str, prayer.prayer_date, current_time)
-
-            prayer_dict['completed'] = completion is not None
-            prayer_dict['can_complete'] = can_complete
-            prayer_dict['is_missed'] = is_missed
-            prayer_dict['completion'] = completion.to_dict() if completion else None
-            # Allow Qada marking for missed prayers or late prayers that aren't already Qada
-            can_mark_qada = user.created_at and prayer.prayer_date >= user.created_at.date()
-            if completion:
-                # If prayer is completed, only allow Qada if it's late but not already Qada
-                can_mark_qada = can_mark_qada and completion.is_late and not completion.is_qada
-            else:
-                # If prayer is not completed, allow Qada if it's missed
-                can_mark_qada = can_mark_qada and is_missed
-
-            prayer_dict['can_mark_qada'] = can_mark_qada
-            prayers_with_status.append(prayer_dict)
+            
+            # Get enhanced prayer information using the service
+            prayer_info = prayer_service._build_prayer_info(prayer, completion, user, prayer.prayer_date)
+            prayers_with_status.append(prayer_info)
 
         return jsonify({
             'date': date_str,
@@ -264,57 +287,68 @@ def complete_prayer():
         if not prayer:
             return jsonify({'error': 'Prayer not found'}), 404
 
-        # Check if already completed
+        # Check if already has a completion record
         existing_completion = PrayerCompletion.query.filter_by(
             user_id=user_id,
             prayer_id=data['prayer_id']
         ).first()
 
-        if existing_completion:
-            return jsonify({'error': 'Prayer already completed. You can only complete each prayer once.'}), 400
-
         current_time = datetime.now()
         prayer_time_str = prayer.prayer_time.strftime('%H:%M')
 
-        # Check if prayer time is valid for completion
-        if not is_prayer_time_valid(prayer.prayer_type, prayer_time_str, prayer.prayer_date, current_time):
-            # Check if it's a missed prayer (Qada)
-            if is_prayer_missed(prayer.prayer_type, prayer_time_str, prayer.prayer_date, current_time):
-                # Allow completion as Qada
-                is_qada = True
-                is_late = True
+        if existing_completion:
+            # Handle status transitions
+            if existing_completion.status == PrayerStatus.PENDING:
+                # Transition from pending to complete
+                existing_completion.status = PrayerStatus.COMPLETE
+                existing_completion.marked_at = datetime.utcnow()
+                existing_completion.notes = data.get('notes', existing_completion.notes)
+                db.session.commit()
+                message = 'Prayer marked as completed'
+            elif existing_completion.status == PrayerStatus.MISSED:
+                # Transition from missed to qada
+                existing_completion.status = PrayerStatus.QADA
+                existing_completion.marked_at = datetime.utcnow()
+                existing_completion.notes = data.get('notes', existing_completion.notes)
+                db.session.commit()
+                message = 'Prayer marked as Qada (missed prayer)'
             else:
-                # Too early to complete this prayer
-                return jsonify({
-                    'error': f'Cannot complete {prayer.prayer_type.value} prayer yet. Please wait until the prayer time.',
-                    'prayer_time': prayer_time_str,
-                    'current_time': current_time.strftime('%H:%M')
-                }), 400
+                # Already in terminal state (COMPLETE or QADA)
+                return jsonify({'error': 'Prayer already completed. You can only complete each prayer once.'}), 400
         else:
-            # Valid time for completion
-            is_qada = False
-            is_late = False
+            # Create new completion record
+            if not is_prayer_time_valid(prayer.prayer_type, prayer_time_str, prayer.prayer_date, current_time):
+                # Check if it's a missed prayer
+                if is_prayer_missed(prayer.prayer_type, prayer_time_str, prayer.prayer_date, current_time):
+                    # Create as missed (can be moved to qada)
+                    status = PrayerStatus.MISSED
+                    message = 'Prayer marked as missed (can be completed as Qada)'
+                else:
+                    # Too early to complete this prayer
+                    return jsonify({
+                        'error': f'Cannot complete {prayer.prayer_type.value} prayer yet. Please wait until the prayer time.',
+                        'prayer_time': prayer_time_str,
+                        'current_time': current_time.strftime('%H:%M')
+                    }), 400
+            else:
+                # Valid time for completion - create as pending
+                status = PrayerStatus.PENDING
+                message = 'Prayer marked as pending (can be completed)'
 
-        completion = PrayerCompletion(
-            user_id=user_id,
-            prayer_id=data['prayer_id'],
-            is_late=is_late,
-            is_qada=is_qada,
-            notes=data.get('notes')
-        )
+            completion = PrayerCompletion(
+                user_id=user_id,
+                prayer_id=data['prayer_id'],
+                marked_at=None,  # No timestamp for pending/missed
+                status=status,
+                notes=data.get('notes')
+            )
 
-        db.session.add(completion)
-        db.session.commit()
-
-        message = 'Prayer marked as completed'
-        if is_qada:
-            message = 'Prayer marked as Qada (missed prayer)'
-        elif is_late:
-            message = 'Prayer marked as completed (late)'
+            db.session.add(completion)
+            db.session.commit()
 
         return jsonify({
             'message': message,
-            'completion': completion.to_dict()
+            'completion': (existing_completion if existing_completion else completion).to_dict()
         }), 200
 
     except Exception as e:
@@ -348,7 +382,7 @@ def get_prayer_completions():
 
 @prayer_bp.route('/status/<date_str>', methods=['GET'])
 @jwt_required()
-def get_prayer_status_for_date():
+def get_prayer_status_for_date(date_str):
     """Get prayer completion status for a specific date"""
     try:
         user_id = get_jwt_identity()
@@ -405,7 +439,7 @@ def get_prayer_streak():
         # Group completions by date
         completions_by_date = {}
         for completion in completions:
-            prayer_date = completion.prayer.completed_at.date()
+            prayer_date = completion.prayer.created_at.date()
             if prayer_date not in completions_by_date:
                 completions_by_date[prayer_date] = []
             completions_by_date[prayer_date].append(completion)
@@ -426,7 +460,7 @@ def get_prayer_streak():
 
         return jsonify({
             'streak': streak,
-            'last_completion': completions[0].completed_at.isoformat() if completions else None
+            'last_completion': completions[0].marked_at.isoformat() if completions else None
         }), 200
 
     except Exception as e:
@@ -494,7 +528,13 @@ def get_prayer_times_for_date(date_str):
         # Auto-update prayer status based on current time
         auto_update_prayer_status(user_id, target_date)
 
-        # Get completion status for each prayer
+        # Use the enhanced prayer service to get detailed prayer information
+        from app.config.settings import get_config
+        from app.services.prayer_service import PrayerService
+        
+        config = get_config()
+        prayer_service = PrayerService(config)
+        
         prayer_data = []
         for prayer in prayers:
             completion = PrayerCompletion.query.filter_by(
@@ -502,33 +542,9 @@ def get_prayer_times_for_date(date_str):
                 prayer_id=prayer.id
             ).first()
 
-            # Check time validation for this prayer
-            prayer_time_str = prayer.prayer_time.strftime('%H:%M')
-            current_time = datetime.now()
-
-            can_complete = is_prayer_time_valid(prayer.prayer_type, prayer_time_str, prayer.prayer_date, current_time)
-            is_missed = is_prayer_missed(prayer.prayer_type, prayer_time_str, prayer.prayer_date, current_time)
-
-            prayer_data.append({
-                'id': prayer.id,
-                'prayer_type': prayer.prayer_type.value,
-                'prayer_time': prayer.prayer_time.strftime('%H:%M'),
-                'completed': completion is not None,
-                'can_complete': can_complete,
-                'is_missed': is_missed,
-                'completion': {
-                    'completed_at': completion.completed_at.isoformat() if completion else None,
-                    'is_late': completion.is_late if completion else False,
-                    'is_qada': completion.is_qada if completion else False
-                } if completion else None,
-                # Allow Qada marking for missed prayers or late prayers that aren't already Qada
-                'can_mark_qada': (
-                    user.created_at and prayer.prayer_date >= user.created_at.date() and (
-                        (completion and completion.is_late and not completion.is_qada) or
-                        (not completion and is_missed)
-                    )
-                )
-            })
+            # Get enhanced prayer information using the service
+            prayer_info = prayer_service._build_prayer_info(prayer, completion, user, target_date)
+            prayer_data.append(prayer_info)
 
         return jsonify({
             'date': date_str,
@@ -598,19 +614,20 @@ def mark_prayer_qada():
         ).first()
 
         if existing_completion:
-            # Update existing completion to mark as Qada
-            existing_completion.is_qada = True
-            existing_completion.is_late = True
-            existing_completion.notes = notes
-            existing_completion.completed_at = datetime.utcnow()
+            # Only allow transition from MISSED to QADA
+            if existing_completion.status == PrayerStatus.MISSED:
+                existing_completion.status = PrayerStatus.QADA
+                existing_completion.notes = notes
+                existing_completion.marked_at = datetime.utcnow()
+            else:
+                return jsonify({'error': 'Can only mark missed prayers as Qada'}), 400
         else:
-            # Create new Qada completion
+            # Create new Qada completion (should only happen for missed prayers)
             qada_completion = PrayerCompletion(
                 user_id=user_id,
                 prayer_id=prayer_id,
-                completed_at=datetime.utcnow(),
-                is_late=True,
-                is_qada=True,
+                marked_at=datetime.utcnow(),
+                status=PrayerStatus.QADA,
                 notes=notes
             )
             db.session.add(qada_completion)
@@ -619,7 +636,7 @@ def mark_prayer_qada():
 
         return jsonify({
             'message': 'Prayer marked as Qada successfully',
-            'completion': qada_completion.to_dict() if not existing_completion else existing_completion.to_dict()
+            'completion': (existing_completion if existing_completion else qada_completion).to_dict()
         }), 200
 
     except Exception as e:

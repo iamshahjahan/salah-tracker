@@ -47,6 +47,10 @@ celery_app.conf.update(
             'task': 'app.tasks.prayer_reminders.send_prayer_reminders',
             'schedule': crontab(minute='*/5'),  # Every 5 minutes
         },
+        'send-prayer-window-reminders': {
+            'task': 'app.tasks.prayer_reminders.send_prayer_window_reminders',
+            'schedule': crontab(minute='*/5'),  # Every 5 minutes
+        },
         'check-consistency': {
             'task': 'app.tasks.consistency_checks.check_user_consistency',
             'schedule': crontab(hour=22, minute=0),  # Daily at 10 PM

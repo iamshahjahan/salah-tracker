@@ -572,28 +572,46 @@ input[type="checkbox"] {
     transform: translateY(-5px);
 }
 
-.prayer-card.completed {
-    background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+/* Five-state prayer completion system */
+.prayer-card.future {
+    background: linear-gradient(135deg, #9E9E9E 0%, #757575 100%); /* Gray - before prayer time */
     color: white;
 }
 
-.prayer-card.late {
-    background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+.prayer-card.completed {
+    background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%); /* Green - terminal state */
     color: white;
 }
 
 .prayer-card.qada {
-    background: linear-gradient(135deg, #9c27b0 0%, #7b1fa2 100%);
+    background: linear-gradient(135deg, #FFC107 0%, #FF8F00 100%); /* Yellow - terminal state */
     color: white;
 }
 
 .prayer-card.missed {
-    background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%);
+    background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%); /* Red - can go to qada */
+    color: white;
+}
+
+.prayer-card.in-progress {
+    background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%); /* Blue - can go to completed */
+    color: white;
+    animation: pulse 2s infinite;
+}
+
+/* Legacy styles for backward compatibility */
+.prayer-card.late {
+    background: linear-gradient(135deg, #FFC107 0%, #FF8F00 100%); /* Yellow */
+    color: white;
+}
+
+.prayer-card.missed {
+    background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%); /* Red */
     color: white;
 }
 
 .prayer-card.available {
-    background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+    background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%); /* Green */
     color: white;
     animation: pulse 2s infinite;
 }
@@ -856,11 +874,20 @@ input[type="checkbox"] {
 }
 
 .weekly-day-card.pending {
-    background: rgba(255, 255, 255, 0.1);
-    border-color: rgba(158, 158, 158, 0.3);
+    background: rgba(33, 150, 243, 0.2); /* Blue for pending */
+    border-color: rgba(33, 150, 243, 0.4);
 }
 
 .weekly-day-card.pending::before {
+    opacity: 0.3;
+}
+
+.weekly-day-card.future {
+    background: rgba(255, 255, 255, 0.1); /* White for future */
+    border-color: rgba(255, 255, 255, 0.3);
+}
+
+.weekly-day-card.future::before {
     opacity: 0;
 }
 
@@ -935,6 +962,24 @@ input[type="checkbox"] {
     background: rgba(244, 67, 54, 0.2);
     color: #F44336;
     border: 1px solid rgba(244, 67, 54, 0.3);
+}
+
+.prayer-status-indicator.pending {
+    background: rgba(33, 150, 243, 0.2);
+    color: #2196F3;
+    border: 1px solid rgba(33, 150, 243, 0.3);
+}
+
+.prayer-status-indicator.qada {
+    background: rgba(255, 193, 7, 0.2);
+    color: #FFC107;
+    border: 1px solid rgba(255, 193, 7, 0.3);
+}
+
+.prayer-status-indicator.mixed {
+    background: rgba(156, 39, 176, 0.2);
+    color: #9C27B0;
+    border: 1px solid rgba(156, 39, 176, 0.3);
 }
 
 .prayer-status-indicator.future {
@@ -1698,5 +1743,62 @@ input[type="checkbox"] {
     
     .weekly-day-number {
         font-size: 1.6rem;
+    }
+}
+
+/* Time Window Information Styles */
+.time-window-info {
+    margin-top: 0.5rem;
+    padding: 0.5rem;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 5px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.time-window-info small {
+    display: block;
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.8);
+    margin: 0.2rem 0;
+}
+
+.time-window-info-small {
+    margin-top: 0.25rem;
+    padding: 0.25rem;
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 3px;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.time-window-info-small small {
+    display: block;
+    font-size: 0.7rem;
+    color: #666;
+    margin: 0.1rem 0;
+}
+
+/* Prayer Card Status Enhancements */
+.prayer-card.available {
+    background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+    animation: pulse 2s infinite;
+}
+
+.prayer-card.upcoming {
+    background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+}
+
+.prayer-card.missed {
+    background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%);
+}
+
+@keyframes pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.7);
+    }
+    70% {
+        box-shadow: 0 0 0 10px rgba(76, 175, 80, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(76, 175, 80, 0);
     }
 }

@@ -26,10 +26,10 @@ logger = get_logger(__name__)
 @celery_app.task(bind=True, name='app.tasks.prayer_reminders.send_prayer_reminders')
 def send_prayer_reminders(self):
     """
-    Send prayer reminders to all users who have notifications enabled.
+    Send prayer reminders to users for prayers in pending state.
     
-    This task runs every 5 minutes and checks for users who need
-    prayer reminders based on their reminder preferences.
+    This task runs every 5 minutes and checks for users who have
+    prayers in pending state (during prayer time) that are not completed.
     """
     with app.app_context():
         try:
@@ -57,44 +57,48 @@ def send_prayer_reminders(self):
                     now_user_tz = now_utc.replace(tzinfo=pytz.UTC).astimezone(user_tz)
                     logger.info(f"User timezone: {user.timezone}, Current user time: {now_user_tz}")
                     
-                    # Get today's prayer times for the user
+                    # Get today's prayer data with status information for the user
                     from app.config.settings import get_config
                     config = get_config()
                     prayer_service = PrayerService(config)
                     prayer_times_result = prayer_service.get_prayer_times(user.id, now_user_tz.date().strftime('%Y-%m-%d'))
-                    prayer_times = prayer_times_result.get('prayer_times', {}) if prayer_times_result.get('success') else {}
+                    prayer_data_list = prayer_times_result.get('prayers', []) if prayer_times_result.get('success') else []
                     
-                    if not prayer_times:
+                    if not prayer_data_list:
+                        logger.info(f"No prayer data found for {user.email}")
                         continue
                     
-                    # Check each prayer time
-                    for prayer_type, prayer_time_str in prayer_times.items():
-                        # Parse prayer time
-                        prayer_time = datetime.strptime(prayer_time_str, '%H:%M').time()
-                        prayer_datetime = datetime.combine(now_user_tz.date(), prayer_time)
-                        prayer_datetime = user_tz.localize(prayer_datetime)
+                    # Check each prayer for pending status
+                    for prayer_data in prayer_data_list:
+                        prayer_type = prayer_data.get('prayer_type', '').lower()
+                        prayer_status = prayer_data.get('status', '')
+                        is_completed = prayer_data.get('completed', False)
+                        prayer_time_str = prayer_data.get('prayer_time', '')
                         
-                        # Get user's reminder time for this prayer
-                        reminder_minutes = user.reminder_times.get(prayer_type.lower(), 10)
-                        reminder_time = prayer_datetime - timedelta(minutes=reminder_minutes)
+                        logger.info(f"Prayer {prayer_type} for {user.email}: status={prayer_status}, completed={is_completed}")
                         
-                        # Check if it's time to send reminder (within 5-minute window)
-                        time_diff = abs((now_user_tz - reminder_time).total_seconds())
-                        
-                        if time_diff <= 300:  # 5 minutes window
+                        # Send reminder only if prayer is in pending state and not completed
+                        if prayer_status == 'pending' and not is_completed:
                             # Check if we already sent a reminder for this prayer today
                             existing_notification = PrayerNotification.query.filter_by(
                                 user_id=user.id,
-                                prayer_type=prayer_type.lower(),
+                                prayer_type=prayer_type,
                                 prayer_date=now_user_tz.date(),
                                 notification_type='reminder'
                             ).first()
                             
                             if not existing_notification:
+                                # Parse prayer time for the reminder
+                                prayer_time = datetime.strptime(prayer_time_str, '%H:%M').time()
+                                prayer_datetime = datetime.combine(now_user_tz.date(), prayer_time)
+                                prayer_datetime = user_tz.localize(prayer_datetime)
+                                
+                                logger.info(f"Sending reminder for pending prayer {prayer_type} to {user.email}")
+                                
                                 # Send reminder
                                 notification_service = NotificationService(config)
                                 result = notification_service.send_prayer_reminder(
-                                    user, prayer_type.lower(), prayer_datetime
+                                    user, prayer_type, prayer_datetime
                                 )
                                 
                                 if result.get('success'):
@@ -111,6 +115,10 @@ def send_prayer_reminders(self):
                                 else:
                                     total_errors += 1
                                     logger.error(f"Failed to send reminder to {user.email}: {result.get('error')}")
+                            else:
+                                logger.info(f"Reminder already sent for {prayer_type} to {user.email}")
+                        else:
+                            logger.info(f"Skipping {prayer_type} for {user.email} - status: {prayer_status}, completed: {is_completed}")
                 
                 except Exception as e:
                     total_errors += 1
@@ -174,6 +182,115 @@ def send_individual_reminder(self, user_id: int, prayer_type: str, prayer_time: 
                 'prayer_type': prayer_type,
                 'result': result
             }
+            
+        except Exception as e:
+            current_task.update_state(
+                state='FAILURE',
+                meta={'error': str(e)}
+            )
+            raise
+
+
+@celery_app.task(bind=True, name='app.tasks.prayer_reminders.send_prayer_window_reminders')
+def send_prayer_window_reminders(self):
+    """
+    Send reminders during prayer time windows if prayers haven't been completed.
+    This task runs every 5 minutes to check for prayers that are in their completion window.
+    """
+    with app.app_context():
+        try:
+            logger.info("Starting prayer window reminders task")
+            # Get current time in UTC
+            now_utc = datetime.utcnow()
+            logger.info(f"Current UTC time: {now_utc}")
+            
+            # Get all users with email notifications enabled
+            users = User.query.filter_by(
+                email_notifications=True,
+                notification_enabled=True,
+                email_verified=True
+            ).all()
+            
+            logger.info(f"Found {len(users)} eligible users for window reminders")
+            total_reminders_sent = 0
+            total_errors = 0
+            
+            for user in users:
+                try:
+                    logger.info(f"Processing user: {user.email} (ID: {user.id})")
+                    # Get user's timezone
+                    user_tz = pytz.timezone(user.timezone or 'UTC')
+                    now_user_tz = now_utc.replace(tzinfo=pytz.UTC).astimezone(user_tz)
+                    logger.info(f"User timezone: {user.timezone}, Current user time: {now_user_tz}")
+                    
+                    # Get today's prayer times for the user
+                    from app.config.settings import get_config
+                    config = get_config()
+                    prayer_service = PrayerService(config)
+                    prayer_times_result = prayer_service.get_prayer_times(user.id, now_user_tz.date().strftime('%Y-%m-%d'))
+                    prayer_times = prayer_times_result.get('prayers', []) if prayer_times_result.get('success') else []
+                    
+                    if not prayer_times:
+                        continue
+                    
+                    # Check each prayer for window reminders
+                    for prayer_data in prayer_times:
+                        prayer_type = prayer_data.get('prayer_type', '').lower()
+                        prayer_time_str = prayer_data.get('prayer_time', '')
+                        is_completed = prayer_data.get('completed', False)
+                        time_status = prayer_data.get('time_status', 'unknown')
+                        
+                        # Only send reminders for prayers that are in their time window and not completed
+                        if time_status == 'during' and not is_completed:
+                            # Check if we already sent a window reminder for this prayer today
+                            existing_notification = PrayerNotification.query.filter_by(
+                                user_id=user.id,
+                                prayer_type=prayer_type,
+                                prayer_date=now_user_tz.date(),
+                                notification_type='window_reminder'
+                            ).first()
+                            
+                            if not existing_notification:
+                                # Parse prayer time
+                                prayer_time = datetime.strptime(prayer_time_str, '%H:%M').time()
+                                prayer_datetime = datetime.combine(now_user_tz.date(), prayer_time)
+                                prayer_datetime = user_tz.localize(prayer_datetime)
+                                
+                                # Send window reminder
+                                notification_service = NotificationService(config)
+                                result = notification_service.send_prayer_window_reminder(
+                                    user, prayer_type, prayer_datetime, prayer_data
+                                )
+                                
+                                if result.get('success'):
+                                    total_reminders_sent += 1
+                                    current_task.update_state(
+                                        state='PROGRESS',
+                                        meta={
+                                            'current_user': user.email,
+                                            'prayer_type': prayer_type,
+                                            'reminders_sent': total_reminders_sent,
+                                            'errors': total_errors
+                                        }
+                                    )
+                                else:
+                                    total_errors += 1
+                                    logger.error(f"Failed to send window reminder to {user.email}: {result.get('error')}")
+                
+                except Exception as e:
+                    total_errors += 1
+                    logger.error(f"Error processing user {user.email}: {str(e)}")
+                    continue
+            
+            result = {
+                'status': 'completed',
+                'window_reminders_sent': total_reminders_sent,
+                'errors': total_errors,
+                'total_users_processed': len(users),
+                'timestamp': now_utc.isoformat()
+            }
+            logger.info(f"Prayer window reminders task completed: {result}")
+            return result
             
         except Exception as e:
             current_task.update_state(

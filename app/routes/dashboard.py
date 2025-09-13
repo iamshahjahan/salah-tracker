@@ -3,6 +3,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from database import db
 from app.models.user import User
 from app.models.prayer import Prayer, PrayerCompletion, PrayerType
+from app.services.cache_service import cache_service
 from datetime import datetime, date, timedelta
 from sqlalchemy import func, and_
 
@@ -14,6 +15,13 @@ def get_user_stats():
     """Get user's prayer statistics"""
     try:
         user_id = get_jwt_identity()
+        
+        # Check cache first
+        cache_key = f"dashboard_stats_{user_id}"
+        cached_data = cache_service.get_dashboard_stats(user_id)
+        if cached_data:
+            return jsonify(cached_data), 200
+        
         user = User.query.get(user_id)
 
         if not user:
@@ -75,7 +83,7 @@ def get_user_stats():
         # Get current streak
         streak = get_prayer_streak(user_id)
 
-        return jsonify({
+        result = {
             'period': {
                 'start_date': start_date.isoformat(),
                 'end_date': end_date.isoformat(),
@@ -88,7 +96,12 @@ def get_user_stats():
             },
             'prayer_breakdown': prayer_breakdown,
             'current_streak': streak
-        }), 200
+        }
+
+        # Cache the result for 10 minutes
+        cache_service.set_dashboard_stats(user_id, result, 600)
+
+        return jsonify(result), 200
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500

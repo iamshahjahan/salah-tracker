@@ -29,12 +29,12 @@ document.addEventListener('DOMContentLoaded', function() {
         updateUIForLoggedOutUser();
     }
 
-    // Set up automatic prayer status updates every 5 minutes
+    // Set up automatic prayer status updates every minute for real-time updates
     setInterval(() => {
         if (authToken && document.getElementById('prayerTimes')) {
             loadPrayerTimes();
         }
-    }, 5 * 60 * 1000); // 5 minutes
+    }, 1 * 60 * 1000); // 1 minute for real-time updates
 });
 
 function cleanupUserInfo() {
@@ -758,6 +758,8 @@ async function markPrayerQada(prayerId) {
 }
 
 // Prayer functions
+let lastPrayerStates = {}; // Store previous prayer states for comparison
+
 async function loadPrayerTimes() {
     if (!authToken) {
         document.getElementById('prayerTimes').innerHTML = '<div class="loading">Please login to view prayer times</div>';
@@ -774,6 +776,10 @@ async function loadPrayerTimes() {
         if (response.ok) {
             const data = await response.json();
             // console.log('API Response:', data);
+            
+            // Check for prayer status changes and show notifications
+            checkPrayerStatusChanges(data.prayers);
+            
             displayPrayerTimes(data.prayers);
         } else {
             document.getElementById('prayerTimes').innerHTML = '<div class="loading">Error loading prayer times</div>';
@@ -781,6 +787,50 @@ async function loadPrayerTimes() {
     } catch (error) {
         document.getElementById('prayerTimes').innerHTML = '<div class="loading">Error loading prayer times</div>';
     }
+}
+
+function checkPrayerStatusChanges(prayers) {
+    const currentStates = {};
+    
+    prayers.forEach(prayer => {
+        const prayerType = prayer.prayer_type;
+        const timeStatus = prayer.time_status || 'unknown';
+        const canComplete = prayer.can_complete || false;
+        const isCompleted = prayer.completed || false;
+        
+        currentStates[prayerType] = {
+            timeStatus,
+            canComplete,
+            isCompleted,
+            prayerTime: prayer.prayer_time
+        };
+    });
+    
+    // Check for changes and show notifications
+    Object.keys(currentStates).forEach(prayerType => {
+        const current = currentStates[prayerType];
+        const previous = lastPrayerStates[prayerType];
+        
+        if (previous) {
+            // Check if prayer just became available
+            if (!previous.canComplete && current.canComplete && current.timeStatus === 'during') {
+                showNotification(`🕌 ${prayerType} prayer time is now available! You can mark it as complete.`, 'success');
+            }
+            
+            // Check if prayer was just completed
+            if (!previous.isCompleted && current.isCompleted) {
+                showNotification(`✅ ${prayerType} prayer marked as complete!`, 'success');
+            }
+            
+            // Check if prayer window just closed
+            if (previous.timeStatus === 'during' && current.timeStatus === 'after' && !current.isCompleted) {
+                showNotification(`⏰ ${prayerType} prayer window has closed. You can still mark it as Qada.`, 'warning');
+            }
+        }
+    });
+    
+    // Update stored states
+    lastPrayerStates = currentStates;
 }
 
 function displayPrayerTimes(prayers) {
@@ -804,83 +854,92 @@ function displayPrayerTimes(prayers) {
     dateElement.textContent = today.toLocaleDateString('en-US', options);
 
         const prayerCards = prayers.map(prayer => {
-        const isCompleted = prayer.completed || false;
-        const isLate = prayer.completion ? prayer.completion.is_late : false;
-        const isQada = prayer.completion ? prayer.completion.is_qada : false;
+        // Use the new three-state system from backend
+        const prayerStatus = prayer.prayer_status || 'not_completed';
+        const statusColor = prayer.status_color || 'red';
+        const statusText = prayer.status_text || 'Not Completed';
         const canComplete = prayer.can_complete || false;
-        const isMissed = prayer.is_missed || false;
         const canMarkQada = prayer.can_mark_qada || false;
+        const timeStatus = prayer.time_status || 'unknown';
+        const timeWindow = prayer.time_window || {};
+        const currentTime = prayer.current_time || '';
 
         // Debug logging (remove in production)
-        // console.log(`Prayer ${prayer.prayer_type}:`, {
-        //     completed: isCompleted,
-        //     late: isLate,
-        //     qada: isQada,
-        //     missed: isMissed,
-        //     canMarkQada: canMarkQada,
-        //     prayerData: prayer
-        // });
+        console.log(`Prayer ${prayer.prayer_type}:`, {
+            prayerStatus: prayerStatus,
+            statusColor: statusColor,
+            statusText: statusText,
+            canComplete: canComplete,
+            canMarkQada: canMarkQada,
+            timeStatus: timeStatus,
+            timeWindow: timeWindow,
+            currentTime: currentTime,
+            prayerData: prayer
+        });
 
-        // Determine card status and button state
+        // Determine card styling and button behavior based on three-state system
         let cardClass = '';
-        let statusText = '';
         let buttonText = '';
         let buttonDisabled = false;
         let buttonClass = 'complete-btn';
 
-        if (isCompleted) {
-            if (isQada) {
-                cardClass = 'qada';
-                statusText = '🔄 Qada (Missed)';
-                buttonText = 'Qada Completed';
+        switch (prayerStatus) {
+            case 'future':
+                cardClass = 'future'; // Gray - before prayer time
+                buttonText = 'Future';
                 buttonDisabled = true;
-            } else if (isLate) {
-                cardClass = 'late';
-                statusText = '⏰ Completed (Late)';
-                // Allow marking as Qada if it's late and can be marked
+                break;
+                
+            case 'pending':
+                cardClass = 'in-progress'; // Blue - can go to completed
+                if (canComplete) {
+                    buttonText = 'Mark as Complete';
+                    buttonClass = 'complete-btn';
+                    buttonDisabled = false;
+                } else {
+                    buttonText = 'In Progress';
+                    buttonDisabled = true;
+                }
+                break;
+                
+            case 'missed':
+                cardClass = 'missed'; // Red - can go to qada
                 if (canMarkQada) {
                     buttonText = 'Mark as Qada';
                     buttonClass = 'qada-btn';
                     buttonDisabled = false;
                 } else {
-                    buttonText = 'Completed (Late)';
+                    buttonText = 'Missed';
                     buttonDisabled = true;
                 }
-            } else {
-                cardClass = 'completed';
-                statusText = '✅ Completed';
+                break;
+                
+            case 'completed':
+                cardClass = 'completed'; // Green - terminal state
                 buttonText = 'Completed';
                 buttonDisabled = true;
-            }
-        } else if (isMissed) {
-            cardClass = 'missed';
-            if (canMarkQada) {
-                statusText = '❌ Missed - Can mark as Qada';
-                buttonText = 'Mark as Qada';
-                buttonClass = 'qada-btn';
-            } else {
-                statusText = '❌ Missed (Automatically marked)';
+                break;
+                
+            case 'qada':
+                cardClass = 'qada'; // Yellow - terminal state
+                buttonText = 'Qada';
+                buttonDisabled = true;
+                break;
+                
+            default:
+                cardClass = 'missed'; // Red - default to missed
                 buttonText = 'Missed';
                 buttonDisabled = true;
-            }
-        } else if (canComplete) {
-            cardClass = 'available';
-            statusText = '⏰ Available Now';
-            buttonText = 'Mark as Complete';
-        } else {
-            cardClass = 'upcoming';
-            statusText = '⏳ Upcoming';
-            buttonText = 'Not Yet Available';
-            buttonDisabled = true;
         }
 
         // Debug button state (remove in production)
-        // console.log(`Button for ${prayer.prayer_type}:`, {
-        //     buttonClass,
-        //     buttonText,
-        //     buttonDisabled,
-        //     canMarkQada
-        // });
+        console.log(`Button for ${prayer.prayer_type}:`, {
+            buttonClass,
+            buttonText,
+            buttonDisabled,
+            canMarkQada,
+            timeStatus
+        });
 
         const buttonHTML = `
             <button class="${buttonClass}"
@@ -890,7 +949,12 @@ function displayPrayerTimes(prayers) {
             </button>
         `;
 
-        // console.log(`HTML for ${prayer.prayer_type}:`, buttonHTML);
+        // Add time window information to the prayer card
+        const timeWindowInfo = timeWindow.start_time && timeWindow.end_time ? 
+            `<div class="time-window-info">
+                <small>Window: ${timeWindow.start_time} - ${timeWindow.end_time}</small>
+                <small>Current: ${currentTime}</small>
+            </div>` : '';
 
         return `
             <div class="prayer-card ${cardClass}">
@@ -898,6 +962,7 @@ function displayPrayerTimes(prayers) {
                 <div class="prayer-time">${prayer.prayer_time}</div>
                 <div class="prayer-status">${statusText}</div>
                 ${buttonHTML}
+                ${timeWindowInfo}
             </div>
         `;
     }).join('');
@@ -1030,6 +1095,13 @@ function loadWeeklyCalendar() {
 
     updateWeekDisplay();
     generateWeeklyCalendar();
+    
+    // Set today as default selected date if no date is selected
+    if (!selectedDate) {
+        const today = new Date();
+        selectedDate = formatDateString(today);
+        loadSelectedDayPrayers(selectedDate);
+    }
 }
 
 function generateCalendar(year, month) {
@@ -1340,49 +1412,60 @@ function updatePrayerStatusForDate(dateString, prayers) {
     // Debug logging
     console.log(`Prayer data for ${dateString}:`, prayers);
     
-    const completedCount = prayers.filter(prayer => prayer.completed).length;
+    // Use the new 5-status system from backend
     const totalCount = prayers.length;
-    const qadaCount = prayers.filter(prayer => prayer.completion && prayer.completion.is_qada).length;
-    const missedCount = prayers.filter(prayer => prayer.is_missed).length;
+    const futureCount = prayers.filter(prayer => prayer.prayer_status === 'future').length;
+    const pendingCount = prayers.filter(prayer => prayer.prayer_status === 'pending').length;
+    const missedCount = prayers.filter(prayer => prayer.prayer_status === 'missed').length;
+    const completedCount = prayers.filter(prayer => prayer.prayer_status === 'completed').length;
+    const qadaCount = prayers.filter(prayer => prayer.prayer_status === 'qada').length;
     
     // Debug logging
-    console.log(`Status for ${dateString}: completed=${completedCount}, total=${totalCount}, qada=${qadaCount}, missed=${missedCount}`);
+    console.log(`Status for ${dateString}: future=${futureCount}, pending=${pendingCount}, missed=${missedCount}, completed=${completedCount}, qada=${qadaCount}, total=${totalCount}`);
     
     // Remove existing status classes
-    cardElement.classList.remove('all-complete', 'has-qada', 'all-missed', 'pending');
+    cardElement.classList.remove('all-complete', 'has-qada', 'all-missed', 'pending', 'future', 'mixed');
     
     let statusClass, statusText, summaryText, cardStatusClass;
     
-    if (completedCount === totalCount && qadaCount === 0) {
-        // All prayers completed, no Qada
+    // Determine overall day status based on the 5-status system
+    if (futureCount === totalCount) {
+        // All prayers are future (before prayer times)
+        statusClass = 'future';
+        statusText = 'Future';
+        summaryText = 'Prayers not started';
+        cardStatusClass = 'future';
+    } else if (completedCount === totalCount) {
+        // All prayers completed
         statusClass = 'completed';
         statusText = 'All Complete';
         summaryText = `${completedCount}/${totalCount} prayers`;
         cardStatusClass = 'all-complete';
-    } else if (qadaCount > 0) {
-        // Some prayers are Qada (missed but marked as Qada)
-        statusClass = 'partial';
-        statusText = `${completedCount}/${totalCount} Complete`;
+    } else if (qadaCount === totalCount) {
+        // All prayers are Qada
+        statusClass = 'qada';
+        statusText = 'All Qada';
         summaryText = `${qadaCount} Qada prayers`;
         cardStatusClass = 'has-qada';
-    } else if (missedCount > 0 && completedCount === 0) {
+    } else if (missedCount === totalCount) {
         // All prayers missed
         statusClass = 'missed';
         statusText = 'All Missed';
         summaryText = `${missedCount} missed prayers`;
         cardStatusClass = 'all-missed';
-    } else if (completedCount > 0 && missedCount > 0) {
-        // Mixed: some completed, some missed
-        statusClass = 'partial';
-        statusText = `${completedCount}/${totalCount} Complete`;
-        summaryText = `${completedCount} completed, ${missedCount} missed`;
-        cardStatusClass = 'has-qada';
-    } else {
-        // No prayers yet or pending
-        statusClass = 'future';
-        statusText = 'Pending';
-        summaryText = 'No prayers yet';
+    } else if (pendingCount > 0) {
+        // Some prayers are pending (in progress)
+        statusClass = 'pending';
+        statusText = 'In Progress';
+        summaryText = `${pendingCount} pending prayers`;
         cardStatusClass = 'pending';
+    } else {
+        // Mixed status
+        const completedTotal = completedCount + qadaCount;
+        statusClass = 'mixed';
+        statusText = `${completedTotal}/${totalCount} Complete`;
+        summaryText = `${completedCount} completed, ${qadaCount} qada, ${missedCount} missed`;
+        cardStatusClass = 'has-qada';
     }
     
     // Debug logging
@@ -1568,34 +1651,46 @@ function displaySelectedDayPrayers(prayers) {
     const container = document.getElementById('selectedDayContent');
 
     const prayersHTML = prayers.map(prayer => {
-        const isCompleted = prayer.completed || false;
-        const isLate = prayer.completion ? prayer.completion.is_late : false;
-        const isQada = prayer.completion ? prayer.completion.is_qada : false;
+        // Use the new 5-status system from backend
+        const prayerStatus = prayer.prayer_status || 'not_completed';
         const canMarkQada = prayer.can_mark_qada || false;
-        const isMissed = prayer.is_missed || false;
+        const canComplete = prayer.can_complete || false;
+        const timeWindow = prayer.time_window || {};
+        const currentTime = prayer.current_time || '';
 
-        let status = 'pending';
-        let statusText = '⏰ Pending';
+        let status = prayerStatus;
+        let statusText = '';
 
-        if (isCompleted) {
-            if (isQada) {
-                status = 'qada';
-                statusText = '🔄 Qada (Missed)';
-            } else if (isLate) {
-                status = 'late';
-                statusText = '⏰ Completed (Late)';
-            } else {
-                status = 'completed';
+        // Map status to display text
+        switch (prayerStatus) {
+            case 'future':
+                statusText = '⏳ Future';
+                break;
+            case 'pending':
+                statusText = '⏰ Available Now';
+                break;
+            case 'missed':
+                statusText = '❌ Missed';
+                break;
+            case 'completed':
                 statusText = '✅ Completed';
-            }
-        } else if (isMissed) {
-            status = 'missed';
-            statusText = '❌ Missed';
+                break;
+            case 'qada':
+                statusText = '🔄 Qada';
+                break;
+            default:
+                statusText = '❓ Unknown';
         }
 
         let buttonHTML = '';
-        // Show Qada button for missed prayers OR late prayers that can be marked as Qada
-        if (canMarkQada) {
+        // Show appropriate button based on prayer status
+        if (prayerStatus === 'pending' && canComplete) {
+            buttonHTML = `
+                <button class="complete-btn-small" onclick="completePrayer(${prayer.id})">
+                    <i class="fas fa-check"></i> Mark as Complete
+                </button>
+            `;
+        } else if (prayerStatus === 'missed' && canMarkQada) {
             buttonHTML = `
                 <button class="qada-btn-small" onclick="markPrayerQada(${prayer.id})">
                     <i class="fas fa-redo"></i> Mark as Qada
@@ -1603,12 +1698,20 @@ function displaySelectedDayPrayers(prayers) {
             `;
         }
 
+        // Add time window information
+        const timeWindowInfo = timeWindow.start_time && timeWindow.end_time ? 
+            `<div class="time-window-info-small">
+                <small>Window: ${timeWindow.start_time} - ${timeWindow.end_time}</small>
+                <small>Current: ${currentTime}</small>
+            </div>` : '';
+
         return `
             <div class="selected-day-prayer ${status}">
                 <div class="selected-day-prayer-name">${prayer.prayer_type}</div>
                 <div class="selected-day-prayer-time">${prayer.prayer_time}</div>
                 <div class="selected-day-prayer-status">${statusText}</div>
                 ${buttonHTML}
+                ${timeWindowInfo}
             </div>
         `;
     }).join('');

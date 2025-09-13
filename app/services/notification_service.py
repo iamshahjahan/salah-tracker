@@ -105,6 +105,86 @@ class NotificationService(BaseService):
         except Exception as e:
             self.rollback_session()
             return self.handle_service_error(e, 'send_prayer_reminder')
+
+    def send_prayer_window_reminder(self, user: User, prayer_type: str, prayer_time: datetime, prayer_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Send a prayer window reminder to a user when they're in the prayer time window.
+        
+        Args:
+            user: User to send reminder to.
+            prayer_type: Type of prayer (fajr, dhuhr, asr, maghrib, isha).
+            prayer_time: Time of the prayer.
+            prayer_data: Enhanced prayer data with time window information.
+            
+        Returns:
+            Dict[str, Any]: Result with success status or error.
+        """
+        try:
+            if not user.email_notifications:
+                return {
+                    'success': False,
+                    'error': 'User has disabled email notifications'
+                }
+            
+            # Get inspirational content
+            from app.models.inspirational_content import QuranicVerse, Hadith
+            verse = QuranicVerse.get_random_verse('prayer')
+            hadith = Hadith.get_random_hadith('prayer')
+            
+            # Create notification record
+            notification = self.create_record(
+                PrayerNotification,
+                user_id=user.id,
+                prayer_type=prayer_type,
+                prayer_date=prayer_time.date(),
+                notification_type='window_reminder'
+            )
+            
+            # Generate completion link
+            completion_link = notification.get_completion_link(
+                current_app.config.get('FRONTEND_URL', 'http://localhost:5001')
+            )
+            
+            # Get time window information
+            time_window = prayer_data.get('time_window', {})
+            end_time = time_window.get('end_time', '')
+            
+            # Send email
+            if user.language == 'en':
+                from app.services.email_templates import get_prayer_name_english
+                subject = f"🕌 {get_prayer_name_english(prayer_type)} Prayer Window Open - SalahTracker"
+            else:
+                from app.services.email_templates import get_prayer_name_arabic
+                subject = f"🕌 وقت صلاة {get_prayer_name_arabic(prayer_type)} مفتوح - SalahTracker"
+            
+            from app.services.email_templates import get_prayer_window_reminder_template
+            template = get_prayer_window_reminder_template(
+                user, prayer_type, prayer_time, verse, hadith, completion_link, end_time,
+                current_app.config.get('FRONTEND_URL', 'https://salahtracker.app')
+            )
+            
+            success = self.email_service._send_email(user.email, subject, template)
+            
+            if success:
+                # Update notification as sent
+                notification.sent_at = datetime.utcnow()
+                self.db_session.commit()
+                
+                self.logger.info(f"Prayer window reminder sent to {user.email} for {prayer_type}")
+                return {
+                    'success': True,
+                    'message': 'Prayer window reminder sent successfully',
+                    'notification_id': notification.id
+                }
+            else:
+                return {
+                    'success': False,
+                    'error': 'Failed to send prayer window reminder email'
+                }
+                
+        except Exception as e:
+            self.rollback_session()
+            return self.handle_service_error(e, 'send_prayer_window_reminder')
     
     def mark_prayer_completed_via_link(self, completion_link_id: str) -> Dict[str, Any]:
         """

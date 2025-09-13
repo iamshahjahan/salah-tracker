@@ -293,3 +293,109 @@ def get_english_prayer_reminder_template(user: User, prayer_type: str, prayer_ti
     </html>
     """
     return template
+
+
+def get_prayer_window_reminder_template(user: User, prayer_type: str, prayer_time: datetime, 
+                                       verse: Optional[QuranicVerse], hadith: Optional[Hadith], 
+                                       completion_link: str, end_time: str, frontend_url: str = 'https://salahtracker.app') -> str:
+    """Get prayer window reminder email template."""
+    prayer_name_english = get_prayer_name_english(prayer_type)
+    
+    # Use user's language preference
+    if user.language == 'en':
+        return get_english_prayer_window_reminder_template(user, prayer_type, prayer_time, verse, hadith, completion_link, end_time, frontend_url)
+    else:
+        return get_arabic_prayer_window_reminder_template(user, prayer_type, prayer_time, verse, hadith, completion_link, end_time, frontend_url)
+
+
+def get_english_prayer_window_reminder_template(user: User, prayer_type: str, prayer_time: datetime, 
+                                               verse: Optional[QuranicVerse], hadith: Optional[Hadith], 
+                                               completion_link: str, end_time: str, frontend_url: str = 'https://salahtracker.app') -> str:
+    """Get English prayer window reminder email template."""
+    prayer_name_english = get_prayer_name_english(prayer_type)
+    
+    template = f"""
+    <!DOCTYPE html>
+    <html dir="ltr" lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>{prayer_name_english} Prayer Window Open</title>
+        <style>
+            body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 20px; background-color: #f5f5f5; }}
+            .container {{ max-width: 600px; margin: 0 auto; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }}
+            .header {{ background: linear-gradient(135deg, #4CAF50, #45a049); color: white; padding: 30px; text-align: center; }}
+            .content {{ padding: 30px; }}
+            .prayer-window {{ background: #E8F5E8; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center; border: 2px solid #4CAF50; }}
+            .urgency {{ background: #FFF3E0; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #FF9800; }}
+            .verse {{ background: #FFF3E0; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #FF9800; }}
+            .hadith {{ background: #E3F2FD; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #2196F3; }}
+            .completion-link {{ text-align: center; margin: 30px 0; }}
+            .btn {{ display: inline-block; background: #4CAF50; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 16px; }}
+            .footer {{ background: #f8f9fa; padding: 20px; text-align: center; color: #666; font-size: 14px; }}
+            .arabic {{ font-size: 18px; line-height: 1.8; text-align: right; }}
+            .english {{ font-size: 16px; color: #333; margin-top: 10px; }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h1>🕌 {prayer_name_english} Prayer Window Open</h1>
+                <p>Time to perform your prayer!</p>
+            </div>
+
+            <div class="content">
+                <p>Dear {user.first_name or user.username},</p>
+
+                <div class="urgency">
+                    <h2>⏰ Prayer Time is Now Active!</h2>
+                    <p>The time window for {prayer_name_english} prayer is now open. Please perform your prayer as soon as possible.</p>
+                </div>
+
+                <div class="prayer-window">
+                    <h2>🕐 Prayer Time Window</h2>
+                    <p style="font-size: 24px; font-weight: bold; color: #2E7D32;">
+                        {prayer_time.strftime('%H:%M')} - {end_time}
+                    </p>
+                    <p>{prayer_time.strftime('%A, %B %d, %Y')}</p>
+                    <p style="color: #d32f2f; font-weight: bold;">⏳ Don't miss this prayer!</p>
+                </div>
+
+                {f'''
+                <div class="verse">
+                    <h3>📖 Quranic Verse</h3>
+                    <div class="arabic">{verse.arabic_text}</div>
+                    <div class="english">{verse.english_translation}</div>
+                    <p style="font-size: 12px; color: #999; margin-top: 10px;">{verse.surah_name_english} {verse.surah_number}:{verse.verse_number}</p>
+                </div>
+                ''' if verse else ''}
+
+                {f'''
+                <div class="hadith">
+                    <h3>💬 Hadith</h3>
+                    <div class="arabic">{hadith.arabic_text}</div>
+                    <div class="english">{hadith.english_translation}</div>
+                    <p style="font-size: 12px; color: #999; margin-top: 10px;">{hadith.collection} {hadith.hadith_number}</p>
+                </div>
+                ''' if hadith else ''}
+
+                <div class="completion-link">
+                    <p><strong>After performing your prayer, click below to mark it as complete:</strong></p>
+                    <a href="{completion_link}" class="btn">✅ Mark Prayer as Complete</a>
+                </div>
+
+                <p style="margin-top: 30px;">
+                    <strong>Important:</strong> This prayer window will close at {end_time}. Please complete your prayer before then.
+                </p>
+            </div>
+
+            <div class="footer">
+                <p>This window reminder was sent from SalahTracker app</p>
+                <p>To stop reminders, you can modify your notification settings in your account</p>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+    
+    return template

@@ -14,7 +14,7 @@ from pathlib import Path
 
 def setup_logging(log_level='INFO', log_dir='logs'):
     """
-    Set up comprehensive logging configuration.
+    Set up comprehensive logging configuration with unified log file.
     
     Args:
         log_level: Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
@@ -27,10 +27,8 @@ def setup_logging(log_level='INFO', log_dir='logs'):
     # Get current timestamp for log file naming
     timestamp = datetime.now().strftime('%Y%m%d')
     
-    # Define log file paths
-    app_log_file = os.path.join(log_dir, f'salah_tracker_{timestamp}.log')
-    celery_log_file = os.path.join(log_dir, f'celery_{timestamp}.log')
-    error_log_file = os.path.join(log_dir, f'errors_{timestamp}.log')
+    # Define unified log file path
+    unified_log_file = os.path.join(log_dir, f'salah_tracker_{timestamp}.log')
     
     # Create formatters
     detailed_formatter = logging.Formatter(
@@ -50,27 +48,16 @@ def setup_logging(log_level='INFO', log_dir='logs'):
     # Clear any existing handlers
     root_logger.handlers.clear()
     
-    # File handler for all logs (with rotation)
+    # Unified file handler for all logs (with rotation)
     file_handler = logging.handlers.RotatingFileHandler(
-        app_log_file,
-        maxBytes=10*1024*1024,  # 10MB
+        unified_log_file,
+        maxBytes=20*1024*1024,  # 20MB (increased for unified logging)
         backupCount=5,
         encoding='utf-8'
     )
     file_handler.setLevel(logging.DEBUG)
     file_handler.setFormatter(detailed_formatter)
     root_logger.addHandler(file_handler)
-    
-    # Error file handler (only errors and above)
-    error_handler = logging.handlers.RotatingFileHandler(
-        error_log_file,
-        maxBytes=5*1024*1024,  # 5MB
-        backupCount=3,
-        encoding='utf-8'
-    )
-    error_handler.setLevel(logging.ERROR)
-    error_handler.setFormatter(detailed_formatter)
-    root_logger.addHandler(error_handler)
     
     # Console handler (for development)
     if os.getenv('FLASK_ENV', 'development') == 'development':
@@ -79,8 +66,8 @@ def setup_logging(log_level='INFO', log_dir='logs'):
         console_handler.setFormatter(simple_formatter)
         root_logger.addHandler(console_handler)
     
-    # Set up specific loggers
-    setup_celery_logging(celery_log_file, detailed_formatter)
+    # Set up specific loggers to use the unified file
+    setup_celery_logging(file_handler)
     setup_flask_logging()
     setup_sqlalchemy_logging()
     
@@ -90,32 +77,21 @@ def setup_logging(log_level='INFO', log_dir='logs'):
     logger.info("SalahTracker Logging System Initialized")
     logger.info(f"Log Level: {log_level}")
     logger.info(f"Log Directory: {log_dir}")
-    logger.info(f"Main Log File: {app_log_file}")
-    logger.info(f"Celery Log File: {celery_log_file}")
-    logger.info(f"Error Log File: {error_log_file}")
+    logger.info(f"Unified Log File: {unified_log_file}")
     logger.info("="*60)
 
-def setup_celery_logging(celery_log_file, formatter):
-    """Set up Celery-specific logging."""
+def setup_celery_logging(file_handler):
+    """Set up Celery-specific logging to use unified file."""
     
     # Celery logger
     celery_logger = logging.getLogger('celery')
     celery_logger.setLevel(logging.INFO)
-    
-    # Celery file handler
-    celery_handler = logging.handlers.RotatingFileHandler(
-        celery_log_file,
-        maxBytes=10*1024*1024,  # 10MB
-        backupCount=5,
-        encoding='utf-8'
-    )
-    celery_handler.setFormatter(formatter)
-    celery_logger.addHandler(celery_handler)
+    celery_logger.addHandler(file_handler)
     
     # Celery task logger
     celery_task_logger = logging.getLogger('celery.task')
     celery_task_logger.setLevel(logging.INFO)
-    celery_task_logger.addHandler(celery_handler)
+    celery_task_logger.addHandler(file_handler)
 
 def setup_flask_logging():
     """Set up Flask-specific logging."""

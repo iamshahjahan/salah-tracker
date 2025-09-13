@@ -9,6 +9,13 @@ class PrayerType(Enum):
     MAGHRIB = "Maghrib"
     ISHA = "Isha"
 
+class PrayerStatus(Enum):
+    FUTURE = "FUTURE"        # Before prayer start time
+    PENDING = "PENDING"      # Time is between prayer's start and end
+    MISSED = "MISSED"        # After prayer end time, can be moved to qada
+    COMPLETE = "COMPLETE"    # Completed by customer at pending time (terminal)
+    QADA = "QADA"           # Completed by customer at missed time (terminal)
+
 class Prayer(db.Model):
     __tablename__ = 'prayers'
 
@@ -47,9 +54,8 @@ class PrayerCompletion(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     prayer_id = db.Column(db.Integer, db.ForeignKey('prayers.id'), nullable=False)
-    completed_at = db.Column(db.DateTime, default=datetime.utcnow)
-    is_late = db.Column(db.Boolean, default=False)
-    is_qada = db.Column(db.Boolean, default=False)  # True if prayer was missed and completed later
+    marked_at = db.Column(db.DateTime, nullable=True)
+    status = db.Column(db.Enum(PrayerStatus), nullable=False)
     notes = db.Column(db.Text, nullable=True)
 
     # Relationships
@@ -61,9 +67,8 @@ class PrayerCompletion(db.Model):
             'id': self.id,
             'user_id': self.user_id,
             'prayer_id': self.prayer_id,
-            'completed_at': self.completed_at.isoformat() if self.completed_at else None,
-            'is_late': self.is_late,
-            'is_qada': self.is_qada,
+            'marked_at': self.marked_at.isoformat() if self.marked_at else None,
+            'status': self.status.value if self.status else None,
             'notes': self.notes,
             'prayer': self.prayer.to_dict() if self.prayer else None
         }
