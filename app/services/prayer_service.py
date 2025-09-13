@@ -388,17 +388,65 @@ class PrayerService(BaseService):
             
             # Add API times (including sunrise if available)
             for name, time in prayer_times.items():
-                all_times[name] = time
+                # Ensure time is a datetime.time object
+                if isinstance(time, str):
+                    # Handle different time formats
+                    if ':' in time:
+                        if time.count(':') == 1:  # HH:MM format
+                            time_obj = datetime.strptime(time, '%H:%M').time()
+                        elif time.count(':') == 2:  # HH:MM:SS format
+                            time_obj = datetime.strptime(time, '%H:%M:%S').time()
+                        else:
+                            self.logger.warning(f"Unexpected time format: {time}")
+                            continue
+                    else:
+                        self.logger.warning(f"Invalid time format: {time}")
+                        continue
+                else:
+                    time_obj = time
+                all_times[name] = time_obj
             
             # Add database prayer times (these should match API times)
             for prayer in prayers:
-                all_times[prayer.prayer_type.value] = prayer.prayer_time
+                # Ensure prayer_time is a datetime.time object
+                if isinstance(prayer.prayer_time, str):
+                    # Handle different time formats
+                    if ':' in prayer.prayer_time:
+                        if prayer.prayer_time.count(':') == 1:  # HH:MM format
+                            prayer_time_obj = datetime.strptime(prayer.prayer_time, '%H:%M').time()
+                        elif prayer.prayer_time.count(':') == 2:  # HH:MM:SS format
+                            prayer_time_obj = datetime.strptime(prayer.prayer_time, '%H:%M:%S').time()
+                        else:
+                            self.logger.warning(f"Unexpected prayer time format: {prayer.prayer_time}")
+                            continue
+                    else:
+                        self.logger.warning(f"Invalid prayer time format: {prayer.prayer_time}")
+                        continue
+                else:
+                    prayer_time_obj = prayer.prayer_time
+                all_times[prayer.prayer_type.value] = prayer_time_obj
             
             # If API failed and we have no prayers for this date, try to get fallback prayers
             if not prayer_times and not prayers:
                 fallback_prayers = Prayer.query.filter_by(user_id=user.id).order_by(Prayer.prayer_date.desc()).limit(5).all()
                 for prayer in fallback_prayers:
-                    all_times[prayer.prayer_type.value] = prayer.prayer_time
+                    # Ensure prayer_time is a datetime.time object
+                    if isinstance(prayer.prayer_time, str):
+                        # Handle different time formats
+                        if ':' in prayer.prayer_time:
+                            if prayer.prayer_time.count(':') == 1:  # HH:MM format
+                                prayer_time_obj = datetime.strptime(prayer.prayer_time, '%H:%M').time()
+                            elif prayer.prayer_time.count(':') == 2:  # HH:MM:SS format
+                                prayer_time_obj = datetime.strptime(prayer.prayer_time, '%H:%M:%S').time()
+                            else:
+                                self.logger.warning(f"Unexpected fallback prayer time format: {prayer.prayer_time}")
+                                continue
+                        else:
+                            self.logger.warning(f"Invalid fallback prayer time format: {prayer.prayer_time}")
+                            continue
+                    else:
+                        prayer_time_obj = prayer.prayer_time
+                    all_times[prayer.prayer_type.value] = prayer_time_obj
             
             return all_times
             
@@ -419,7 +467,7 @@ class PrayerService(BaseService):
         """
         try:
             # Check cache first
-            cached_times = self._get_cached_prayer_times(user.id, date)
+            cached_times = cache_service.get_prayer_times(user.id, date.strftime('%Y-%m-%d'))
             if cached_times is not None:
                 self.logger.info(f"Using cached prayer times for user {user.id} on {date}")
                 return cached_times
@@ -465,7 +513,7 @@ class PrayerService(BaseService):
 
             # Cache the results for 5 minutes
             if prayer_times:
-                self._set_cached_prayer_times(user.id, date, prayer_times)
+                cache_service.set_prayer_times(user.id, date.strftime('%Y-%m-%d'), prayer_times, ttl_seconds=300)
                 self.logger.info(f"Cached prayer times for user {user.id} on {date}")
 
             return prayer_times
@@ -673,8 +721,25 @@ class PrayerService(BaseService):
             now = datetime.now(user_tz)
 
             # Get prayer time in user timezone
+            # Ensure prayer_time is a datetime.time object
+            if isinstance(prayer.prayer_time, str):
+                # Handle different time formats
+                if ':' in prayer.prayer_time:
+                    if prayer.prayer_time.count(':') == 1:  # HH:MM format
+                        prayer_time_obj = datetime.strptime(prayer.prayer_time, '%H:%M').time()
+                    elif prayer.prayer_time.count(':') == 2:  # HH:MM:SS format
+                        prayer_time_obj = datetime.strptime(prayer.prayer_time, '%H:%M:%S').time()
+                    else:
+                        self.logger.error(f"Unexpected prayer time format in validation: {prayer.prayer_time}")
+                        return False, False
+                else:
+                    self.logger.error(f"Invalid prayer time format in validation: {prayer.prayer_time}")
+                    return False, False
+            else:
+                prayer_time_obj = prayer.prayer_time
+                
             prayer_datetime = user_tz.localize(
-                datetime.combine(prayer.prayer_date, prayer.prayer_time)
+                datetime.combine(prayer.prayer_date, prayer_time_obj)
             )
 
             # Calculate prayer time window using the same logic as the route
@@ -712,7 +777,26 @@ class PrayerService(BaseService):
         user_tz = pytz.timezone(prayer.user.timezone)
         
         # Calculate start and end times (timezone-aware)
-        prayer_datetime = datetime.combine(prayer.prayer_date, prayer.prayer_time)
+        # Ensure prayer_time is a datetime.time object
+        if isinstance(prayer.prayer_time, str):
+            # Handle different time formats
+            if ':' in prayer.prayer_time:
+                if prayer.prayer_time.count(':') == 1:  # HH:MM format
+                    prayer_time_obj = datetime.strptime(prayer.prayer_time, '%H:%M').time()
+                elif prayer.prayer_time.count(':') == 2:  # HH:MM:SS format
+                    prayer_time_obj = datetime.strptime(prayer.prayer_time, '%H:%M:%S').time()
+                else:
+                    self.logger.error(f"Unexpected prayer time format in time window: {prayer.prayer_time}")
+                    # Return a default time window
+                    return datetime.now(), datetime.now() + timedelta(hours=2)
+            else:
+                self.logger.error(f"Invalid prayer time format in time window: {prayer.prayer_time}")
+                # Return a default time window
+                return datetime.now(), datetime.now() + timedelta(hours=2)
+        else:
+            prayer_time_obj = prayer.prayer_time
+            
+        prayer_datetime = datetime.combine(prayer.prayer_date, prayer_time_obj)
         start_time = user_tz.localize(prayer_datetime)
         
         # Determine end time based on Islamic methodology
@@ -872,4 +956,24 @@ class PrayerService(BaseService):
 
         except Exception as e:
             self.logger.error(f"Error auto-updating prayer {prayer.id}: {str(e)}")
+            return False
+
+    def _is_prayer_missed(self, prayer: Prayer, user: User, date: datetime.date) -> bool:
+        """
+        Check if a prayer is missed based on current time.
+        
+        Args:
+            prayer: Prayer instance.
+            user: User instance.
+            date: Date of the prayer.
+            
+        Returns:
+            bool: True if prayer is missed, False otherwise.
+        """
+        try:
+            # Get prayer time status
+            time_status = self._get_prayer_time_status(prayer, user, date)
+            return time_status == 'missed'
+        except Exception as e:
+            self.logger.error(f"Error checking if prayer is missed: {str(e)}")
             return False

@@ -41,15 +41,29 @@ celery_app.conf.update(
         'app.tasks.consistency_checks.*': {'queue': 'consistency_checks'},
     },
     
+    # Queue configuration
+    task_default_queue='default',
+    task_queues={
+        'prayer_reminders': {
+            'routing_key': 'prayer_reminders',
+        },
+        'consistency_checks': {
+            'routing_key': 'consistency_checks',
+        },
+        'default': {
+            'routing_key': 'default',
+        },
+    },
+    
     # Beat schedule for periodic tasks
     beat_schedule={
         'send-prayer-reminders': {
             'task': 'app.tasks.prayer_reminders.send_prayer_reminders',
-            'schedule': crontab(minute='*/5'),  # Every 5 minutes
+            'schedule': crontab(minute='*'),  # Every 1 minute
         },
         'send-prayer-window-reminders': {
             'task': 'app.tasks.prayer_reminders.send_prayer_window_reminders',
-            'schedule': crontab(minute='*/5'),  # Every 5 minutes
+            'schedule': crontab(minute='*'),  # Every 1 minute
         },
         'check-consistency': {
             'task': 'app.tasks.consistency_checks.check_user_consistency',

@@ -6,7 +6,7 @@
 set -e
 
 # Configuration
-SERVER_IP="13.233.86.216"
+SERVER_IP="13.234.217.179"
 SSH_KEY="/Users/mohammadshahjahan/Downloads/salah-tracker-server-1.pem"
 SERVER_USER="ec2-user"
 APP_DIR="/var/www/salah-tracker"

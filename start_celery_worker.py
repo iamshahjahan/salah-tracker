@@ -23,12 +23,15 @@ logger = get_logger(__name__)
 from celery_config import celery_app
 
 if __name__ == '__main__':
-    logger.info("Starting Celery worker...")
+    logger.info("Starting Celery worker with queues: prayer_reminders,consistency_checks,default")
     # Start the Celery worker
     celery_app.worker_main([
         'worker',
         '--loglevel=info',
         '--concurrency=4',
         '--queues=prayer_reminders,consistency_checks,default',
-        '--hostname=worker@%h'
+        '--hostname=worker@%h',
+        '--without-gossip',
+        '--without-mingle',
+        '--without-heartbeat'
     ])

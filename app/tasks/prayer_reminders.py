@@ -155,26 +155,34 @@ def send_individual_reminder(self, user_id: int, prayer_type: str, prayer_time: 
     """
     with app.app_context():
         try:
+            logger.info(f"Starting individual reminder task for user {user_id}, prayer {prayer_type} at {prayer_time}")
+            
             user = User.query.get(user_id)
             if not user:
+                logger.warning(f"User {user_id} not found")
                 return {'status': 'error', 'message': 'User not found'}
             
-            if not user.email_notifications:
-                return {'status': 'skipped', 'message': 'User has disabled email notifications'}
+            logger.info(f"Found user: {user.email} (ID: {user_id})")
             
+                 
             # Parse prayer time
+            logger.info(f"Parsing prayer time: {prayer_time}")
             prayer_time_obj = datetime.strptime(prayer_time, '%H:%M').time()
             user_tz = pytz.timezone(user.timezone or 'UTC')
             prayer_datetime = datetime.combine(datetime.utcnow().date(), prayer_time_obj)
             prayer_datetime = user_tz.localize(prayer_datetime)
+            logger.info(f"Prayer datetime: {prayer_datetime}")
             
             # Send reminder
+            logger.info(f"Sending reminder to {user.email} for {prayer_type}")
             from app.config.settings import get_config
             config = get_config()
             notification_service = NotificationService(config)
             result = notification_service.send_prayer_reminder(
                 user, prayer_type, prayer_datetime
             )
+            
+            logger.info(f"Reminder result for {user.email}: {result}")
             
             return {
                 'status': 'completed' if result.get('success') else 'failed',
@@ -184,6 +192,7 @@ def send_individual_reminder(self, user_id: int, prayer_type: str, prayer_time: 
             }
             
         except Exception as e:
+            logger.error(f"Error in individual reminder task for user {user_id}: {str(e)}")
             current_task.update_state(
                 state='FAILURE',
                 meta={'error': str(e)}
@@ -240,8 +249,12 @@ def send_prayer_window_reminders(self):
                         is_completed = prayer_data.get('completed', False)
                         time_status = prayer_data.get('time_status', 'unknown')
                         
+                        logger.info(f"Prayer {prayer_type} for {user.email}: time_status={time_status}, completed={is_completed}")
+                        
                         # Only send reminders for prayers that are in their time window and not completed
                         if time_status == 'during' and not is_completed:
+                            logger.info(f"Prayer {prayer_type} is in time window and not completed for {user.email}")
+                            
                             # Check if we already sent a window reminder for this prayer today
                             existing_notification = PrayerNotification.query.filter_by(
                                 user_id=user.id,
@@ -251,10 +264,14 @@ def send_prayer_window_reminders(self):
                             ).first()
                             
                             if not existing_notification:
+                                logger.info(f"No existing window reminder found for {prayer_type} to {user.email}")
+                                
                                 # Parse prayer time
                                 prayer_time = datetime.strptime(prayer_time_str, '%H:%M').time()
                                 prayer_datetime = datetime.combine(now_user_tz.date(), prayer_time)
                                 prayer_datetime = user_tz.localize(prayer_datetime)
+                                
+                                logger.info(f"Sending window reminder for {prayer_type} to {user.email}")
                                 
                                 # Send window reminder
                                 notification_service = NotificationService(config)
@@ -264,6 +281,7 @@ def send_prayer_window_reminders(self):
                                 
                                 if result.get('success'):
                                     total_reminders_sent += 1
+                                    logger.info(f"Window reminder sent successfully to {user.email} for {prayer_type}")
                                     current_task.update_state(
                                         state='PROGRESS',
                                         meta={
@@ -276,6 +294,10 @@ def send_prayer_window_reminders(self):
                                 else:
                                     total_errors += 1
                                     logger.error(f"Failed to send window reminder to {user.email}: {result.get('error')}")
+                            else:
+                                logger.info(f"Window reminder already sent for {prayer_type} to {user.email}")
+                        else:
+                            logger.info(f"Skipping {prayer_type} for {user.email} - time_status: {time_status}, completed: {is_completed}")
                 
                 except Exception as e:
                     total_errors += 1
@@ -310,22 +332,35 @@ def cleanup_old_notifications(self, days_old: int = 30):
     """
     with app.app_context():
         try:
+            logger.info(f"Starting cleanup of old notifications older than {days_old} days")
+            
             cutoff_date = datetime.utcnow() - timedelta(days=days_old)
+            logger.info(f"Cutoff date: {cutoff_date}")
+            
+            # Count notifications to be deleted first
+            count_to_delete = PrayerNotification.query.filter(
+                PrayerNotification.created_at < cutoff_date
+            ).count()
+            logger.info(f"Found {count_to_delete} notifications to delete")
             
             # Delete old notifications
             deleted_count = PrayerNotification.query.filter(
                 PrayerNotification.created_at < cutoff_date
             ).delete()
             
+            logger.info(f"Deleted {deleted_count} old notifications")
             db.session.commit()
             
-            return {
+            result = {
                 'status': 'completed',
                 'deleted_count': deleted_count,
                 'cutoff_date': cutoff_date.isoformat()
             }
+            logger.info(f"Cleanup task completed: {result}")
+            return result
             
         except Exception as e:
+            logger.error(f"Error in cleanup task: {str(e)}")
             db.session.rollback()
             current_task.update_state(
                 state='FAILURE',
@@ -345,12 +380,15 @@ def send_bulk_reminders(self, user_ids: List[int], prayer_type: str, prayer_time
         prayer_time: Time of the prayer
     """
     try:
+        logger.info(f"Starting bulk reminder task for {len(user_ids)} users, prayer {prayer_type} at {prayer_time}")
+        
         results = []
         successful = 0
         failed = 0
         
         for user_id in user_ids:
             try:
+                logger.info(f"Queuing individual reminder for user {user_id}")
                 result = send_individual_reminder.delay(user_id, prayer_type, prayer_time)
                 results.append({
                     'user_id': user_id,
@@ -358,8 +396,10 @@ def send_bulk_reminders(self, user_ids: List[int], prayer_type: str, prayer_time
                     'status': 'queued'
                 })
                 successful += 1
+                logger.info(f"Successfully queued reminder for user {user_id}, task ID: {result.id}")
                 
             except Exception as e:
+                logger.error(f"Failed to queue reminder for user {user_id}: {str(e)}")
                 results.append({
                     'user_id': user_id,
                     'status': 'failed',
@@ -367,15 +407,18 @@ def send_bulk_reminders(self, user_ids: List[int], prayer_type: str, prayer_time
                 })
                 failed += 1
         
-        return {
+        result = {
             'status': 'completed',
             'total_users': len(user_ids),
             'successful': successful,
             'failed': failed,
             'results': results
         }
+        logger.info(f"Bulk reminder task completed: {result}")
+        return result
         
     except Exception as e:
+        logger.error(f"Error in bulk reminder task: {str(e)}")
         current_task.update_state(
             state='FAILURE',
             meta={'error': str(e)}
@@ -390,15 +433,18 @@ def test_reminder_system(self):
     This is useful for testing the email system and notification flow.
     """
     try:
-        users = User.query.filter_by(
-            email_notifications=True,
-            email_verified=True
-        ).limit(5).all()  # Limit to 5 users for testing
+        logger.info("Starting test reminder system task")
+        
+        users = User.query.filter_by().limit(5).all()  # Limit to 5 users for testing
+        
+        logger.info(f"Found {len(users)} users for testing")
         
         results = []
         
         for user in users:
             try:
+                logger.info(f"Testing reminder for user {user.email} (ID: {user.id})")
+                
                 # Send test reminder for Dhuhr prayer
                 result = send_individual_reminder.delay(
                     user.id, 'dhuhr', '12:00'
@@ -411,7 +457,10 @@ def test_reminder_system(self):
                     'status': 'queued'
                 })
                 
+                logger.info(f"Test reminder queued for {user.email}, task ID: {result.id}")
+                
             except Exception as e:
+                logger.error(f"Failed to queue test reminder for {user.email}: {str(e)}")
                 results.append({
                     'user_id': user.id,
                     'user_email': user.email,
@@ -419,14 +468,17 @@ def test_reminder_system(self):
                     'error': str(e)
                 })
         
-        return {
+        result = {
             'status': 'completed',
             'test_type': 'reminder_system',
             'users_tested': len(users),
             'results': results
         }
+        logger.info(f"Test reminder system task completed: {result}")
+        return result
         
     except Exception as e:
+        logger.error(f"Error in test reminder system task: {str(e)}")
         current_task.update_state(
             state='FAILURE',
             meta={'error': str(e)}
