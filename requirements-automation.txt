@@ -1,0 +1,25 @@
+# Automation Testing Requirements
+# Install with: pip install -r requirements-automation.txt
+
+# Selenium WebDriver
+selenium>=4.15.0
+
+# WebDriver Manager for automatic driver management
+webdriver-manager>=4.0.0
+
+# HTTP requests for API testing
+requests>=2.31.0
+
+# Additional testing utilities
+pytest>=7.4.0
+pytest-html>=4.1.0
+pytest-xdist>=3.3.0
+
+# For better test reporting
+allure-pytest>=2.13.0
+
+# For handling different browsers
+selenium-wire>=5.1.0
+
+# For mobile testing (optional)
+appium-python-client>=3.1.0

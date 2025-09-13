@@ -299,7 +299,7 @@ class PrayerService(BaseService):
             prayer = self.create_record(
                 Prayer,
                 user_id=user.id,
-                name=prayer_name,
+                prayer_type=prayer_name,
                 prayer_time=prayer_time,
                 prayer_date=date
             )
