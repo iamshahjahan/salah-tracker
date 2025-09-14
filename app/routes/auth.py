@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
-from database import db
+from config.database import db
 from app.models.user import User
 from app.services.auth_service import AuthService
 from datetime import datetime
@@ -57,11 +57,37 @@ def register():
         # Create access token
         access_token = create_access_token(identity=user.id)
 
-        return jsonify({
-            'message': 'User registered successfully',
-            'access_token': access_token,
-            'user': user.to_dict()
-        }), 201
+        # Send email verification automatically
+        try:
+            from app.services.auth_service import AuthService
+            auth_service = AuthService()
+            verification_result = auth_service.send_email_verification(user.id)
+            
+            if verification_result['success']:
+                return jsonify({
+                    'message': 'User registered successfully. Please check your email for verification code.',
+                    'access_token': access_token,
+                    'user': user.to_dict(),
+                    'verification_sent': True
+                }), 201
+            else:
+                # Registration successful but email verification failed
+                return jsonify({
+                    'message': 'User registered successfully. Email verification could not be sent.',
+                    'access_token': access_token,
+                    'user': user.to_dict(),
+                    'verification_sent': False,
+                    'verification_error': verification_result.get('error', 'Unknown error')
+                }), 201
+        except Exception as email_error:
+            # Registration successful but email verification failed
+            return jsonify({
+                'message': 'User registered successfully. Email verification could not be sent.',
+                'access_token': access_token,
+                'user': user.to_dict(),
+                'verification_sent': False,
+                'verification_error': str(email_error)
+            }), 201
 
     except Exception as e:
         db.session.rollback()

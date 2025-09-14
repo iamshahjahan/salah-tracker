@@ -19,6 +19,159 @@ body {
     padding: 0 20px;
 }
 
+/* Email Verification Header */
+.email-verification-header {
+    background: linear-gradient(135deg, #ff6b6b, #ff8e8e);
+    color: white;
+    padding: 12px 0;
+    position: fixed;
+    top: 0;
+    width: 100%;
+    z-index: 1001;
+    box-shadow: 0 2px 10px rgba(255, 107, 107, 0.3);
+    animation: slideDown 0.3s ease-out;
+}
+
+.email-verification-content {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.email-verification-icon {
+    font-size: 1.2rem;
+    opacity: 0.9;
+}
+
+.email-verification-text {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.email-verification-title {
+    font-weight: 600;
+    font-size: 0.95rem;
+}
+
+.email-verification-subtitle {
+    font-size: 0.8rem;
+    opacity: 0.9;
+}
+
+.email-verification-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.email-verification-actions .btn {
+    padding: 6px 12px;
+    font-size: 0.8rem;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.email-verification-actions .btn-verify {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.email-verification-actions .btn-verify:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: translateY(-1px);
+}
+
+.email-verification-actions .btn-resend {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.email-verification-actions .btn-resend:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateY(-1px);
+}
+
+.email-verification-actions .btn-dismiss {
+    background: transparent;
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    padding: 6px 8px;
+    min-width: auto;
+}
+
+.email-verification-actions .btn-dismiss:hover {
+    background: rgba(255, 255, 255, 0.1);
+    transform: translateY(-1px);
+}
+
+@keyframes slideDown {
+    from {
+        transform: translateY(-100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* Adjust navbar position when email verification header is shown */
+body.has-email-verification-header .navbar {
+    top: 60px;
+}
+
+body.has-email-verification-header .main-content {
+    padding-top: 130px; /* navbar height + email header height */
+}
+
+/* Mobile responsive styles for email verification header */
+@media (max-width: 768px) {
+    .email-verification-content {
+        flex-direction: column;
+        gap: 10px;
+        text-align: center;
+    }
+    
+    .email-verification-text {
+        order: 1;
+    }
+    
+    .email-verification-actions {
+        order: 2;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+    
+    .email-verification-actions .btn {
+        font-size: 0.75rem;
+        padding: 5px 10px;
+    }
+    
+    .email-verification-title {
+        font-size: 0.9rem;
+    }
+    
+    .email-verification-subtitle {
+        font-size: 0.75rem;
+    }
+    
+    body.has-email-verification-header .main-content {
+        padding-top: 150px; /* More space for mobile */
+    }
+}
+
 /* Navigation */
 .navbar {
     background: rgba(255, 255, 255, 0.95);
@@ -28,6 +181,7 @@ body {
     width: 100%;
     z-index: 1000;
     box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+    transition: top 0.3s ease;
 }
 
 .nav-container {

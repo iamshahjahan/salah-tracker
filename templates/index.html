@@ -10,6 +10,30 @@
 </head>
 <body>
     <div id="app">
+        <!-- Email Verification Header -->
+        <div id="emailVerificationHeader" class="email-verification-header" style="display: none;">
+            <div class="email-verification-content">
+                <div class="email-verification-icon">
+                    <i class="fas fa-envelope"></i>
+                </div>
+                <div class="email-verification-text">
+                    <span class="email-verification-title">Verify your email to receive email reminders.</span>
+                    <span class="email-verification-subtitle">Check your inbox for a verification code.</span>
+                </div>
+                <div class="email-verification-actions">
+                    <button class="btn btn-verify" onclick="showEmailVerification()">
+                        <i class="fas fa-check"></i> Verify Now
+                    </button>
+                    <button class="btn btn-resend" onclick="resendVerificationCode()">
+                        <i class="fas fa-redo"></i> Resend Code
+                    </button>
+                    <button class="btn btn-dismiss" onclick="dismissEmailVerificationHeader()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <!-- Navigation -->
         <nav class="navbar">
             <div class="nav-container">

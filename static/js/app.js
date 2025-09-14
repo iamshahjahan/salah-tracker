@@ -322,13 +322,24 @@ async function handleRegister(e) {
                 updateUIForLoggedInUser();
                 showSection('prayers');
             });
-            showNotification('Account created successfully!', 'success');
 
-            // Show email verification modal for new users
-            if (currentUser && !currentUser.email_verified) {
-                setTimeout(() => {
-                    showEmailVerification(currentUser.email);
-                }, 1000);
+            // Show appropriate notification based on verification status
+            if (data.verification_sent) {
+                showNotification('Account created successfully! Please check your email for verification code.', 'success');
+                // Show email verification modal for new users
+                if (currentUser && !currentUser.email_verified) {
+                    setTimeout(() => {
+                        showEmailVerification(currentUser.email);
+                    }, 1000);
+                }
+            } else {
+                showNotification('Account created successfully! Email verification could not be sent.', 'warning');
+                // Still show verification modal so user can manually request verification
+                if (currentUser && !currentUser.email_verified) {
+                    setTimeout(() => {
+                        showEmailVerification(currentUser.email);
+                    }, 1000);
+                }
             }
         } else {
             showNotification(data.error || 'Registration failed', 'error');
@@ -443,6 +454,8 @@ async function handleEmailVerification(e) {
             if (currentUser) {
                 currentUser.email_verified = true;
             }
+            // Hide the email verification header
+            hideEmailVerificationHeader();
         } else {
             showNotification(data.error || 'Verification failed', 'error');
         }
@@ -564,6 +577,9 @@ async function loadUserProfile() {
             if (currentUser && currentUser.created_at) {
                 accountCreationDate = new Date(currentUser.created_at);
             }
+            
+            // Check if email verification header should be shown
+            checkEmailVerificationStatus();
         }
     } catch (error) {
         console.error('Error loading user profile:', error);
@@ -2259,3 +2275,64 @@ document.addEventListener('DOMContentLoaded', function() {
         observer.observe(el);
     });
 });
+
+// Email Verification Header Functions
+function checkEmailVerificationStatus() {
+    if (!currentUser || !authToken) {
+        hideEmailVerificationHeader();
+        return;
+    }
+
+    // Check if user's email is not verified
+    if (!currentUser.email_verified) {
+        // Check if user has dismissed the header in this session
+        const dismissed = sessionStorage.getItem('emailVerificationDismissed');
+        if (!dismissed) {
+            showEmailVerificationHeader();
+        }
+    } else {
+        hideEmailVerificationHeader();
+    }
+}
+
+function showEmailVerificationHeader() {
+    const header = document.getElementById('emailVerificationHeader');
+    if (header) {
+        header.style.display = 'block';
+        document.body.classList.add('has-email-verification-header');
+    }
+}
+
+function hideEmailVerificationHeader() {
+    const header = document.getElementById('emailVerificationHeader');
+    if (header) {
+        header.style.display = 'none';
+        document.body.classList.remove('has-email-verification-header');
+    }
+}
+
+function dismissEmailVerificationHeader() {
+    hideEmailVerificationHeader();
+    // Remember dismissal for this session only
+    sessionStorage.setItem('emailVerificationDismissed', 'true');
+}
+
+function showEmailVerification(email = null) {
+    // Use provided email or current user's email
+    const userEmail = email || (currentUser ? currentUser.email : '');
+    
+    // Show the email verification modal
+    const modal = document.getElementById('emailVerificationModal');
+    if (modal) {
+        // Pre-fill email if provided
+        const emailInput = modal.querySelector('input[name="email"]');
+        if (emailInput && userEmail) {
+            emailInput.value = userEmail;
+        }
+        
+        modal.style.display = 'block';
+        
+        // Hide the header when modal is shown
+        hideEmailVerificationHeader();
+    }
+}
