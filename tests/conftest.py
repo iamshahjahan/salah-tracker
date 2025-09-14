@@ -16,8 +16,8 @@ import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
-from main import app
-from database import db
+from main import app as flask_app
+from config.database import db
 from app.models.user import User
 from app.models.prayer import Prayer, PrayerCompletion
 from app.config.settings import TestingConfig
@@ -38,13 +38,13 @@ def app():
     os.environ['TEST_DATABASE_URL'] = f'sqlite:///{db_path}'
     
     # Configure app for testing
-    app.config['TESTING'] = True
-    app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
-    app.config['WTF_CSRF_ENABLED'] = False
+    flask_app.config['TESTING'] = True
+    flask_app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
+    flask_app.config['WTF_CSRF_ENABLED'] = False
 
-    with app.app_context():
+    with flask_app.app_context():
         db.create_all()
-        yield app
+        yield flask_app
         db.drop_all()
 
     # Clean up
@@ -90,9 +90,12 @@ def sample_user_data():
     Returns:
         dict: Sample user registration data.
     """
+    import uuid
+    unique_id = str(uuid.uuid4())[:8]
+    
     return {
-        'username': 'testuser@example.com',
-        'email': 'testuser@example.com',
+        'username': f'testuser_{unique_id}@example.com',
+        'email': f'testuser_{unique_id}@example.com',
         'password': 'TestPassword123!',
         'first_name': 'Test',
         'last_name': 'User',
@@ -213,9 +216,13 @@ def auth_headers(client, sample_user):
     Returns:
         dict: Authentication headers.
     """
+    # Set the password properly for the test user
+    sample_user.set_password('TestPassword123!')
+    db.session.commit()
+    
     # Login to get token
     response = client.post('/api/auth/login', json={
-        'email': sample_user.email,
+        'username': sample_user.email,  # Can use email as username
         'password': 'TestPassword123!'
     })
 

@@ -11,7 +11,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from flask import current_app
 import logging
 
-from database import db
+from config.database import db
 from app.config.settings import Config
 
 T = TypeVar('T')

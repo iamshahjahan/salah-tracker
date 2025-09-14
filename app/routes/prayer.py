@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from database import db
+from config.database import db
 from app.models.user import User
 from app.models.prayer import Prayer, PrayerCompletion, PrayerType, PrayerStatus
 from datetime import datetime, date, timedelta, time
@@ -74,30 +74,60 @@ def get_prayer_time_window(prayer_type, prayer_time, prayer_date, all_prayer_tim
 
     return start_time, end_time
 
-def is_prayer_time_valid(prayer_type, prayer_time, prayer_date, completion_time=None):
+def is_prayer_time_valid(prayer_type, prayer_time, prayer_date, completion_time=None, user=None):
     """Check if the current time is within the valid window for completing a prayer"""
     if completion_time is None:
-        completion_time = datetime.now()
+        if user:
+            user_tz = pytz.timezone(user.timezone)
+            completion_time = datetime.now(user_tz)
+        else:
+            completion_time = datetime.now()
 
     start_time, end_time = get_prayer_time_window(prayer_type, prayer_time, prayer_date)
+    
+    # Make timezone-aware if completion_time is timezone-aware
+    if completion_time.tzinfo is not None:
+        # Convert naive datetimes to timezone-aware
+        if user:
+            user_tz = pytz.timezone(user.timezone)
+            start_time = user_tz.localize(start_time)
+            end_time = user_tz.localize(end_time)
 
     return start_time <= completion_time <= end_time
 
-def is_prayer_missed(prayer_type, prayer_time, prayer_date, completion_time=None):
+def is_prayer_missed(prayer_type, prayer_time, prayer_date, completion_time=None, user=None):
     """Check if a prayer has been missed (past its valid time window)"""
     if completion_time is None:
-        completion_time = datetime.now()
+        if user:
+            user_tz = pytz.timezone(user.timezone)
+            completion_time = datetime.now(user_tz)
+        else:
+            completion_time = datetime.now()
 
     start_time, end_time = get_prayer_time_window(prayer_type, prayer_time, prayer_date)
+    
+    # Make timezone-aware if completion_time is timezone-aware
+    if completion_time.tzinfo is not None:
+        # Convert naive datetimes to timezone-aware
+        if user:
+            user_tz = pytz.timezone(user.timezone)
+            start_time = user_tz.localize(start_time)
+            end_time = user_tz.localize(end_time)
 
     return completion_time > end_time
 
 def auto_update_prayer_status(user_id, prayer_date):
     """Automatically update prayer completion status based on current time"""
     try:
+        # Get user for timezone
+        user = User.query.get(user_id)
+        if not user:
+            return False
+            
         # Get all prayers for the given date
         prayers = Prayer.query.filter(Prayer.prayer_date == prayer_date).all()
-        current_time = datetime.now()
+        user_tz = pytz.timezone(user.timezone)
+        current_time = datetime.now(user_tz)
 
         for prayer in prayers:
             prayer_time_str = prayer.prayer_time.strftime('%H:%M')
@@ -112,7 +142,7 @@ def auto_update_prayer_status(user_id, prayer_date):
                 continue  # Skip if already completed
 
             # Check if prayer time has passed and should be marked as missed
-            if is_prayer_missed(prayer.prayer_type, prayer_time_str, prayer.prayer_date, current_time):
+            if is_prayer_missed(prayer.prayer_type, prayer_time_str, prayer.prayer_date, current_time, user):
                 # Create a missed prayer record
                 missed_completion = PrayerCompletion(
                     user_id=user_id,
@@ -293,7 +323,13 @@ def complete_prayer():
             prayer_id=data['prayer_id']
         ).first()
 
-        current_time = datetime.now()
+        # Get user's timezone for accurate time comparison
+        user = User.query.get(user_id)
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+            
+        user_tz = pytz.timezone(user.timezone)
+        current_time = datetime.now(user_tz)
         prayer_time_str = prayer.prayer_time.strftime('%H:%M')
 
         if existing_completion:
@@ -317,9 +353,9 @@ def complete_prayer():
                 return jsonify({'error': 'Prayer already completed. You can only complete each prayer once.'}), 400
         else:
             # Create new completion record
-            if not is_prayer_time_valid(prayer.prayer_type, prayer_time_str, prayer.prayer_date, current_time):
+            if not is_prayer_time_valid(prayer.prayer_type, prayer_time_str, prayer.prayer_date, current_time, user):
                 # Check if it's a missed prayer
-                if is_prayer_missed(prayer.prayer_type, prayer_time_str, prayer.prayer_date, current_time):
+                if is_prayer_missed(prayer.prayer_type, prayer_time_str, prayer.prayer_date, current_time, user):
                     # Create as missed (can be moved to qada)
                     status = PrayerStatus.MISSED
                     message = 'Prayer marked as missed (can be completed as Qada)'

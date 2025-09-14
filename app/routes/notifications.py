@@ -31,11 +31,28 @@ def show_complete_prayer_page(completion_link_id):
                                  error="Invalid or expired completion link"), 404
         
         # Check if already completed
-        if notification.completed:
+        if notification.completed_via_link:
+            # Get the completion time from the PrayerCompletion record
+            from app.models.prayer import Prayer, PrayerCompletion
+            prayer = Prayer.query.filter_by(
+                user_id=notification.user_id,
+                prayer_type=notification.prayer_type,
+                prayer_date=notification.prayer_date
+            ).first()
+            
+            completed_at = None
+            if prayer:
+                completion = PrayerCompletion.query.filter_by(
+                    user_id=notification.user_id,
+                    prayer_id=prayer.id
+                ).first()
+                if completion:
+                    completed_at = completion.marked_at
+            
             return render_template('prayer_completion_success.html', 
                                  message="Prayer already completed!", 
                                  prayer_type=notification.prayer_type,
-                                 completed_at=notification.completed_at)
+                                 completed_at=completed_at)
         
         # Check if link is expired (2 hours after creation)
         from datetime import datetime, timedelta
@@ -123,7 +140,7 @@ def update_notification_preferences():
         if 'notification_enabled' in data:
             user.notification_enabled = data['notification_enabled']
         
-        from database import db
+        from config.database import db
         db.session.commit()
         
         return jsonify({

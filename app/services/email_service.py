@@ -250,7 +250,7 @@ class EmailService(BaseService):
             )
             msg.html = template
 
-            from mail_config import mail
+            from config.mail_config import mail
             mail.send(msg)
             return True
 

@@ -187,7 +187,7 @@ def get_hadiths():
 def get_categories():
     """Get available categories for verses and Hadith."""
     try:
-        from database import db
+        from config.database import db
         
         # Get unique categories from verses
         verse_categories = db.session.query(QuranicVerse.category).filter(

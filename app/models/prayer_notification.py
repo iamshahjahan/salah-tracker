@@ -5,7 +5,7 @@ This module defines models for storing and managing prayer notifications,
 including email reminders and completion tracking via links.
 """
 
-from database import db
+from config.database import db
 from datetime import datetime, timedelta
 from typing import Dict, Any
 import uuid

@@ -61,6 +61,14 @@ class PrayerService(BaseService):
             Dict[str, Any]: Prayer times data with completion status and validation info.
         """
         try:
+            # Get user first (needed for timezone-aware date determination)
+            user = self.get_record_by_id(User, user_id)
+            if not user:
+                return {
+                    'success': False,
+                    'error': 'User not found'
+                }
+
             # Parse date
             if date_str:
                 try:
@@ -71,20 +79,14 @@ class PrayerService(BaseService):
                         'error': 'Invalid date format. Use YYYY-MM-DD'
                     }
             else:
-                target_date = datetime.now().date()
+                # Use user's timezone for date determination
+                user_tz = pytz.timezone(user.timezone)
+                target_date = datetime.now(user_tz).date()
 
             # Check cache first
             cached_data = cache_service.get_prayer_times(user_id, date_str or target_date.strftime('%Y-%m-%d'))
             if cached_data:
                 return cached_data
-
-            # Get user
-            user = self.get_record_by_id(User, user_id)
-            if not user:
-                return {
-                    'success': False,
-                    'error': 'User not found'
-                }
 
             # Check if date is before user account creation
             if target_date < user.created_at.date():

@@ -88,7 +88,7 @@ def test_notification_service():
 def test_celery_configuration():
     """Test Celery configuration."""
     return run_command(
-        "python3 -c 'from celery_config import celery_app; print(\"Celery configuration loaded successfully!\")'",
+        "python3 -c 'from config.celery_config import celery_app; print(\"Celery configuration loaded successfully!\")'",
         "Celery Configuration Test"
     )
 

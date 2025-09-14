@@ -1,8 +1,8 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from database import db
+from config.database import db
 from flask_mail import Message
-from mail_config import mail
+from config.mail_config import mail
 from app.models.user import User
 from app.models.family import FamilyMember
 from app.models.prayer import Prayer, PrayerCompletion

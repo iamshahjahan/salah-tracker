@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from database import db
+from config.database import db
 from app.models.user import User
 from app.models.prayer import Prayer, PrayerCompletion, PrayerType
 from app.services.cache_service import cache_service
@@ -180,7 +180,7 @@ def get_recent_activity():
         # Get recent completions
         recent_completions = db.session.query(PrayerCompletion).join(Prayer).filter(
             PrayerCompletion.user_id == user_id
-        ).order_by(PrayerCompletion.completed_at.desc()).limit(limit).all()
+        ).order_by(PrayerCompletion.marked_at.desc()).limit(limit).all()
 
         return jsonify({
             'recent_completions': [completion.to_dict() for completion in recent_completions]

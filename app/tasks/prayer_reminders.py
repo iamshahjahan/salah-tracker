@@ -10,15 +10,15 @@ from datetime import datetime, timedelta, time
 import pytz
 from typing import List, Dict, Any
 
-from celery_config import celery_app
+from config.celery_config import celery_app
 from main import app
 from app.models.user import User
 from app.models.prayer import Prayer, PrayerCompletion
 from app.models.prayer_notification import PrayerNotification
 from app.services.notification_service import NotificationService
 from app.services.prayer_service import PrayerService
-from database import db
-from logging_config import get_logger
+from config.database import db
+from config.logging_config import get_logger
 
 logger = get_logger(__name__)
 

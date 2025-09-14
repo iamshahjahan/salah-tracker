@@ -12,9 +12,10 @@ import argparse
 from datetime import datetime, timedelta
 
 # Add the project root to the Python path
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, project_root)
 
-from celery_config import celery_app
+from config.celery_config import celery_app
 from app.tasks.prayer_reminders import (
     send_prayer_reminders,
     send_individual_reminder,

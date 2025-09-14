@@ -5,7 +5,7 @@ This module defines the FamilyGroup model for creating and managing
 family prayer groups with shared prayer tracking and notifications.
 """
 
-from database import db
+from config.database import db
 from datetime import datetime
 from typing import Dict, Any
 

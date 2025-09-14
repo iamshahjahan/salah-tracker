@@ -5,7 +5,7 @@ This module defines models for storing and managing Quranic verses
 and Hadith that can be used in prayer reminders and notifications.
 """
 
-from database import db
+from config.database import db
 from datetime import datetime
 from typing import Dict, Any
 import random

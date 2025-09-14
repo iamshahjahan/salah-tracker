@@ -16,7 +16,7 @@ from .email_templates import get_prayer_reminder_template, get_consistency_nudge
 from app.models.user import User
 from app.models.prayer_notification import PrayerNotification
 from app.models.inspirational_content import QuranicVerse, Hadith
-from app.models.prayer import PrayerCompletion
+from app.models.prayer import PrayerCompletion, PrayerStatus
 
 
 class NotificationService(BaseService):
@@ -255,9 +255,8 @@ class NotificationService(BaseService):
                 PrayerCompletion,
                 user_id=user.id,
                 prayer_id=prayer.id,
-                completed_at=datetime.utcnow(),
-                is_late=False,
-                is_qada=False
+                marked_at=datetime.utcnow(),
+                status=PrayerStatus.COMPLETE
             )
             
             # Mark notification as completed via link

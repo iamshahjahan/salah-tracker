@@ -20,14 +20,21 @@ def validate_email(email: str) -> Tuple[bool, Optional[str]]:
     Returns:
         Tuple[bool, Optional[str]]: (is_valid, error_message)
     """
+    if email is None:
+        return False, "Email is required"
+    
     if not email:
         return False, "Email is required"
 
     if not isinstance(email, str):
         return False, "Email must be a string"
 
-    # Basic email regex pattern
-    email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+    # Basic email regex pattern (more strict)
+    email_pattern = r'^[a-zA-Z0-9]([a-zA-Z0-9._-]*[a-zA-Z0-9])?@[a-zA-Z0-9]([a-zA-Z0-9.-]*[a-zA-Z0-9])?\.[a-zA-Z]{2,}$'
+    
+    # Additional check for consecutive dots
+    if '..' in email:
+        return False, "Invalid email format"
 
     if not re.match(email_pattern, email):
         return False, "Invalid email format"
@@ -247,7 +254,7 @@ def validate_prayer_completion_data(data: Dict[str, Any]) -> Tuple[bool, List[st
 
     # Validate required fields
     if not data.get('prayer_id'):
-        errors.append("Prayer ID is required")
+        errors.append("prayer_id is required")
 
     # Validate prayer_id is integer
     if data.get('prayer_id'):
@@ -293,11 +300,14 @@ def sanitize_string(value: str, max_length: Optional[int] = None) -> str:
     Returns:
         str: Sanitized string.
     """
+    if value is None:
+        return ""
+    
     if not isinstance(value, str):
         return ""
 
-    # Remove potentially dangerous characters
-    sanitized = re.sub(r'[<>"\']', '', value)
+    # Remove potentially dangerous characters (only < and >)
+    sanitized = re.sub(r'[<>]', '', value)
 
     # Strip whitespace
     sanitized = sanitized.strip()

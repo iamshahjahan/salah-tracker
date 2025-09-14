@@ -8,14 +8,14 @@ import os
 from dotenv import load_dotenv
 import requests
 import pytz
-from database import db
-from mail_config import mail
+from config.database import db
+from config.mail_config import mail
 
 # Load environment variables
 load_dotenv()
 
 # Set up logging
-from logging_config import setup_logging, get_logger
+from config.logging_config import setup_logging, get_logger
 setup_logging(log_level=os.getenv('LOG_LEVEL', 'INFO'))
 logger = get_logger(__name__)
 
@@ -89,10 +89,27 @@ def show_complete_prayer_page(completion_link_id):
         
         # Check if already completed
         if notification.completed_via_link:
+            # Get the completion time from the PrayerCompletion record
+            from app.models.prayer import Prayer, PrayerCompletion
+            prayer = Prayer.query.filter_by(
+                user_id=notification.user_id,
+                prayer_type=notification.prayer_type,
+                prayer_date=notification.prayer_date
+            ).first()
+            
+            completed_at = None
+            if prayer:
+                completion = PrayerCompletion.query.filter_by(
+                    user_id=notification.user_id,
+                    prayer_id=prayer.id
+                ).first()
+                if completion:
+                    completed_at = completion.marked_at
+            
             return render_template('prayer_completion_success.html', 
                                  message="Prayer already completed!", 
                                  prayer_type=notification.prayer_type,
-                                 completed_at=notification.completed_at)
+                                 completed_at=completed_at)
         
         # Check if link is expired (2 hours after creation)
         from datetime import datetime, timedelta

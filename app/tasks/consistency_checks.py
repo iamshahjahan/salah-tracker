@@ -9,12 +9,12 @@ from celery import current_task
 from datetime import datetime, timedelta, date
 from typing import List, Dict, Any
 
-from celery_config import celery_app
+from config.celery_config import celery_app
 from main import app
 from app.models.user import User
 from app.models.prayer import PrayerCompletion
 from app.services.notification_service import NotificationService
-from database import db
+from config.database import db
 
 
 @celery_app.task(bind=True, name='app.tasks.consistency_checks.check_user_consistency')

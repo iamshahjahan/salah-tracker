@@ -12,15 +12,16 @@ import sys
 from celery import Celery
 
 # Add the project root to the Python path
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, project_root)
 
 # Set up logging
-from logging_config import setup_logging, get_logger
+from config.logging_config import setup_logging, get_logger
 setup_logging(log_level=os.getenv('LOG_LEVEL', 'INFO'))
 logger = get_logger(__name__)
 
 # Import the Celery app
-from celery_config import celery_app
+from config.celery_config import celery_app
 
 if __name__ == '__main__':
     logger.info("Starting Celery worker with queues: prayer_reminders,consistency_checks,default")

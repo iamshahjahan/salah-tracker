@@ -1,4 +1,4 @@
-from database import db
+from config.database import db
 from datetime import datetime, date
 from enum import Enum
 
