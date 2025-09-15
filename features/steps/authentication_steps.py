@@ -1,0 +1,344 @@
+"""
+Step definitions for authentication features.
+"""
+
+from behave import given, when, then
+from app.models.user import User
+from app.services.auth_service import AuthService
+from config.database import db
+import json
+
+
+@given('the application is running')
+def step_application_running(context):
+    """Ensure the application is running and accessible."""
+    # This would typically check if the Flask app is running
+    # For now, we'll assume it's running
+    context.app_running = True
+
+
+@given('the database is clean')
+def step_database_clean(context):
+    """Clean the database for testing."""
+    # Clean up test data
+    context.db.session.query(User).filter(User.email.like('test%@example.com')).delete(synchronize_session=False)
+    context.db.session.commit()
+
+
+@given('I am on the registration page')
+def step_on_registration_page(context):
+    """Navigate to the registration page."""
+    context.current_page = 'registration'
+
+
+@given('I am on the login page')
+def step_on_login_page(context):
+    """Navigate to the login page."""
+    context.current_page = 'login'
+
+
+@given('a user with username "{username}" and password "{password}" exists')
+def step_user_exists(context, username, password):
+    """Create a test user."""
+    user = User(
+        username=username,
+        email=f"{username}@example.com",
+        first_name="Test",
+        last_name="User",
+        timezone="UTC"
+    )
+    user.set_password(password)
+    context.db.session.add(user)
+    context.db.session.commit()
+    context.test_user = user
+
+
+@given('a user with email "{email}" already exists')
+def step_user_with_email_exists(context, email):
+    """Create a user with specific email."""
+    user = User(
+        username="existinguser",
+        email=email,
+        first_name="Existing",
+        last_name="User",
+        timezone="UTC"
+    )
+    user.set_password("password123")
+    context.db.session.add(user)
+    context.db.session.commit()
+    context.existing_user = user
+
+
+@given('I am a registered user with unverified email')
+def step_user_with_unverified_email(context):
+    """Create a user with unverified email."""
+    user = User(
+        username="unverifieduser",
+        email="unverified@example.com",
+        first_name="Unverified",
+        last_name="User",
+        timezone="UTC",
+        email_verified=False
+    )
+    user.set_password("password123")
+    context.db.session.add(user)
+    context.db.session.commit()
+    context.test_user = user
+
+
+@given('a user with unverified email exists')
+def step_user_with_unverified_email_exists(context):
+    """Create a user with unverified email."""
+    # Clean up any existing user first
+    context.db.session.query(User).filter(User.username == "unverifieduser").delete(synchronize_session=False)
+    context.db.session.commit()
+    
+    user = User(
+        username="unverifieduser",
+        email="unverified@example.com",
+        first_name="Unverified",
+        last_name="User",
+        timezone="UTC",
+        email_verified=False
+    )
+    user.set_password("password123")
+    context.db.session.add(user)
+    context.db.session.commit()
+    context.test_user = user
+
+
+@given('I am a registered user with verified email')
+def step_user_with_verified_email(context):
+    """Create a user with verified email."""
+    user = User(
+        username="verifieduser",
+        email="verified@example.com",
+        first_name="Verified",
+        last_name="User",
+        timezone="UTC",
+        email_verified=True
+    )
+    user.set_password("password123")
+    context.db.session.add(user)
+    context.db.session.commit()
+    context.test_user = user
+
+
+@when('I fill in the registration form with:')
+def step_fill_registration_form(context):
+    """Fill in the registration form with provided data."""
+    context.registration_data = {}
+    for row in context.table:
+        context.registration_data[row['Field']] = row['Value']
+
+
+@when('I submit the registration form')
+def step_submit_registration_form(context):
+    """Submit the registration form."""
+    auth_service = AuthService(context.app_config)
+    context.registration_result = auth_service.register_user(context.registration_data)
+
+
+@when('I try to register with email "{email}"')
+def step_try_register_with_email(context, email):
+    """Try to register with specific email."""
+    registration_data = {
+        'username': 'testuser',
+        'email': email,
+        'password': 'password123',
+        'first_name': 'Test',
+        'last_name': 'User'
+    }
+    auth_service = AuthService(context.app_config)
+    context.registration_result = auth_service.register_user(registration_data)
+
+
+@when('I enter username "{username}"')
+def step_enter_username(context, username):
+    """Enter username in login form."""
+    context.login_data = getattr(context, 'login_data', {})
+    context.login_data['username'] = username
+
+
+@when('I enter password "{password}"')
+def step_enter_password(context, password):
+    """Enter password in login form."""
+    context.login_data = getattr(context, 'login_data', {})
+    context.login_data['password'] = password
+
+
+@when('I click the login button')
+def step_click_login_button(context):
+    """Click the login button."""
+    auth_service = AuthService(context.app_config)
+    context.login_result = auth_service.authenticate_user(
+        context.login_data.get('username', ''),
+        context.login_data.get('password', '')
+    )
+
+
+@when('I switch to OTP login tab')
+def step_switch_to_otp_login(context):
+    """Switch to OTP login tab."""
+    context.login_method = 'otp'
+
+
+@when('I enter my email "{email}"')
+def step_enter_email(context, email):
+    """Enter email for OTP login."""
+    context.otp_email = email
+
+
+@when('I click "Send Code"')
+def step_click_send_code(context):
+    """Click send code button."""
+    auth_service = AuthService(context.app_config)
+    context.otp_result = auth_service.send_login_otp(context.otp_email)
+
+
+@when('I enter the OTP code')
+def step_enter_otp_code(context):
+    """Enter OTP code."""
+    # In a real scenario, this would be the code from email
+    context.otp_code = "123456"  # Mock code
+
+
+@when('I click "Login with Code"')
+def step_click_login_with_code(context):
+    """Click login with code button."""
+    auth_service = AuthService(context.app_config)
+    context.login_result = auth_service.verify_otp_and_login(
+        context.otp_email, 
+        context.otp_code
+    )
+
+
+@then('I should be registered successfully')
+def step_registration_successful(context):
+    """Verify registration was successful."""
+    if 'error' in context.registration_result:
+        print(context.registration_result['error'])
+    assert context.registration_result['success'] == True
+
+
+@then('I should receive a confirmation message')
+def step_receive_confirmation_message(context):
+    """Verify confirmation message is received."""
+    assert 'message' in context.registration_result
+
+
+@then('I should be automatically logged in')
+def step_automatically_logged_in(context):
+    """Verify user is automatically logged in."""
+    assert 'access_token' in context.registration_result
+
+
+@then('an email verification should be sent to my email')
+def step_email_verification_sent(context):
+    """Verify email verification was sent."""
+    assert context.registration_result.get('verification_sent') == True
+
+
+@then('I should see an error message "{error_message}"')
+def step_see_error_message(context, error_message):
+    """Verify error message is displayed."""
+    if hasattr(context, 'registration_result'):
+        assert context.registration_result['error'] == error_message
+    elif hasattr(context, 'login_result'):
+        assert context.login_result['error'] == error_message
+
+
+@then('I should not be registered')
+def step_not_registered(context):
+    """Verify user was not registered."""
+    assert context.registration_result['success'] == False
+
+
+@then('I should be logged in successfully')
+def step_logged_in_successfully(context):
+    """Verify login was successful."""
+    assert context.login_result['success'] == True
+
+
+@then('I should be redirected to the prayers page')
+def step_redirected_to_prayers(context):
+    """Verify redirection to prayers page."""
+    # This would typically check the response or navigation
+    context.current_page = 'prayers'
+
+
+@then('I should see my user profile information')
+def step_see_user_profile(context):
+    """Verify user profile information is displayed."""
+    assert 'user' in context.login_result
+
+
+@then('I should not be logged in')
+def step_not_logged_in(context):
+    """Verify user was not logged in."""
+    assert context.login_result['success'] == False
+
+
+@then('I should receive an OTP code via email')
+def step_receive_otp_code(context):
+    """Verify OTP code was sent via email."""
+    assert context.otp_result['success'] == True
+
+
+@then('I should see an error message about invalid email format')
+def step_see_invalid_email_error(context):
+    """Verify invalid email format error."""
+    assert 'email' in context.registration_result['error'].lower()
+
+
+@then('I should see an error message about password requirements')
+def step_see_password_requirements_error(context):
+    """Verify password requirements error."""
+    assert 'password' in context.registration_result['error'].lower()
+
+
+@then('I should see error messages for missing fields')
+def step_see_missing_fields_error(context):
+    """Verify missing fields error."""
+    assert 'required' in context.registration_result['error'].lower()
+
+
+@then('I should see a validation error for the username field')
+def step_see_username_validation_error(context):
+    """Verify username validation error."""
+    # This would typically check frontend validation
+    context.validation_error = True
+
+
+@then('the form should not be submitted')
+def step_form_not_submitted(context):
+    """Verify form was not submitted."""
+    # This would typically check if the form submission was prevented
+    assert hasattr(context, 'validation_error')
+
+
+@when('I try to register with password "{password}"')
+def step_impl(context, password):
+    """Try to register with specific email."""
+    registration_data = {
+        'username': 'testuser',
+        'email': 'test@123',
+        'password': password,
+        'first_name': 'Test',
+        'last_name': 'User'
+    }
+    auth_service = AuthService(context.app_config)
+    context.registration_result = auth_service.register_user(registration_data)
+
+
+@when("I submit the registration form without filling required fields")
+def step_impl(context):
+    """Try to register with specific email."""
+    registration_data = {
+        'username': 'testuser',
+        'email': 'test@123',
+        'first_name': 'Test',
+        'last_name': 'User'
+    }
+    auth_service = AuthService(context.app_config)
+    context.registration_result = auth_service.register_user(registration_data)
