@@ -795,28 +795,6 @@ class PrayerService(BaseService):
             # Get user timezone
             now = current_time
 
-            # Get prayer time in user timezone
-            # Ensure prayer_time is a datetime.time object
-            if isinstance(prayer.prayer_time, str):
-                # Handle different time formats
-                if ':' in prayer.prayer_time:
-                    if prayer.prayer_time.count(':') == 1:  # HH:MM format
-                        prayer_time_obj = datetime.strptime(prayer.prayer_time, '%H:%M').time()
-                    elif prayer.prayer_time.count(':') == 2:  # HH:MM:SS format
-                        prayer_time_obj = datetime.strptime(prayer.prayer_time, '%H:%M:%S').time()
-                    else:
-                        self.logger.error(f"Unexpected prayer time format in validation: {prayer.prayer_time}")
-                        return False, False
-                else:
-                    self.logger.error(f"Invalid prayer time format in validation: {prayer.prayer_time}")
-                    return False, False
-            else:
-                prayer_time_obj = prayer.prayer_time
-                
-            prayer_datetime = user_tz.localize(
-                datetime.combine(prayer.prayer_date, prayer_time_obj)
-            )
-
             # Calculate prayer time window using the same logic as the route
             start_time, end_time = self._get_prayer_time_window(prayer)
 
