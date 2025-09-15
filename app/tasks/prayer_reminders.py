@@ -85,8 +85,7 @@ def send_prayer_reminders(self):
                             continue
 
                         # Check each prayer for pending status
-                        total_errors, total_reminders_sent = send_reminders(config, now_user_tz, prayer_data_list,
-                                                                            total_errors, total_reminders_sent, user,
+                        total_errors, total_reminders_sent = send_reminders(config, now_user_tz, prayer_data_list, user,
                                                                             user_tz)
                 
                 except Exception as e:
@@ -112,9 +111,9 @@ def send_prayer_reminders(self):
             raise
 
 
-def send_reminders(config, now_user_tz: datetime, prayer_data_list: list[Any], total_errors: int | Any,
-                   total_reminders_sent: int, user, user_tz) -> tuple[
-    int | Any, int]:
+def send_reminders(config, now_user_tz: datetime, prayer_data_list,user, user_tz):
+    total_errors = 0
+    total_reminders_sent = 0
     for prayer_data in prayer_data_list:
         prayer_type = prayer_data.get('prayer_type', '').lower()
         prayer_status = prayer_data.get('status', '')
