@@ -14,3 +14,40 @@ PyJWT==2.8.0
 mysql-connector-python==8.0.33
 celery==5.3.4
 redis==5.0.1
+
+# BDD Testing Dependencies
+behave>=1.2.6
+pytest>=7.0.0
+pytest-flask>=1.2.0
+pytest-cov>=4.0.0
+pytest-mock>=3.10.0
+
+# Web Testing (for UI tests)
+selenium>=4.0.0
+webdriver-manager>=3.8.0
+
+# Test Data Generation
+faker>=18.0.0
+factory-boy>=3.2.0
+
+# API Testing
+httpx>=0.24.0
+
+# Test Reporting
+allure-behave>=2.13.0
+behave-html-formatter>=0.1.0
+
+# Database Testing
+sqlalchemy-utils>=0.38.0
+
+# Mock and Fixtures
+responses>=0.22.0
+freezegun>=1.2.0
+
+# Performance Testing
+locust>=2.15.0
+
+# Code Quality
+flake8>=5.0.0
+black>=22.0.0
+isort>=5.10.0

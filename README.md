@@ -38,9 +38,18 @@ salah-tracker/
 │   ├── css/               # Stylesheets
 │   └── js/                # JavaScript files
 ├── templates/             # HTML templates
+├── features/              # BDD Feature Files (Gherkin)
+│   ├── authentication/    # User authentication features
+│   ├── email_verification/ # Email verification features
+│   ├── prayer_tracking/   # Prayer completion features
+│   ├── dashboard/         # Dashboard features
+│   ├── notifications/     # Notification features
+│   ├── api/               # API endpoint features
+│   └── support/           # Step definitions and environment
 ├── tests/                 # All test files
 │   ├── automation/        # Selenium automation tests
 │   ├── critical/          # Critical functionality tests
+│   ├── comprehensive/     # Integration tests
 │   └── *.py               # Unit tests
 ├── tools/                 # Development tools
 │   ├── celery_manager.py  # Celery management tool
@@ -142,14 +151,44 @@ All documentation is located in the `docs/` directory:
 
 ## 🧪 Testing
 
-Tests are organized in the `tests/` directory:
+The project follows Behavior-Driven Development (BDD) architecture with comprehensive test coverage:
 
-- **Unit Tests**: Test individual components
-- **Integration Tests**: Test component interactions
-- **Automation Tests**: Selenium-based UI tests
-- **Critical Tests**: Essential functionality tests
+### Test Structure
+- **BDD Tests** (`features/`): User journey and behavior testing using Gherkin syntax
+- **Step Definitions** (`features/steps/`): Implementation of BDD test steps
+- **Test Configuration** (`behave.ini`): BDD test configuration
 
-Run tests using the tools in the `tools/` directory.
+### Running Tests
+
+```bash
+# Install BDD dependencies
+make install-bdd
+
+# Run all BDD tests
+make test-bdd
+
+# Run specific test suites
+make test-smoke      # Smoke tests only
+make test-regression # Full regression tests
+make test-api        # API tests only
+make test-ui         # UI tests only
+
+# Run BDD tests
+behave --tags @smoke                    # Run smoke tests only
+behave --tags @api                      # Run API tests only
+behave --tags @ui                       # Run UI tests only
+behave                                  # Run all BDD tests
+```
+
+### BDD Features
+- **Authentication**: User registration, login, OTP verification
+- **Email Verification**: Email verification workflows and rate limiting
+- **Prayer Tracking**: Prayer completion, Qada tracking, timezone handling
+- **Dashboard**: Statistics, calendar views, responsive design
+- **Notifications**: Prayer reminders, email notifications
+- **API**: Endpoint testing, authentication, rate limiting
+
+See `docs/BDD_IMPLEMENTATION_GUIDE.md` for detailed BDD documentation.
 
 ## 🚀 Deployment Scripts
 

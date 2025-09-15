@@ -96,9 +96,19 @@ class AuthService(BaseService):
 
             self.logger.info(f"User registered successfully: {user.email}")
 
+            # Generate tokens for automatic login
+            access_token = self._generate_access_token(user)
+            refresh_token = self._generate_refresh_token(user)
+
+            # Send email verification
+            verification_result = self.email_service.send_email_verification(user)
+
             return {
                 'success': True,
                 'user': user.to_dict(),
+                'access_token': access_token,
+                'refresh_token': refresh_token,
+                'verification_sent': verification_result.get('success', False),
                 'message': 'User registered successfully'
             }
 

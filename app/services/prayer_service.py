@@ -979,3 +979,78 @@ class PrayerService(BaseService):
         except Exception as e:
             self.logger.error(f"Error checking if prayer is missed: {str(e)}")
             return False
+
+    def get_user_statistics(self, user_id: int) -> Dict[str, Any]:
+        """
+        Get prayer completion statistics for a user.
+        
+        Args:
+            user_id: The ID of the user
+            
+        Returns:
+            Dict containing prayer statistics
+        """
+        try:
+            user = self.get_record_by_id(User, user_id)
+            if not user:
+                return {
+                    'success': False,
+                    'error': 'User not found'
+                }
+            
+            # Get today's date
+            today = datetime.now().date()
+            
+            # Get prayer completions for the last 30 days
+            thirty_days_ago = today - timedelta(days=30)
+            
+            # Query prayer completions
+            completions = self.db.session.query(PrayerCompletion).join(Prayer).filter(
+                Prayer.user_id == user_id,
+                Prayer.prayer_date >= thirty_days_ago
+            ).all()
+            
+            # Calculate statistics
+            total_prayers = len(completions)
+            completed_prayers = len([c for c in completions if c.status == PrayerStatus.COMPLETE])
+            qada_prayers = len([c for c in completions if c.status == PrayerStatus.QADA])
+            
+            completion_rate = (completed_prayers / total_prayers * 100) if total_prayers > 0 else 0
+            
+            # Get today's statistics
+            today_completions = [c for c in completions if c.prayer.prayer_date == today]
+            today_completed = len([c for c in today_completions if c.status == PrayerStatus.COMPLETE])
+            today_total = len(today_completions)
+            today_rate = (today_completed / today_total * 100) if today_total > 0 else 0
+            
+            return {
+                'success': True,
+                'statistics': {
+                    'total_prayers': total_prayers,
+                    'completed_prayers': completed_prayers,
+                    'qada_prayers': qada_prayers,
+                    'completion_rate': round(completion_rate, 2),
+                    'today': {
+                        'completed': today_completed,
+                        'total': today_total,
+                        'rate': round(today_rate, 2)
+                    },
+                    'weekly': {
+                        'completed': completed_prayers,
+                        'total': total_prayers,
+                        'rate': round(completion_rate, 2)
+                    },
+                    'monthly': {
+                        'completed': completed_prayers,
+                        'total': total_prayers,
+                        'rate': round(completion_rate, 2)
+                    }
+                }
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Error getting statistics for user {user_id}: {str(e)}")
+            return {
+                'success': False,
+                'error': str(e)
+            }
