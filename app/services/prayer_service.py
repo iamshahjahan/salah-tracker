@@ -11,6 +11,7 @@ import requests
 import pytz
 from dateutil import parser
 import threading
+import hashlib
 
 from .base_service import BaseService
 from .cache_service import cache_service
@@ -48,6 +49,7 @@ class PrayerService(BaseService):
         
         # Cache TTL settings
         self._cache_ttl = 300  # 5 minutes in seconds
+        self._api_cache_ttl = 86400  # 24 hours for API responses (prayer times for a day)
 
     def get_prayer_times(self, user_id: int, date_str: Optional[str] = None) -> Dict[str, Any]:
         """
@@ -83,11 +85,6 @@ class PrayerService(BaseService):
                 user_tz = pytz.timezone(user.timezone)
                 target_date = datetime.now(user_tz).date()
 
-            # Check cache first
-            cached_data = cache_service.get_prayer_times(user_id, date_str or target_date.strftime('%Y-%m-%d'))
-            if cached_data:
-                return cached_data
-
             # Check if date is before user account creation
             if target_date < user.created_at.date():
                 return {
@@ -101,7 +98,7 @@ class PrayerService(BaseService):
             # Auto-update prayer statuses
             self._auto_update_prayer_status(user, prayers, target_date)
 
-            # Get prayer data with completion info
+            # Get prayer data with completion info (time-sensitive data calculated fresh each time)
             prayer_data = []
             for prayer in prayers:
                 completion = self._get_prayer_completion(prayer.id)
@@ -115,13 +112,80 @@ class PrayerService(BaseService):
                 'user_timezone': user.timezone
             }
 
-            # Cache the result
-            cache_service.set_prayer_times(user_id, date_str or target_date.strftime('%Y-%m-%d'), result, self._cache_ttl)
+            # Note: We don't cache the final result anymore since it contains time-sensitive data
+            # The API response caching is handled separately in the route layer
 
             return result
 
         except Exception as e:
             return self.handle_service_error(e, 'get_prayer_times')
+
+    def _get_cache_key_components(self, user: User, date: datetime.date) -> Tuple[str, str, str, str]:
+        """
+        Generate cache key components for prayer times.
+        
+        Args:
+            user: User instance.
+            date: Date for prayer times.
+            
+        Returns:
+            Tuple of (user_id, date_str, fiqh_method, geo_hash).
+        """
+        user_id = str(user.id)
+        date_str = date.strftime('%Y-%m-%d')
+        fiqh_method = str(user.fiqh_method or 2)  # Default to ISNA method
+        geo_hash = self._generate_geo_hash(user.location_lat or 0.0, user.location_lng or 0.0)
+        
+        return user_id, date_str, fiqh_method, geo_hash
+
+    def _get_cached_api_response(self, user: User, date: datetime.date) -> Optional[Dict[str, Any]]:
+        """
+        Get cached API response for prayer times.
+        
+        Args:
+            user: User instance.
+            date: Date for prayer times.
+            
+        Returns:
+            Cached API response or None if not cached.
+        """
+        user_id, date_str, fiqh_method, geo_hash = self._get_cache_key_components(user, date)
+        return cache_service.get_api_prayer_times(user_id, date_str, fiqh_method, geo_hash)
+    
+    def _cache_api_response(self, user: User, date: datetime.date, api_response: Dict[str, Any]) -> bool:
+        """
+        Cache API response for prayer times.
+        
+        Args:
+            user: User instance.
+            date: Date for prayer times.
+            api_response: API response data.
+            
+        Returns:
+            True if cached successfully.
+        """
+        user_id, date_str, fiqh_method, geo_hash = self._get_cache_key_components(user, date)
+        return cache_service.set_api_prayer_times(user_id, date_str, fiqh_method, geo_hash, api_response, self._api_cache_ttl)
+
+    def _generate_geo_hash(self, latitude: float, longitude: float, precision: int = 4) -> str:
+        """
+        Generate a geo hash from latitude and longitude coordinates.
+        
+        Args:
+            latitude: Latitude coordinate.
+            longitude: Longitude coordinate.
+            precision: Number of decimal places for rounding (default: 4).
+            
+        Returns:
+            String hash of the coordinates.
+        """
+        # Round coordinates to specified precision to group nearby locations
+        rounded_lat = round(latitude, precision)
+        rounded_lng = round(longitude, precision)
+        
+        # Create a string representation and hash it
+        coord_string = f"{rounded_lat},{rounded_lng}"
+        return hashlib.md5(coord_string.encode()).hexdigest()[:8]  # 8 character hash
 
     def complete_prayer(self, user_id: int, prayer_id: int) -> Dict[str, Any]:
         """
@@ -175,7 +239,7 @@ class PrayerService(BaseService):
                 marked_at = None  # No timestamp for missed prayers
             else:
                 status = PrayerStatus.COMPLETE
-                marked_at = datetime.now(datetime.timezone.utc)
+                marked_at = datetime.now(pytz.UTC)
 
             # Create completion record
             completion = self.create_record(
@@ -188,9 +252,7 @@ class PrayerService(BaseService):
 
             self.logger.info(f"Prayer completed: {prayer.prayer_type.value} for user {user.email}")
 
-            # Invalidate cache for this user and date
-            date_str = prayer.prayer_date.strftime('%Y-%m-%d')
-            cache_service.invalidate_prayer_times(user_id, date_str)
+            # Invalidate cache for dashboard and calendar (prayer times are no longer cached)
             cache_service.invalidate_dashboard_stats(user_id)
             cache_service.invalidate_user_calendar(user_id)
 
@@ -261,15 +323,13 @@ class PrayerService(BaseService):
                     PrayerCompletion,
                     prayer_id=prayer_id,
                     user_id=user_id,
-                    marked_at=datetime.now(datetime.timezone.utc),
+                    marked_at=datetime.now(pytz.UTC),
                     status=PrayerStatus.QADA
                 )
 
             self.logger.info(f"Prayer marked as Qada: {prayer.prayer_type.value} for user {user.email}")
 
-            # Invalidate cache for this user and date
-            date_str = prayer.prayer_date.strftime('%Y-%m-%d')
-            cache_service.invalidate_prayer_times(user_id, date_str)
+            # Invalidate cache for dashboard and calendar (prayer times are no longer cached)
             cache_service.invalidate_dashboard_stats(user_id)
             cache_service.invalidate_user_calendar(user_id)
 
@@ -468,11 +528,11 @@ class PrayerService(BaseService):
             Dict[str, datetime.time]: Dictionary mapping prayer names to times.
         """
         try:
-            # Check cache first
-            cached_times = cache_service.get_prayer_times(user.id, date.strftime('%Y-%m-%d'))
-            if cached_times is not None:
-                self.logger.info(f"Using cached prayer times for user {user.id} on {date}")
-                return cached_times
+            # Check API response cache first (24-hour cache for API responses)
+            cached_api_response = self._get_cached_api_response(user, date)
+            if cached_api_response:
+                self.logger.info(f"Using cached API response for user {user.id} on {date}")
+                return self._parse_api_response_to_times(cached_api_response)
 
             if not user.location_lat or not user.location_lng:
                 self.logger.warning(f"No location data for user {user.email}")
@@ -486,7 +546,7 @@ class PrayerService(BaseService):
             params = {
                 'latitude': user.location_lat,
                 'longitude': user.location_lng,
-                'method': 2,  # Islamic Society of North America
+                'method': user.fiqh_method or 2,  # Use user's fiqh method or default to ISNA
                 'timezone': user.timezone
             }
 
@@ -495,34 +555,49 @@ class PrayerService(BaseService):
             response.raise_for_status()
 
             data = response.json()
-            timings = data.get('data', {}).get('timings', {})
-
-            # Parse prayer times
-            prayer_times = {}
-            prayer_names = ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha']
-
-            for prayer_name in prayer_names:
-                if prayer_name in timings:
-                    time_str = timings[prayer_name]
-                    prayer_time = datetime.strptime(time_str, '%H:%M').time()
-                    prayer_times[prayer_name] = prayer_time
-
-            # Also get sunrise time if available (for Fajr end time)
-            if 'Sunrise' in timings:
-                sunrise_str = timings['Sunrise']
-                sunrise_time = datetime.strptime(sunrise_str, '%H:%M').time()
-                prayer_times['Sunrise'] = sunrise_time
-
-            # Cache the results for 5 minutes
-            if prayer_times:
-                cache_service.set_prayer_times(user.id, date.strftime('%Y-%m-%d'), prayer_times, ttl_seconds=300)
-                self.logger.info(f"Cached prayer times for user {user.id} on {date}")
+            
+            # Cache the full API response for 24 hours
+            self._cache_api_response(user, date, data)
+            
+            # Parse prayer times from the response
+            prayer_times = self._parse_api_response_to_times(data)
+            self.logger.info(f"Cached API response for user {user.id} on {date}")
 
             return prayer_times
 
         except Exception as e:
             self.logger.error(f"Error fetching prayer times from API: {str(e)}")
             return {}
+
+    def _parse_api_response_to_times(self, data: Dict[str, Any]) -> Dict[str, datetime.time]:
+        """
+        Parse API response data to extract prayer times.
+        
+        Args:
+            data: API response data.
+            
+        Returns:
+            Dictionary mapping prayer names to times.
+        """
+        timings = data.get('data', {}).get('timings', {})
+        
+        # Parse prayer times
+        prayer_times = {}
+        prayer_names = ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha']
+
+        for prayer_name in prayer_names:
+            if prayer_name in timings:
+                time_str = timings[prayer_name]
+                prayer_time = datetime.strptime(time_str, '%H:%M').time()
+                prayer_times[prayer_name] = prayer_time
+
+        # Also get sunrise time if available (for Fajr end time)
+        if 'Sunrise' in timings:
+            sunrise_str = timings['Sunrise']
+            sunrise_time = datetime.strptime(sunrise_str, '%H:%M').time()
+            prayer_times['Sunrise'] = sunrise_time
+
+        return prayer_times
 
     def _get_prayer_completion(self, prayer_id: int) -> Optional[PrayerCompletion]:
         """
@@ -838,8 +913,8 @@ class PrayerService(BaseService):
                 end_datetime = datetime.combine(prayer.prayer_date, prayer_times[PrayerType.ISHA])
                 end_time = user_tz.localize(end_datetime)
             else:
-                # Fallback: 1.5 hours after Maghrib
-                end_time = start_time + timedelta(hours=1, minutes=30)
+                # Fallback: 30 minutes after Maghrib
+                end_time = start_time + timedelta(minutes=30)
                 
         elif prayer.prayer_type == PrayerType.ISHA:
             # Isha ends at next day's Fajr
@@ -852,6 +927,7 @@ class PrayerService(BaseService):
             end_time = start_time + timedelta(hours=2)
 
         return start_time, end_time
+
 
     def _get_prayer_time_status(self, prayer: Prayer, user: User, date: datetime.date) -> str:
         """

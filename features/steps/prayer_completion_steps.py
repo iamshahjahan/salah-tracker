@@ -5,6 +5,7 @@ Step definitions for prayer completion features.
 from behave import given, when, then
 from app.models.user import User
 from app.models.prayer import Prayer, PrayerCompletion, PrayerStatus, PrayerType
+from app.services.cache_service import CacheService
 from app.services.prayer_service import PrayerService
 from config.database import db
 from datetime import datetime, timedelta
@@ -19,7 +20,9 @@ def step_logged_in_as_user(context):
         email="test@example.com",
         first_name="Test",
         last_name="User",
-        timezone="UTC",
+        timezone="Asia/Kolkata",
+        location_lat=12.9716,
+        location_lng=77.5946,
         email_verified=True
     )
     user.set_password("password123")
@@ -32,30 +35,11 @@ def step_logged_in_as_user(context):
 @given('today\'s prayer times are available')
 def step_todays_prayer_times_available(context):
     """Set up today's prayer times."""
-    today = datetime.now().date()
-    
-    # Create prayer times for today
-    prayer_times = {
-        'FAJR': {'start': '05:30', 'end': '06:30'},
-        'DHUHR': {'start': '12:15', 'end': '15:15'},
-        'ASR': {'start': '15:30', 'end': '18:00'},
-        'MAGHRIB': {'start': '18:30', 'end': '19:30'},
-        'ISHA': {'start': '20:00', 'end': '21:00'}
-    }
-    
-    context.prayer_times = {}
-    for prayer_name, times in prayer_times.items():
-        prayer = Prayer(
-            user_id=context.current_user.id,
-            prayer_type=PrayerType[prayer_name],
-            prayer_date=today,
-            prayer_time=datetime.strptime(times['start'], '%H:%M').time(),
-            timezone='UTC'
-        )
-        context.db.session.add(prayer)
-        context.prayer_times[prayer_name] = prayer
-    
-    context.db.session.commit()
+    context.prayer_service = PrayerService()
+    context.cache_service = CacheService()
+    context.cache_service.invalidate_user_prayer_times(context.current_user.id)
+    context.prayer_times = context.prayer_service.get_prayer_times(context.current_user.id)
+    print(context.prayer_times)
 
 
 @given('it is currently within the Dhuhr prayer time window')

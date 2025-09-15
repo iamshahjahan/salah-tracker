@@ -187,6 +187,16 @@ class CacheService:
         key = self._get_cache_key('prayer_times', user_id, date_str)
         return self.set(key, prayer_data, ttl_seconds)
     
+    def get_api_prayer_times(self, user_id: str, date_str: str, fiqh_method: str, geo_hash: str) -> Optional[Dict[str, Any]]:
+        """Get cached API response for prayer times."""
+        key = self._get_cache_key('api_prayer_times', user_id, date_str, fiqh_method, geo_hash)
+        return self.get(key)
+    
+    def set_api_prayer_times(self, user_id: str, date_str: str, fiqh_method: str, geo_hash: str, api_response: Dict[str, Any], ttl_seconds: int = 86400) -> bool:
+        """Cache API response for prayer times (24 hours default)."""
+        key = self._get_cache_key('api_prayer_times', user_id, date_str, fiqh_method, geo_hash)
+        return self.set(key, api_response, ttl_seconds)
+    
     def invalidate_prayer_times(self, user_id: int, date_str: str) -> bool:
         """Invalidate cached prayer times for a user and date."""
         key = self._get_cache_key('prayer_times', user_id, date_str)
