@@ -37,12 +37,12 @@ def step_on_login_page(context):
     context.current_page = 'login'
 
 
-@given('a user with username "{username}" and password "{password}" exists')
-def step_user_exists(context, username, password):
+@given('a user with email "{email}" and password "{password}" exists')
+def step_user_exists(context, email, password):
     """Create a test user."""
     user = User(
-        username=username,
-        email=f"{username}@example.com",
+        username=email,
+        email=email,
         first_name="Test",
         last_name="User",
         timezone="UTC"
@@ -153,9 +153,16 @@ def step_try_register_with_email(context, email):
     context.registration_result = auth_service.register_user(registration_data)
 
 
-@when('I enter username "{username}"')
-def step_enter_username(context, username):
+@when('I enter email "{email}"')
+def step_enter_username(context, email):
     """Enter username in login form."""
+    context.login_data = getattr(context, 'login_data', {})
+    context.login_data['email'] = email
+
+
+@when('I enter username "{username}"')
+def step_enter_password(context, username):
+    """Enter password in login form."""
     context.login_data = getattr(context, 'login_data', {})
     context.login_data['username'] = username
 
@@ -167,13 +174,22 @@ def step_enter_password(context, password):
     context.login_data['password'] = password
 
 
-@when('I click the login button')
+@when('I click the login button with email')
 def step_click_login_button(context):
     """Click the login button."""
     auth_service = AuthService(context.app_config)
-    context.login_result = auth_service.authenticate_user(
-        context.login_data.get('username', ''),
-        context.login_data.get('password', '')
+    context.login_result = auth_service.authenticate_user_using_email(
+        context.login_data['email'],
+        context.login_data['password']
+    )
+
+@when('I click the login button with username')
+def step_click_login_button(context):
+    """Click the login button."""
+    auth_service = AuthService(context.app_config)
+    context.login_result = auth_service.authenticate_user_using_username(
+        context.login_data['username'],
+        context.login_data['password']
     )
 
 
@@ -207,7 +223,7 @@ def step_enter_otp_code(context):
 def step_click_login_with_code(context):
     """Click login with code button."""
     auth_service = AuthService(context.app_config)
-    context.login_result = auth_service.verify_otp_and_login(
+    context.login_result = auth_service.authenticate_with_otp(
         context.otp_email, 
         context.otp_code
     )
@@ -243,9 +259,14 @@ def step_email_verification_sent(context):
 def step_see_error_message(context, error_message):
     """Verify error message is displayed."""
     if hasattr(context, 'registration_result'):
-        assert context.registration_result['error'] == error_message
+        actual = context.registration_result['error']
+        assert actual == error_message, f"Expected error '{error_message}' but got '{actual}'"
     elif hasattr(context, 'login_result'):
-        assert context.login_result['error'] == error_message
+        actual = context.login_result['error']
+        assert actual == error_message, f"Expected error '{error_message}' but got '{actual}'"
+    else:
+        assert False, "No error result found in context (neither registration_result nor login_result)"
+
 
 
 @then('I should not be registered')
@@ -257,8 +278,7 @@ def step_not_registered(context):
 @then('I should be logged in successfully')
 def step_logged_in_successfully(context):
     """Verify login was successful."""
-    assert context.login_result['success'] == True
-
+    assert context.login_result['success'], f"Expected true but got false"
 
 @then('I should be redirected to the prayers page')
 def step_redirected_to_prayers(context):
@@ -342,3 +362,45 @@ def step_impl(context):
     }
     auth_service = AuthService(context.app_config)
     context.registration_result = auth_service.register_user(registration_data)
+
+
+@given("I have an invalid OTP code {invalid_code} and email: {email}")
+def step_impl(context, invalid_code, email):
+    context.login_data = getattr(context, 'login_data', {})
+    context.login_data['email'] = email
+    context.login_data['invalid_code'] = invalid_code
+
+
+@when("I enter the invalid OTP code")
+def step_impl(context):
+    auth_service = AuthService(context.app_config)
+    context.login_result = auth_service.authenticate_with_otp(email=context.login_data['email'],otp=context.login_data['invalid_code'])
+
+
+@when("I leave the username field empty")
+def step_impl(context):
+    context.login_data = getattr(context, 'login_data', {})
+    context.login_data['username'] = ''
+    context.login_data['password'] = 'password123'
+
+
+@when("I try to submit the form")
+def step_impl(context):
+    auth_service = AuthService(context.app_config)
+    context.login_result = auth_service.authenticate_user_using_username(username=context.login_data['username'],password=context.login_data['password'])
+
+
+@when('I enter my email {email}')
+def step_impl(context, email):
+    context.login_data = getattr(context, 'login_data', {})
+    context.login_data['email'] = email
+
+
+@when('I click "Send Reset Link"')
+def step_impl(context):
+    auth_service = AuthService(context.app_config)
+    auth_service.send_password_reset(email=context.login_data['email'])
+
+@when("I should receive a password reset email")
+def step_impl(context):
+    raise NotImplementedError(u'STEP: Then I should receive a password reset email')

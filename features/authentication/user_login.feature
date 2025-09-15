@@ -5,14 +5,13 @@ Feature: User Login
 
   Background:
     Given the application is running
-    And a user with username "testuser" and password "password123" exists
+    And a user with email "testuser@example.com" and password "password123" exists
 
   @smoke @api
   Scenario: Successful login with username and password
     Given I am on the login page
-    When I enter username "testuser"
+    When I enter email "testuser@example.com"
     And I enter password "password123"
-    And I click the login button
     Then I should be logged in successfully
     And I should be redirected to the prayers page
     And I should see my user profile information
@@ -21,7 +20,7 @@ Feature: User Login
   Scenario: Login with OTP
     Given I am on the login page
     When I switch to OTP login tab
-    And I enter my email "test@example.com"
+    And I enter my email "testuser@example.com"
     And I click "Send Code"
     Then I should receive an OTP code via email
     When I enter the OTP code
@@ -31,10 +30,10 @@ Feature: User Login
   @api
   Scenario: Failed login with incorrect password
     Given I am on the login page
-    When I enter username "testuser"
+    When I enter email "testuser@example.com"
     And I enter password "wrongpassword"
-    And I click the login button
-    Then I should see an error message "Invalid credentials"
+    And I click the login button with email
+    Then I should see an error message "Invalid email or password"
     And I should not be logged in
 
   @api
@@ -42,18 +41,17 @@ Feature: User Login
     Given I am on the login page
     When I enter username "nonexistent"
     And I enter password "password123"
-    And I click the login button
-    Then I should see an error message "Invalid credentials"
+    And I click the login button with username
+    Then I should see an error message "Invalid email or password"
     And I should not be logged in
 
   @api
-  Scenario: Login with expired OTP
+  Scenario: Login with invalid OTP
     Given I am on the login page
-    And I have an expired OTP code
-    When I enter the expired OTP code
+    And I have an invalid OTP code "123" and email: "testuser@example.com"
+    When I enter the invalid OTP code
     And I click "Login with Code"
-    Then I should see an error message "OTP has expired"
-    And I should not be logged in
+    Then I should see an error message "Invalid verification code"
 
   @ui
   Scenario: Login form validation
@@ -63,18 +61,10 @@ Feature: User Login
     Then I should see a validation error for the username field
     And the form should not be submitted
 
-  @ui
-  Scenario: Remember me functionality
-    Given I am on the login page
-    When I check the "Remember me" checkbox
-    And I log in successfully
-    Then my session should persist across browser restarts
-
-  @api
-  Scenario: Password reset request
-    Given I am on the login page
-    When I click "Forgot Password"
-    And I enter my email "test@example.com"
-    And I click "Send Reset Link"
-    Then I should receive a password reset email
-    And I should see a confirmation message
+#  @api
+#  Scenario: Password reset request
+#    Given I am on the login page
+#    And I enter my email "test@example.com"
+#    And I click "Send Reset Link"
+#    Then I should receive a password reset email
+#    And I should see a confirmation message

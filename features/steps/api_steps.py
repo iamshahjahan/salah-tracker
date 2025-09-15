@@ -35,7 +35,7 @@ def step_have_valid_api_token(context):
     context.db.session.commit()
     
     auth_service = AuthService(context.app_config)
-    token_result = auth_service.authenticate_user("apitestuser", "password123")
+    token_result = auth_service.authenticate_user_using_email("apitestuser", "password123")
     context.api_token = token_result.get('access_token')
     context.test_user = user
 

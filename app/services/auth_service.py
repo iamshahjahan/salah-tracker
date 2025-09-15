@@ -115,7 +115,7 @@ class AuthService(BaseService):
         except Exception as e:
             return self.handle_service_error(e, 'user_registration')
 
-    def authenticate_user(self, email: str, password: str) -> Dict[str, Any]:
+    def authenticate_user_using_email(self, email: str, password: str) -> Dict[str, Any]:
         """
         Authenticate a user with email and password.
 
@@ -129,6 +129,50 @@ class AuthService(BaseService):
         try:
             # Get user by email
             user = self._get_user_by_email(email)
+            if not user:
+                return {
+                    'success': False,
+                    'error': 'Invalid email or password'
+                }
+
+            # Verify password
+            if not check_password_hash(user.password_hash, password):
+                return {
+                    'success': False,
+                    'error': 'Invalid email or password'
+                }
+
+            # Generate tokens
+            access_token = self._generate_access_token(user)
+            refresh_token = self._generate_refresh_token(user)
+
+            self.logger.info(f"User authenticated successfully: {user.email}")
+
+            return {
+                'success': True,
+                'user': user.to_dict(),
+                'access_token': access_token,
+                'refresh_token': refresh_token,
+                'message': 'Authentication successful'
+            }
+
+        except Exception as e:
+            return self.handle_service_error(e, 'user_authentication')
+
+    def authenticate_user_using_username(self, username: str, password: str) -> Dict[str, Any]:
+        """
+        Authenticate a user with email and password.
+
+        Args:
+            email: User's email address.
+            password: Plain text password.
+
+        Returns:
+            Dict[str, Any]: Authentication result with success status, user data, and tokens or error.
+        """
+        try:
+            # Get user by email
+            user = self._get_user_by_username(username)
             if not user:
                 return {
                     'success': False,
@@ -514,6 +558,22 @@ class AuthService(BaseService):
             return User.query.filter_by(email=email).first()
         except Exception as e:
             self.logger.error(f"Error getting user by email {email}: {str(e)}")
+            return None
+
+    def _get_user_by_username(self, username: str) -> Optional[User]:
+        """
+        Get user by email address.
+
+        Args:
+            email: User's email address.
+
+        Returns:
+            Optional[User]: User instance if found, None otherwise.
+        """
+        try:
+            return User.query.filter_by(email=username).first()
+        except Exception as e:
+            self.logger.error(f"Error getting user by email {username}: {str(e)}")
             return None
 
     def _generate_access_token(self, user: User) -> str:
