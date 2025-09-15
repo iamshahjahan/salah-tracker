@@ -525,7 +525,7 @@
                 <form id="resetPasswordForm">
                     <div class="form-group">
                         <label for="resetCode">Reset Code</label>
-                        <input type="text" id="resetCode" name="code" readonly>
+                        <input type="text" id="resetCode" name="code" readonly value="{{ reset_code or '' }}">
                     </div>
                     <div class="form-group">
                         <label for="newPassword">New Password</label>

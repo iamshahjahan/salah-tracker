@@ -72,6 +72,35 @@ app.register_blueprint(inspirational_bp, url_prefix='/api/inspirational')
 def home():
     return render_template('index.html')
 
+@app.route('/reset-password', methods=['GET'])
+def show_reset_password_page():
+    """Show password reset page with verification code"""
+    try:
+        from app.models.email_verification import EmailVerification
+        
+        code = request.args.get('code')
+        if not code:
+            return jsonify({'error': 'Reset code is required'}), 400
+        
+        # Verify the code exists and is valid
+        verification = EmailVerification.query.filter_by(
+            verification_code=code,
+            verification_type='password_reset',
+            is_used=False
+        ).first()
+        
+        if not verification:
+            return jsonify({'error': 'Invalid or expired reset code'}), 400
+        
+        if not verification.is_valid():
+            return jsonify({'error': 'Reset code has expired'}), 400
+        
+        # Return the main page with the reset code pre-filled
+        return render_template('index.html', reset_code=code)
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 # Prayer completion routes (without API prefix for email links)
 @app.route('/complete-prayer/<completion_link_id>', methods=['GET'])
 def show_complete_prayer_page(completion_link_id):
