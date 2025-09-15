@@ -142,7 +142,7 @@ def show_complete_prayer_page(completion_link_id):
         
         # Check if link is expired (2 hours after creation)
         from datetime import datetime, timedelta
-        if notification.created_at and datetime.utcnow() > notification.created_at + timedelta(hours=2):
+        if notification.created_at and datetime.now(pytz.UTC) > notification.created_at + timedelta(hours=2):
             return render_template('prayer_completion_error.html', 
                                  error="This completion link has expired"), 400
         
@@ -179,7 +179,7 @@ def complete_prayer_via_link(completion_link_id):
 def health_check():
     return jsonify({
         'status': 'healthy',
-        'timestamp': datetime.utcnow().isoformat()
+        'timestamp': datetime.now(pytz.UTC).isoformat()
     })
 
 if __name__ == '__main__':

@@ -32,13 +32,24 @@ def step_logged_in_as_user(context):
     context.is_logged_in = True
 
 
-@given('today\'s prayer times are available')
-def step_todays_prayer_times_available(context):
+@given("I am checking the namaz times of {date_str} at time {current_time}")
+def step_todays_prayer_times_available(context, date_str, current_time):
     """Set up today's prayer times."""
     context.prayer_service = PrayerService()
     context.cache_service = CacheService()
     context.cache_service.invalidate_user_prayer_times(context.current_user.id)
-    context.prayer_times = context.prayer_service.get_prayer_times(context.current_user.id)
+
+    user_tz = pytz.timezone("Asia/Kolkata")
+
+    # Combine date and time into datetime
+    dt = datetime.strptime(f"{current_time}", "%Y-%m-%d %H:%M")
+    dt = user_tz.localize(dt)
+
+    context.prayer_times = context.prayer_service.get_prayer_times(
+        context.current_user.id,
+        date_str,
+        current_time=dt,
+    )
     print(context.prayer_times)
 
 

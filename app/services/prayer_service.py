@@ -51,13 +51,14 @@ class PrayerService(BaseService):
         self._cache_ttl = 300  # 5 minutes in seconds
         self._api_cache_ttl = 86400  # 24 hours for API responses (prayer times for a day)
 
-    def get_prayer_times(self, user_id: int, date_str: Optional[str] = None) -> Dict[str, Any]:
+    def get_prayer_times(self, user_id: int, date_str: Optional[str] = None, current_time: datetime = None) -> Dict[str, Any]:
         """
         Get prayer times for a user on a specific date.
 
         Args:
             user_id: ID of the user.
             date_str: Date string in YYYY-MM-DD format. If None, uses today.
+            current_time: Current datetime in user's timezone (required for testing).
 
         Returns:
             Dict[str, Any]: Prayer times data with completion status and validation info.
@@ -81,9 +82,8 @@ class PrayerService(BaseService):
                         'error': 'Invalid date format. Use YYYY-MM-DD'
                     }
             else:
-                # Use user's timezone for date determination
-                user_tz = pytz.timezone(user.timezone)
-                target_date = datetime.now(user_tz).date()
+                # Use current_time for date determination
+                target_date = current_time.date()
 
             # Check if date is before user account creation
             if target_date < user.created_at.date():
@@ -96,13 +96,13 @@ class PrayerService(BaseService):
             prayers = self._get_or_create_prayers(user, target_date)
 
             # Auto-update prayer statuses
-            self._auto_update_prayer_status(user, prayers, target_date)
+            self._auto_update_prayer_status(user, prayers, target_date,current_time)
 
             # Get prayer data with completion info (time-sensitive data calculated fresh each time)
             prayer_data = []
             for prayer in prayers:
                 completion = self._get_prayer_completion(prayer.id)
-                prayer_info = self._build_prayer_info(prayer, completion, user, target_date)
+                prayer_info = self._build_prayer_info(prayer, completion, user, target_date, current_time)
                 prayer_data.append(prayer_info)
 
             result = {
@@ -187,7 +187,7 @@ class PrayerService(BaseService):
         coord_string = f"{rounded_lat},{rounded_lng}"
         return hashlib.md5(coord_string.encode()).hexdigest()[:8]  # 8 character hash
 
-    def complete_prayer(self, user_id: int, prayer_id: int) -> Dict[str, Any]:
+    def complete_prayer(self, user_id: int, prayer_id: int, current_time) -> Dict[str, Any]:
         """
         Mark a prayer as completed with time validation.
 
@@ -225,7 +225,7 @@ class PrayerService(BaseService):
 
             # Validate prayer time
             prayer_date = prayer.prayer_date
-            is_valid, is_late = self._validate_prayer_time(prayer, user)
+            is_valid, is_late = self._validate_prayer_time(prayer, user,current_time)
 
             if not is_valid and not is_late:
                 return {
@@ -309,7 +309,7 @@ class PrayerService(BaseService):
                     self.update_record(
                         existing_completion,
                         status=PrayerStatus.QADA,
-                        marked_at=datetime.utcnow()
+                        marked_at=datetime.now(pytz.UTC)
                     )
                     completion = existing_completion
                 else:
@@ -342,7 +342,7 @@ class PrayerService(BaseService):
         except Exception as e:
             return self.handle_service_error(e, 'mark_prayer_qada')
 
-    def auto_update_prayer_status(self, user_id: int) -> Dict[str, Any]:
+    def auto_update_prayer_status(self, user_id: int, current_time) -> Dict[str, Any]:
         """
         Automatically update prayer statuses for a user.
 
@@ -365,7 +365,7 @@ class PrayerService(BaseService):
 
             updated_count = 0
             for prayer in prayers:
-                if self._auto_update_single_prayer(prayer, user, today):
+                if self._auto_update_single_prayer(prayer, user, today, current_time):
                     updated_count += 1
 
             return {
@@ -636,7 +636,7 @@ class PrayerService(BaseService):
             return []
 
     def _build_prayer_info(self, prayer: Prayer, completion: Optional[PrayerCompletion],
-                          user: User, date: datetime.date) -> Dict[str, Any]:
+                          user: User, date: datetime.date, current_time: datetime) -> Dict[str, Any]:
         """
         Build prayer information dictionary with completion status and validation.
 
@@ -645,26 +645,25 @@ class PrayerService(BaseService):
             completion: Prayer completion instance if exists.
             user: User instance.
             date: Date of the prayer.
+            current_time: Current datetime in user's timezone.
 
         Returns:
             Dict[str, Any]: Prayer information dictionary.
         """
         # Get prayer time status
-        time_status = self._get_prayer_time_status(prayer, user, date)
+        time_status = self._get_prayer_time_status(prayer, user, date,current_time)
         is_missed = (time_status == 'missed')
-
         # Check if prayer time is valid for completion
-        can_complete, is_late = self._validate_prayer_time(prayer, user)
+        can_complete, is_late = self._validate_prayer_time(prayer, user, current_time)
 
         # Determine if can mark as Qada
         can_mark_qada = self._can_mark_qada(prayer, completion, time_status, user, date)
 
         # Get prayer time window information
         start_time, end_time = self._get_prayer_time_window(prayer)
-        
-        # Get current time in user timezone
-        user_tz = pytz.timezone(user.timezone)
-        now = datetime.now(user_tz)
+
+        # Use injected current time
+        now = current_time
 
         # Determine prayer status (four-state system)
         prayer_status = self._get_prayer_status(completion, time_status, can_complete)
@@ -781,7 +780,7 @@ class PrayerService(BaseService):
         else:
             return 'after'
 
-    def _validate_prayer_time(self, prayer: Prayer, user: User) -> Tuple[bool, bool]:
+    def _validate_prayer_time(self, prayer: Prayer, user: User, current_time) -> Tuple[bool, bool]:
         """
         Validate if a prayer can be completed at the current time.
 
@@ -794,8 +793,7 @@ class PrayerService(BaseService):
         """
         try:
             # Get user timezone
-            user_tz = pytz.timezone(user.timezone)
-            now = datetime.now(user_tz)
+            now = current_time
 
             # Get prayer time in user timezone
             # Ensure prayer_time is a datetime.time object
@@ -929,7 +927,7 @@ class PrayerService(BaseService):
         return start_time, end_time
 
 
-    def _get_prayer_time_status(self, prayer: Prayer, user: User, date: datetime.date) -> str:
+    def _get_prayer_time_status(self, prayer: Prayer, user: User, date: datetime.date,current_time) -> str:
         """
         Get the prayer time status based on current time relative to prayer window.
 
@@ -943,8 +941,7 @@ class PrayerService(BaseService):
         """
         try:
             # Get user timezone
-            user_tz = pytz.timezone(user.timezone)
-            now = datetime.now(user_tz)
+            now = current_time
 
             # Get prayer time window
             start_time, end_time = self._get_prayer_time_window(prayer)
@@ -990,7 +987,7 @@ class PrayerService(BaseService):
 
         return False
 
-    def _auto_update_prayer_status(self, user: User, prayers: List[Prayer], date: datetime.date) -> None:
+    def _auto_update_prayer_status(self, user: User, prayers: List[Prayer], date: datetime.date,current_time) -> None:
         """
         Automatically update prayer statuses for a list of prayers.
 
@@ -1000,9 +997,9 @@ class PrayerService(BaseService):
             date: Date of the prayers.
         """
         for prayer in prayers:
-            self._auto_update_single_prayer(prayer, user, date)
+            self._auto_update_single_prayer(prayer, user, date, current_time)
 
-    def _auto_update_single_prayer(self, prayer: Prayer, user: User, date: datetime.date) -> bool:
+    def _auto_update_single_prayer(self, prayer: Prayer, user: User, date: datetime.date,current_time) -> bool:
         """
         Automatically update status for a single prayer.
 
@@ -1016,7 +1013,7 @@ class PrayerService(BaseService):
         """
         try:
             # Check if prayer is missed and not completed
-            is_missed = self._is_prayer_missed(prayer, user, date)
+            is_missed = self._is_prayer_missed(prayer, user, date, current_time)
             existing_completion = self._get_prayer_completion(prayer.id)
 
             if is_missed and not existing_completion:
@@ -1036,7 +1033,7 @@ class PrayerService(BaseService):
             self.logger.error(f"Error auto-updating prayer {prayer.id}: {str(e)}")
             return False
 
-    def _is_prayer_missed(self, prayer: Prayer, user: User, date: datetime.date) -> bool:
+    def _is_prayer_missed(self, prayer: Prayer, user: User, date: datetime.date, current_time) -> bool:
         """
         Check if a prayer is missed based on current time.
         
@@ -1050,7 +1047,7 @@ class PrayerService(BaseService):
         """
         try:
             # Get prayer time status
-            time_status = self._get_prayer_time_status(prayer, user, date)
+            time_status = self._get_prayer_time_status(prayer, user, date, current_time=current_time)
             return time_status == 'missed'
         except Exception as e:
             self.logger.error(f"Error checking if prayer is missed: {str(e)}")

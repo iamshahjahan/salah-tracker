@@ -61,7 +61,7 @@ def send_prayer_reminders(self):
                     from app.config.settings import get_config
                     config = get_config()
                     prayer_service = PrayerService(config)
-                    prayer_times_result = prayer_service.get_prayer_times(user.id, now_user_tz.date().strftime('%Y-%m-%d'))
+                    prayer_times_result = prayer_service.get_prayer_times(user.id, now_user_tz.date().strftime('%Y-%m-%d'), now_user_tz)
                     prayer_data_list = prayer_times_result.get('prayers', []) if prayer_times_result.get('success') else []
                     
                     if not prayer_data_list:
@@ -236,7 +236,7 @@ def send_prayer_window_reminders(self):
                     from app.config.settings import get_config
                     config = get_config()
                     prayer_service = PrayerService(config)
-                    prayer_times_result = prayer_service.get_prayer_times(user.id, now_user_tz.date().strftime('%Y-%m-%d'))
+                    prayer_times_result = prayer_service.get_prayer_times(user.id, now_user_tz.date().strftime('%Y-%m-%d'),now_user_tz)
                     prayer_times = prayer_times_result.get('prayers', []) if prayer_times_result.get('success') else []
                     
                     if not prayer_times:

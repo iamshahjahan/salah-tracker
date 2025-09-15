@@ -4,6 +4,7 @@ Prayer routes for managing prayer times, completions, and Qada tracking.
 This module provides REST API endpoints for prayer-related operations,
 using the modern PrayerService for all business logic.
 """
+from typing import Any
 
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
@@ -14,6 +15,7 @@ from app.services.prayer_service import PrayerService
 from app.config.settings import get_config
 from datetime import datetime, date, timedelta
 from sqlalchemy import func, and_
+import pytz
 
 prayer_bp = Blueprint('prayer', __name__)
 
@@ -23,6 +25,10 @@ def get_prayer_times_for_user():
     """Get prayer times for the current user's location"""
     try:
         user_id = get_jwt_identity()
+        user = User.query.get(user_id)
+        
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
         
         # Use the modern service layer
         config = get_config()
@@ -31,8 +37,12 @@ def get_prayer_times_for_user():
         # Get date from query parameter or use today
         date_str = request.args.get('date')
         
+        # Get current time in user's timezone
+        user_tz = pytz.timezone(user.timezone)
+        current_time = datetime.now(user_tz)
+        
         # Get prayer times using the service layer
-        result = prayer_service.get_prayer_times(user_id, date_str)
+        result = prayer_service.get_prayer_times(user_id, date_str, current_time)
         
         if not result.get('success'):
             return jsonify({'error': result.get('error', 'Unable to fetch prayer times')}), 500
@@ -48,13 +58,14 @@ def get_prayer_times_for_date(date_str):
     """Get prayer times for a specific date"""
     try:
         user_id = get_jwt_identity()
+        user = User.query.get(user_id)
+        
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
         
         # Use the modern service layer
-        config = get_config()
-        prayer_service = PrayerService(config)
-        
-        result = prayer_service.get_prayer_times(user_id, date_str)
-        
+        result = get_prayer_times(date_str, user, user_id)
+
         if not result.get('success'):
             return jsonify({'error': result.get('error', 'Unable to fetch prayer times')}), 500
         
@@ -63,6 +74,19 @@ def get_prayer_times_for_date(date_str):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+
+def get_prayer_times(date_str, user, user_id) -> dict[str, Any]:
+    config = get_config()
+    prayer_service = PrayerService(config)
+
+    # Get current time in user's timezone
+    user_tz = pytz.timezone(user.timezone)
+    current_time = datetime.now(user_tz)
+
+    result = prayer_service.get_prayer_times(user_id, date_str, current_time)
+    return result
+
+
 @prayer_bp.route('/complete', methods=['POST'])
 @jwt_required()
 def complete_prayer():
@@ -70,7 +94,12 @@ def complete_prayer():
     try:
         user_id = get_jwt_identity()
         data = request.get_json()
-        
+
+        user = User.query.get(user_id)
+
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+
         if not data or 'prayer_id' not in data:
             return jsonify({'error': 'Prayer ID is required'}), 400
         
@@ -79,8 +108,9 @@ def complete_prayer():
         # Use the modern service layer
         config = get_config()
         prayer_service = PrayerService(config)
-        
-        result = prayer_service.complete_prayer(user_id, prayer_id)
+        user_tz = pytz.timezone(user.timezone)
+        current_time = datetime.now(user_tz)
+        result = prayer_service.complete_prayer(user_id, prayer_id, current_time)
         
         if not result.get('success'):
             return jsonify({'error': result.get('error', 'Failed to complete prayer')}), 400
@@ -155,12 +185,20 @@ def get_prayer_status_for_date(date_str):
     """Get prayer status for a specific date"""
     try:
         user_id = get_jwt_identity()
+        user = User.query.get(user_id)
+        
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
         
         # Use the modern service layer
         config = get_config()
         prayer_service = PrayerService(config)
         
-        result = prayer_service.get_prayer_times(user_id, date_str)
+        # Get current time in user's timezone
+        user_tz = pytz.timezone(user.timezone)
+        current_time = datetime.now(user_tz)
+        
+        result = prayer_service.get_prayer_times(user_id, date_str, current_time)
         
         if not result.get('success'):
             return jsonify({'error': result.get('error', 'Unable to fetch prayer status')}), 500
@@ -187,19 +225,27 @@ def get_prayer_streak():
     """Get prayer streak information for the current user"""
     try:
         user_id = get_jwt_identity()
+        user = User.query.get(user_id)
+        
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
         
         # Get streak information from the service layer
         config = get_config()
         prayer_service = PrayerService(config)
         
+        # Get current time in user's timezone
+        user_tz = pytz.timezone(user.timezone)
+        current_time = datetime.now(user_tz)
+        
         # Calculate streak (simplified implementation)
         # This could be enhanced with a dedicated streak calculation method
-        today = date.today()
+        today = current_time.date()
         streak_days = 0
         
         for i in range(30):  # Check last 30 days
             check_date = today - timedelta(days=i)
-            result = prayer_service.get_prayer_times(user_id, check_date.strftime('%Y-%m-%d'))
+            result = prayer_service.get_prayer_times(user_id, check_date.strftime('%Y-%m-%d'), current_time)
             
             if result.get('success'):
                 prayers = result.get('prayers', [])
@@ -226,13 +272,21 @@ def auto_update_prayer_status():
     """Manually trigger prayer status update"""
     try:
         user_id = get_jwt_identity()
+        user = User.query.get(user_id)
+        
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
         
         # Use the modern service layer
         config = get_config()
         prayer_service = PrayerService(config)
         
+        # Get current time in user's timezone
+        user_tz = pytz.timezone(user.timezone)
+        current_time = datetime.now(user_tz)
+        
         # Get today's prayers and update their status
-        result = prayer_service.get_prayer_times(user_id, None)
+        result = prayer_service.get_prayer_times(user_id, None, current_time)
         
         if result.get('success'):
             return jsonify({'message': 'Prayer status updated successfully'}), 200
