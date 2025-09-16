@@ -348,7 +348,7 @@ class UserService(BaseService):
             return {}
 
     def _calculate_daily_completion_stats(self, prayers: List[Prayer], completions: List[PrayerCompletion],
-                                        start_date: datetime.date, end_date: datetime.date) -> Dict[str, Any]:
+                                         _start_date: datetime.date, _end_date: datetime.date) -> Dict[str, Any]:
         """Calculate daily completion statistics.
 
         Args:

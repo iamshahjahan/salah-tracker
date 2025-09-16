@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
-"""Flask-Migrate Management Script
+"""Flask-Migrate Management Script.
+
 Provides easy commands for managing database migrations.
 """
+
 
 import os
 import subprocess

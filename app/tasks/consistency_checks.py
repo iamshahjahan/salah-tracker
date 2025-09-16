@@ -4,6 +4,7 @@ This module contains Celery tasks for checking user prayer consistency,
 sending motivational nudges, and analyzing prayer patterns.
 """
 
+
 from datetime import date, timedelta
 
 from celery import current_task
@@ -16,8 +17,9 @@ from main import app
 
 
 @celery_app.task(bind=True, name='app.tasks.consistency_checks.check_user_consistency')
-def check_user_consistency(self):
-    """Check prayer consistency for all users and send motivational nudges
+def check_user_consistency(_self):
+    """Check prayer consistency for all users and send motivational nudges.
+
     to users who have been missing prayers.
 
     This task runs daily at 10 PM to analyze the day's prayer completion.
@@ -54,7 +56,7 @@ def check_user_consistency(self):
                         completion_by_date[completion.prayer_date] += 1
 
                     # Check if user has been consistently missing prayers
-                    total_expected_prayers = 15  # 5 prayers × 3 days
+                    total_expected_prayers = 15  # 5 prayers x 3 days
                     total_completed = len(recent_completions)
                     completion_rate = (total_completed / total_expected_prayers) * 100
 
@@ -104,10 +106,14 @@ def analyze_prayer_patterns(self, user_id: int, days: int = 30):
     """Analyze prayer patterns for a specific user over a given period.
 
     Args:
+        self: Celery task instance.
         user_id: ID of the user to analyze
         days: Number of days to analyze (default: 30)
     """
     try:
+        # Update task state
+        self.update_state(state='PROGRESS', meta={'user_id': user_id, 'days': days})
+
         user = User.query.get(user_id)
         if not user:
             return {'status': 'error', 'message': 'User not found'}
@@ -183,9 +189,12 @@ def analyze_prayer_patterns(self, user_id: int, days: int = 30):
 @celery_app.task(bind=True, name='app.tasks.consistency_checks.send_weekly_report')
 def send_weekly_report(self):
     """Send weekly prayer reports to all users who have opted in for reports.
+
     This task runs every Sunday at 9 AM.
     """
     try:
+        # Update task state
+        self.update_state(state='PROGRESS', meta={'task': 'send_weekly_report'})
         # Get all users with email notifications enabled
         users = User.query.filter_by(
             email_notifications=True,
@@ -231,10 +240,13 @@ def send_motivational_message(self, user_id: int, message_type: str = 'general')
     """Send a motivational message to a specific user.
 
     Args:
+        self: Celery task instance.
         user_id: ID of the user to send message to
         message_type: Type of motivational message (general, streak, comeback)
     """
     try:
+        # Update task state
+        self.update_state(state='PROGRESS', meta={'user_id': user_id, 'message_type': message_type})
         user = User.query.get(user_id)
         if not user:
             return {'status': 'error', 'message': 'User not found'}

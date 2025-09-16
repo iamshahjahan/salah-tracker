@@ -5,20 +5,27 @@ import pytz
 from dotenv import load_dotenv
 from flask import Flask, jsonify, render_template, request
 from flask_cors import CORS
-from flask_jwt_extended import (
-    JWTManager,
-)
+from flask_jwt_extended import JWTManager
 from flask_migrate import Migrate
 
+from app.config.settings import get_config
+from app.models.email_verification import EmailVerification
+from app.models.prayer import Prayer, PrayerCompletion
+from app.models.prayer_notification import PrayerNotification
+from app.models.user import User
+from app.routes import auth_bp, dashboard_bp, prayer_bp, social_bp
+from app.routes.family_groups import family_groups_bp
+from app.routes.inspirational import inspirational_bp
+from app.routes.notifications import notifications_bp
+from app.services.notification_service import NotificationService
 from config.database import db
+from config.logging_config import get_logger, setup_logging
 from config.mail_config import mail
 
 # Load environment variables
 load_dotenv()
 
 # Set up logging
-from config.logging_config import get_logger, setup_logging
-
 setup_logging(log_level=os.getenv('LOG_LEVEL', 'INFO'))
 logger = get_logger(__name__)
 
@@ -26,8 +33,6 @@ logger = get_logger(__name__)
 app = Flask(__name__, template_folder='templates', static_folder='static')
 
 # Configuration
-from app.config.settings import get_config
-
 config = get_config()
 
 app.config['SECRET_KEY'] = config.SECRET_KEY
@@ -58,11 +63,6 @@ CORS(app)
 logger.info("Flask application initialized successfully")
 
 # Import routes
-from app.routes import auth_bp, dashboard_bp, prayer_bp, social_bp
-from app.routes.family_groups import family_groups_bp
-from app.routes.inspirational import inspirational_bp
-from app.routes.notifications import notifications_bp
-
 # Register blueprints
 app.register_blueprint(auth_bp, url_prefix='/api/auth')
 app.register_blueprint(prayer_bp, url_prefix='/api/prayers')
@@ -80,8 +80,6 @@ def home():
 def show_reset_password_page():
     """Show password reset page with verification code."""
     try:
-        from app.models.email_verification import EmailVerification
-
         code = request.args.get('code')
         if not code:
             return jsonify({'error': 'Reset code is required'}), 400
@@ -110,9 +108,6 @@ def show_reset_password_page():
 def show_complete_prayer_page(completion_link_id):
     """Show prayer completion confirmation page."""
     try:
-        from app.models.prayer_notification import PrayerNotification
-        from app.models.user import User
-
         # Find the notification
         notification = PrayerNotification.query.filter_by(completion_link_id=completion_link_id).first()
 
@@ -123,7 +118,6 @@ def show_complete_prayer_page(completion_link_id):
         # Check if already completed
         if notification.completed_via_link:
             # Get the completion time from the PrayerCompletion record
-            from app.models.prayer import Prayer, PrayerCompletion
             prayer = Prayer.query.filter_by(
                 user_id=notification.user_id,
                 prayer_type=notification.prayer_type,
@@ -145,7 +139,6 @@ def show_complete_prayer_page(completion_link_id):
                                  completed_at=completed_at)
 
         # Check if link is expired (2 hours after creation)
-        from datetime import datetime, timedelta
         if notification.created_at and datetime.now(pytz.UTC) > notification.created_at + timedelta(hours=2):
             return render_template('prayer_completion_error.html',
                                  error="This completion link has expired"), 400
@@ -167,7 +160,6 @@ def show_complete_prayer_page(completion_link_id):
 def complete_prayer_via_link(completion_link_id):
     """Mark a prayer as completed via completion link."""
     try:
-        from app.services.notification_service import NotificationService
         notification_service = NotificationService()
         result = notification_service.mark_prayer_completed_via_link(completion_link_id)
 

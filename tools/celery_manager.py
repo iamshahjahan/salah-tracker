@@ -27,46 +27,46 @@ from config.celery_config import celery_app
 
 def test_reminder_system_cmd():
     """Test the reminder system by sending test reminders."""
-    print("🧪 Testing reminder system...")
+    print(" Testing reminder system...")
     result = test_reminder_system.delay()
-    print(f"✅ Test task queued with ID: {result.id}")
+    print(f" Test task queued with ID: {result.id}")
     print("Check the worker logs for results.")
 
 
 def send_manual_reminder(user_id: int, prayer_type: str, prayer_time: str):
     """Send a manual prayer reminder to a specific user."""
-    print(f"📧 Sending manual reminder to user {user_id}...")
+    print(f" Sending manual reminder to user {user_id}...")
     result = send_individual_reminder.delay(user_id, prayer_type, prayer_time)
-    print(f"✅ Reminder task queued with ID: {result.id}")
+    print(f" Reminder task queued with ID: {result.id}")
 
 
 def trigger_consistency_check():
     """Trigger a manual consistency check."""
-    print("🔍 Triggering consistency check...")
+    print(" Triggering consistency check...")
     result = check_user_consistency.delay()
-    print(f"✅ Consistency check queued with ID: {result.id}")
+    print(f"Consistency check queued with ID: {result.id}")
 
 
 def cleanup_notifications(days: int = 30):
     """Clean up old notifications."""
-    print(f"🧹 Cleaning up notifications older than {days} days...")
+    print(f"Cleaning up notifications older than {days} days...")
     result = cleanup_old_notifications.delay(days)
-    print(f"✅ Cleanup task queued with ID: {result.id}")
+    print(f" Cleanup task queued with ID: {result.id}")
 
 
 def analyze_user_patterns(user_id: int, days: int = 30):
     """Analyze prayer patterns for a specific user."""
-    print(f"📊 Analyzing prayer patterns for user {user_id} over {days} days...")
+    print(f"Analyzing prayer patterns for user {user_id} over {days} days...")
     result = analyze_prayer_patterns.delay(user_id, days)
-    print(f"✅ Analysis task queued with ID: {result.id}")
+    print(f"Analysis task queued with ID: {result.id}")
 
 
 def check_task_status(task_id: str):
     """Check the status of a specific task."""
     result = celery_app.AsyncResult(task_id)
-    print(f"📋 Task Status: {result.status}")
+    print(f"Task Status: {result.status}")
     if result.info:
-        print(f"📄 Task Info: {result.info}")
+        print(f" Task Info: {result.info}")
 
 
 def list_active_tasks():
@@ -81,7 +81,7 @@ def list_active_tasks():
             for task in tasks:
                 print(f"    - {task['name']} (ID: {task['id']})")
     else:
-        print("ℹ️  No active tasks found.")
+        print("i  No active tasks found.")
 
 
 def list_scheduled_tasks():
@@ -96,7 +96,7 @@ def list_scheduled_tasks():
             for task in tasks:
                 print(f"    - {task['name']} (ETA: {task['eta']})")
     else:
-        print("ℹ️  No scheduled tasks found.")
+        print("i  No scheduled tasks found.")
 
 
 def main():

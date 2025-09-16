@@ -4,6 +4,7 @@ This service handles prayer time calculations, completion tracking, automatic
 status updates, and Qada marking with proper time validation.
 """
 
+
 import hashlib
 from datetime import date, datetime, timedelta
 from typing import Any, Dict, List, Optional, Tuple
@@ -29,6 +30,7 @@ def _get_status_color_and_text(prayer_status: PrayerStatus, completion: PrayerCo
 
     Args:
         prayer_status: Prayer status string.
+        completion: Prayer completion object.
 
     Returns:
         str: Color class name.
@@ -56,6 +58,7 @@ class PrayerService(BaseService):
     This service provides methods for fetching prayer times, managing prayer
     completions, handling Qada marking, and automatic status updates.
     """
+
 
     def __init__(self, config: Optional[Config] = None):
         """Initialize the prayer service.
@@ -293,6 +296,7 @@ class PrayerService(BaseService):
         Args:
             user_id: ID of the user marking the prayer as Qada.
             prayer_id: ID of the prayer to mark as Qada.
+            current_time: Current datetime for validation.
 
         Returns:
             Dict[str, Any]: Qada marking result with success status or error.
@@ -376,6 +380,7 @@ class PrayerService(BaseService):
 
         Args:
             user_id: ID of the user to update prayer statuses for.
+            current_time: Current datetime for status calculation.
 
         Returns:
             Dict[str, Any]: Update result with success status and updated count.
@@ -451,6 +456,7 @@ class PrayerService(BaseService):
 
         return prayers
 
+    # TODO: Consider breaking down this complex function
     def _get_all_prayer_times_for_date(self, user: User, current_date: date) -> Dict[str, datetime.time]:
         """Get all prayer times for a date including sunrise from API.
 
@@ -658,7 +664,7 @@ class PrayerService(BaseService):
             return []
 
     def _build_prayer_info(self, prayer: Prayer, completion: Optional[PrayerCompletion],
-                           user: User, prayer_date: date, current_time: datetime) -> Dict[str, Any]:
+                           _user: User, _prayer_date: date, current_time: datetime) -> Dict[str, Any]:
         """Build prayer information dictionary with completion status and validation.
 
         Args:
@@ -699,12 +705,13 @@ class PrayerService(BaseService):
         }
 
 
-    def _validate_prayer_time(self, prayer: Prayer, user: User, current_time) -> Tuple[bool, bool]:
+    def _validate_prayer_time(self, prayer: Prayer, _user: User, current_time) -> Tuple[bool, bool]:
         """Validate if a prayer can be completed at the current time.
 
         Args:
             prayer: Prayer instance.
             user: User instance.
+            current_time: Current datetime for validation.
 
         Returns:
             Tuple[bool, bool]: (can_complete, is_late) - whether prayer can be completed and if it's late.
@@ -727,8 +734,10 @@ class PrayerService(BaseService):
             self.logger.error(f"Error validating prayer time: {e!s}")
             return False, False
 
+    # TODO: Consider breaking down this complex function
     def _get_prayer_time_window(self, prayer: Prayer) -> Tuple[datetime, datetime]:
         """Get the valid time window for completing a prayer using Islamic methodology.
+
         Each prayer ends when the next prayer begins.
 
         Args:
@@ -826,9 +835,10 @@ class PrayerService(BaseService):
 
         Args:
             prayer: Prayer instance.
+            current_time: Current datetime for status calculation.
 
         Returns:
-            str: Time status ('future', 'pending', 'missed').
+            str: Time status ('future', 'ongoing', 'missed').
         """
         # Get prayer time window
         start_time, end_time = self._get_prayer_time_window(prayer)
@@ -840,14 +850,14 @@ class PrayerService(BaseService):
         return PrayerStatus.MISSED, start_time, end_time  # After prayer end time
 
 
-    def _can_mark_qada(self, prayer: Prayer, completion: Optional[PrayerCompletion],
+    def _can_mark_qada(self, _prayer: Prayer, completion: Optional[PrayerCompletion],
                        time_status: str, user: User, current_date: date) -> bool:
         """Check if a prayer can be marked as Qada.
 
         Args:
             prayer: Prayer instance.
             completion: Prayer completion instance if exists.
-            time_status: Time status ('future', 'pending', 'missed').
+            time_status: Time status ('future', 'ongoing', 'missed').
             user: User instance.
             current_date: Date of the prayer.
 
@@ -865,13 +875,14 @@ class PrayerService(BaseService):
         # Can mark Qada if prayer is marked as missed
         return bool(completion and completion.status == PrayerCompletionStatus.MISSED)
 
-    def _auto_update_prayer_status(self, user: User, prayers: List[Prayer], current_date: date, current_time) -> None:
+    def _auto_update_prayer_status(self, user: User, prayers: List[Prayer], _current_date: date, current_time) -> None:
         """Automatically update prayer statuses for a list of prayers.
 
         Args:
             user: User instance.
             prayers: List of prayer instances.
             current_date: Date of the prayers.
+            current_time: Current datetime for status calculation.
         """
         for prayer in prayers:
             self._auto_update_single_prayer(prayer, user, current_time)
@@ -882,6 +893,7 @@ class PrayerService(BaseService):
         Args:
             prayer: Prayer instance.
             user: User instance.
+            current_time: Current datetime for status calculation.
 
         Returns:
             bool: True if prayer status was updated, False otherwise.
@@ -913,6 +925,7 @@ class PrayerService(BaseService):
 
         Args:
             prayer: Prayer instance.
+            current_time: Current datetime for comparison.
 
         Returns:
             bool: True if prayer is missed, False otherwise.

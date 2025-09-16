@@ -1,5 +1,6 @@
 """Step definitions for authentication features."""
 
+import os
 
 from behave import given, then, when
 
@@ -120,6 +121,7 @@ def step_user_with_verified_email(context):
     context.db.session.add(user)
     context.db.session.commit()
     context.test_user = user
+    context.current_user = user
 
 
 @when('I fill in the registration form with:')
@@ -152,15 +154,15 @@ def step_try_register_with_email(context, email):
 
 
 @when('I enter email "{email}"')
-def step_enter_username(context, email):
-    """Enter username in login form."""
+def step_enter_email(context, email):
+    """Enter email in login form."""
     context.login_data = getattr(context, 'login_data', {})
     context.login_data['email'] = email
 
 
 @when('I enter username "{username}"')
-def step_enter_password(context, username):
-    """Enter password in login form."""
+def step_enter_username(context, username):
+    """Enter username in login form."""
     context.login_data = getattr(context, 'login_data', {})
     context.login_data['username'] = username
 
@@ -173,7 +175,7 @@ def step_enter_password(context, password):
 
 
 @when('I click the login button with email')
-def step_click_login_button(context):
+def step_click_login_button_email(context):
     """Click the login button."""
     auth_service = AuthService(context.app_config)
     context.login_result = auth_service.authenticate_user_using_email(
@@ -182,7 +184,7 @@ def step_click_login_button(context):
     )
 
 @when('I click the login button with username')
-def step_click_login_button(context):
+def step_click_login_button_username(context):
     """Click the login button."""
     auth_service = AuthService(context.app_config)
     context.login_result = auth_service.authenticate_user_using_username(
@@ -198,7 +200,7 @@ def step_switch_to_otp_login(context):
 
 
 @when('I enter my email "{email}"')
-def step_enter_email(context, email):
+def step_enter_my_email(context, email):
     """Enter email for OTP login."""
     context.otp_email = email
 
@@ -350,7 +352,7 @@ def step_impl(context, password):
 
 
 @when("I submit the registration form without filling required fields")
-def step_impl(context):
+def step_submit_registration_form_invalid(context):
     """Try to register with specific email."""
     registration_data = {
         'username': 'testuser',
@@ -531,42 +533,42 @@ def step_password_not_changed(context):
 
 
 @given("I have an invalid OTP code {invalid_code} and email: {email}")
-def step_impl(context, invalid_code, email):
+def step_have_invalid_otp_code(context, invalid_code, email):
     context.login_data = getattr(context, 'login_data', {})
     context.login_data['email'] = email
     context.login_data['invalid_code'] = invalid_code
 
 
 @when("I enter the invalid OTP code")
-def step_impl(context):
+def step_enter_invalid_otp_code(context):
     auth_service = AuthService(context.app_config)
     context.login_result = auth_service.authenticate_with_otp(email=context.login_data['email'],otp=context.login_data['invalid_code'])
 
 
 @when("I leave the username field empty")
-def step_impl(context):
+def step_leave_username_empty(context):
     context.login_data = getattr(context, 'login_data', {})
     context.login_data['username'] = ''
-    context.login_data['password'] = 'password123'
+    context.login_data['password'] = os.getenv('TEST_PASSWORD', 'password123')
 
 
 @when("I try to submit the form")
-def step_impl(context):
+def step_try_submit_form(context):
     auth_service = AuthService(context.app_config)
     context.login_result = auth_service.authenticate_user_using_username(username=context.login_data['username'],password=context.login_data['password'])
 
 
 @when('I enter my email {email}')
-def step_impl(context, email):
+def step_enter_my_email(context, email):
     context.login_data = getattr(context, 'login_data', {})
     context.login_data['email'] = email
 
 
 @when('I click "Send Reset Link"')
-def step_impl(context):
+def step_click_send_reset_link(context):
     auth_service = AuthService(context.app_config)
     auth_service.send_password_reset(email=context.login_data['email'])
 
 @when("I should receive a password reset email")
-def step_impl(context):
+def step_should_receive_password_reset_email(context):
     raise NotImplementedError('STEP: Then I should receive a password reset email')

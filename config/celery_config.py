@@ -69,19 +69,19 @@ celery_app.conf.update(
         },
         'check-consistency': {
             'task': 'app.tasks.consistency_checks.check_user_consistency',
-            'schedule': crontab(hour=22, minute=0),  # Daily at 10 PM
+            'schedule': crontab(hour="22", minute="0"),  # Daily at 10 PM
         },
         'cleanup-old-notifications': {
             'task': 'app.tasks.prayer_reminders.cleanup_old_notifications',
-            'schedule': crontab(hour=0, minute=0),  # Daily at midnight
+            'schedule': crontab(hour="0", minute="0"),  # Daily at midnight
         },
         'check-email-verifications': {
             'task': 'app.tasks.email_verification.check_and_send_verification_reminders',
-            'schedule': crontab(hour=9, minute=0),  # Daily at 9 AM
+            'schedule': crontab(hour="9", minute="0"),  # Daily at 9 AM
         },
         'cleanup-expired-verifications': {
             'task': 'app.tasks.email_verification.cleanup_expired_verifications',
-            'schedule': crontab(hour=1, minute=0),  # Daily at 1 AM
+            'schedule': crontab(hour="1", minute="0"),  # Daily at 1 AM
         },
     },
 

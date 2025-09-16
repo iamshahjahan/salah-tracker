@@ -172,7 +172,7 @@ def get_prayer_time_until_next(prayer_times: dict, user_timezone: str) -> Option
     user_tz = get_user_timezone(user_timezone)
     now = datetime.now(user_tz)
 
-    prayer_name, prayer_time = next_prayer
+    _prayer_name, prayer_time = next_prayer
     prayer_datetime = user_tz.localize(
         datetime.combine(now.date(), prayer_time)
     )

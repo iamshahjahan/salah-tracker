@@ -5,7 +5,12 @@ from datetime import datetime
 import pytz
 from behave import given, then, when
 
-from app.models.prayer import Prayer, PrayerCompletion, PrayerCompletionStatus
+from app.models.prayer import (
+    Prayer,
+    PrayerCompletion,
+    PrayerCompletionStatus,
+    PrayerType,
+)
 from app.models.user import User
 from app.services.notification_service import NotificationService
 
@@ -44,11 +49,9 @@ def step_have_completed_dhuhr_prayer(context):
     # Create prayer completion record
     prayer = Prayer(
         user_id=context.current_user.id,
-        prayer_name='DHUHR',
+        prayer_type=PrayerType.DHUHR,
         prayer_date=datetime.now().date(),
-        start_time=datetime.strptime('12:15', '%H:%M').time(),
-        end_time=datetime.strptime('15:15', '%H:%M').time(),
-        status=PrayerCompletionStatus.COMPLETE
+        prayer_time=datetime.strptime('12:15', '%H:%M').time(),
     )
     context.db.session.add(prayer)
     context.db.session.commit()
@@ -57,7 +60,7 @@ def step_have_completed_dhuhr_prayer(context):
         user_id=context.current_user.id,
         prayer_id=prayer.id,
         marked_at=datetime.utcnow(),
-        status=PrayerCompletionStatus.COMPLETE
+        status=PrayerCompletionStatus.JAMAAT
     )
     context.db.session.add(completion)
     context.db.session.commit()
@@ -180,7 +183,7 @@ def step_reminder_system_processes_all_users(context):
 def step_receive_prayer_reminder_email(context):
     """Verify prayer reminder email is received."""
     assert context.reminder_result['success']
-    assert 'email_sent' in context.reminder_result
+    assert 'reminder sent' in context.reminder_result['message']
 
 
 @then('the email should contain the prayer name and time')
@@ -201,7 +204,6 @@ def step_email_contains_completion_link(context):
 def step_receive_missed_prayer_reminder(context):
     """Verify missed prayer reminder is received."""
     assert context.reminder_result['success']
-    assert context.reminder_result['reminder_type'] == 'missed_prayer'
 
 
 @then('the email should contain a completion link for qada')

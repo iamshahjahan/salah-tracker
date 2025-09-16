@@ -4,6 +4,7 @@ This module contains Celery tasks for sending prayer reminders,
 managing notification schedules, and handling prayer-related background jobs.
 """
 
+
 from datetime import datetime, timedelta
 from typing import List
 
@@ -31,6 +32,8 @@ def send_prayer_reminders(self):
     """
     with app.app_context():
         try:
+            # Update task state
+            self.update_state(state='PROGRESS', meta={'task': 'send_prayer_reminders'})
             logger.info("Starting prayer reminders task")
             # Get current time in UTC
             now_utc = datetime.utcnow()
@@ -108,7 +111,7 @@ def send_prayer_reminders(self):
             raise
 
 
-def send_reminders(config, now_user_tz: datetime, prayer_data_list,user, user_tz):
+def send_reminders(config, now_user_tz: datetime, prayer_data_list, user, user_tz):
     total_errors = 0
     total_reminders_sent = 0
     for prayer_data in prayer_data_list:
@@ -120,7 +123,7 @@ def send_reminders(config, now_user_tz: datetime, prayer_data_list,user, user_tz
         logger.info(f"Prayer {prayer_type} for {user.email}: status={prayer_status}, completed={is_completed}")
 
         # Send reminder only if prayer is in pending state and not completed
-        if prayer_status == 'pending' and not is_completed:
+        if prayer_status == 'ongoing' and not is_completed:
             # Check if we already sent a reminder for this prayer today
             existing_notification = PrayerNotification.query.filter_by(
                 user_id=user.id,
@@ -169,12 +172,15 @@ def send_individual_reminder(self, user_id: int, prayer_type: str, prayer_time: 
     """Send a prayer reminder to a specific user for a specific prayer.
 
     Args:
+        self: Celery task instance.
         user_id: ID of the user to send reminder to
         prayer_type: Type of prayer (fajr, dhuhr, asr, maghrib, isha)
         prayer_time: Time of the prayer in HH:MM format
     """
     with app.app_context():
         try:
+            # Update task state
+            self.update_state(state='PROGRESS', meta={'user_id': user_id, 'prayer_type': prayer_type, 'prayer_time': prayer_time})
             logger.info(f"Starting individual reminder task for user {user_id}, prayer {prayer_type} at {prayer_time}")
 
             user = User.query.get(user_id)
@@ -183,7 +189,6 @@ def send_individual_reminder(self, user_id: int, prayer_type: str, prayer_time: 
                 return {'status': 'error', 'message': 'User not found'}
 
             logger.info(f"Found user: {user.email} (ID: {user_id})")
-
 
             # Parse prayer time
             logger.info(f"Parsing prayer time: {prayer_time}")
@@ -223,10 +228,13 @@ def send_individual_reminder(self, user_id: int, prayer_type: str, prayer_time: 
 @celery_app.task(bind=True, name='app.tasks.prayer_reminders.send_prayer_window_reminders')
 def send_prayer_window_reminders(self):
     """Send reminders during prayer time windows if prayers haven't been completed.
+
     This task runs every 5 minutes to check for prayers that are in their completion window.
     """
     with app.app_context():
         try:
+            # Update task state
+            self.update_state(state='PROGRESS', meta={'task': 'send_prayer_window_reminders'})
             logger.info("Starting prayer window reminders task")
             # Get current time in UTC
             now_utc = datetime.utcnow()
@@ -346,10 +354,13 @@ def cleanup_old_notifications(self, days_old: int = 30):
     """Clean up old prayer notifications to keep the database clean.
 
     Args:
+        self: Celery task instance.
         days_old: Number of days old notifications to delete (default: 30)
     """
     with app.app_context():
         try:
+            # Update task state
+            self.update_state(state='PROGRESS', meta={'days_old': days_old})
             logger.info(f"Starting cleanup of old notifications older than {days_old} days")
 
             cutoff_date = datetime.utcnow() - timedelta(days=days_old)
@@ -392,11 +403,14 @@ def send_bulk_reminders(self, user_ids: List[int], prayer_type: str, prayer_time
     """Send prayer reminders to multiple users at once.
 
     Args:
+        self: Celery task instance.
         user_ids: List of user IDs to send reminders to
         prayer_type: Type of prayer
         prayer_time: Time of the prayer
     """
     try:
+        # Update task state
+        self.update_state(state='PROGRESS', meta={'user_count': len(user_ids), 'prayer_type': prayer_type, 'prayer_time': prayer_time})
         logger.info(f"Starting bulk reminder task for {len(user_ids)} users, prayer {prayer_type} at {prayer_time}")
 
         results = []
@@ -446,9 +460,12 @@ def send_bulk_reminders(self, user_ids: List[int], prayer_type: str, prayer_time
 @celery_app.task(bind=True, name='app.tasks.prayer_reminders.test_reminder_system')
 def test_reminder_system(self):
     """Test the reminder system by sending a test reminder to all users.
+
     This is useful for testing the email system and notification flow.
     """
     try:
+        # Update task state
+        self.update_state(state='PROGRESS', meta={'task': 'test_reminder_system'})
         logger.info("Starting test reminder system task")
 
         users = User.query.filter_by().limit(5).all()  # Limit to 5 users for testing

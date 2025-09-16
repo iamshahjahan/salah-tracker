@@ -215,7 +215,7 @@ def get_prayer_status_for_date(date_str):
             'total_prayers': len(prayers),
             'completed': len([p for p in prayers if p.get('completed', False)]),
             'missed': len([p for p in prayers if p.get('prayer_status') == 'missed']),
-            'pending': len([p for p in prayers if p.get('prayer_status') == 'pending']),
+            'ongoing': len([p for p in prayers if p.get('prayer_status') == 'ongoing']),
             'qada': len([p for p in prayers if p.get('prayer_status') == 'qada'])
         }
 

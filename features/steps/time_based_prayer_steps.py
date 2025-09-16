@@ -34,8 +34,8 @@ def step_logged_in_user_with_timezone(context, timezone):
     context.is_logged_in = True
 
 @given('I am logged in as a user with timezone "{timezone}" and created_at {datetime_str}')
-def step_logged_in_user_with_timezone(context, timezone,datetime_str):
-    """Set up logged-in user with specific timezone."""
+def step_logged_in_user_with_timezone_and_datetime(context, timezone, datetime_str):
+    """Set up logged-in user with specific timezone and datetime."""
     current_datetime = datetime.strptime(datetime_str, '%Y-%m-%d %H:%M')
 
     user = User(

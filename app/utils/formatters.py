@@ -10,7 +10,7 @@ from typing import Any, Dict, Optional
 import pytz
 
 
-def format_prayer_time(prayer_time: time, timezone: Optional[str] = None) -> str:
+def format_prayer_time(prayer_time: time, _timezone: Optional[str] = None) -> str:
     """Format prayer time for display.
 
     Args:

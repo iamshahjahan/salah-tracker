@@ -157,10 +157,10 @@ class AuthService(BaseService):
             return self.handle_service_error(e, 'user_authentication')
 
     def authenticate_user_using_username(self, username: str, password: str) -> Dict[str, Any]:
-        """Authenticate a user with email and password.
+        """Authenticate a user with username and password.
 
         Args:
-            email: User's email address.
+            username: User's username.
             password: Plain text password.
 
         Returns:
@@ -547,10 +547,10 @@ class AuthService(BaseService):
             return None
 
     def _get_user_by_username(self, username: str) -> Optional[User]:
-        """Get user by email address.
+        """Get user by username.
 
         Args:
-            email: User's email address.
+            username: User's username.
 
         Returns:
             Optional[User]: User instance if found, None otherwise.

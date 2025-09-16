@@ -22,7 +22,7 @@ logger = get_logger(__name__)
 
 
 @celery_app.task(bind=True, name='app.tasks.email_verification.check_and_send_verification_reminders')
-def check_and_send_verification_reminders(self):
+def check_and_send_verification_reminders(_self):
     """Check all users with unverified emails and send verification reminders.
 
     This task:
@@ -170,6 +170,7 @@ def send_verification_to_user(self, user_id: int):
     """Send email verification to a specific user.
 
     Args:
+        self: Celery task instance.
         user_id: ID of the user to send verification to
 
     Returns:
@@ -177,6 +178,8 @@ def send_verification_to_user(self, user_id: int):
     """
     with app.app_context():
         try:
+            # Update task state
+            self.update_state(state='PROGRESS', meta={'user_id': user_id})
             logger.info(f"Sending email verification to user ID: {user_id}")
 
             # Get user
@@ -235,6 +238,8 @@ def cleanup_expired_verifications(self):
     """
     with app.app_context():
         try:
+            # Update task state
+            self.update_state(state='PROGRESS', meta={'task': 'cleanup_expired_verifications'})
             logger.info("Starting cleanup of expired email verifications")
 
             # Find expired verification codes
@@ -293,6 +298,8 @@ def get_verification_stats(self):
     """
     with app.app_context():
         try:
+            # Update task state
+            self.update_state(state='PROGRESS', meta={'task': 'get_verification_stats'})
             logger.info("Getting email verification statistics")
 
             # Get user statistics

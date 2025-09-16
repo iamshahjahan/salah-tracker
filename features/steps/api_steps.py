@@ -1,5 +1,6 @@
 """Step definitions for API endpoint features."""
 
+import os
 
 from behave import given, then, when
 
@@ -40,7 +41,7 @@ def step_have_valid_api_token(context):
 @given('I have an invalid API token')
 def step_have_invalid_api_token(context):
     """Set an invalid API token."""
-    context.api_token = "invalid_token_12345"
+    context.api_token = os.getenv("TEST_INVALID_TOKEN", "invalid_token_12345")
 
 
 @given('I am within the Dhuhr prayer time window')

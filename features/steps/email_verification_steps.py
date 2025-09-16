@@ -266,7 +266,7 @@ def step_email_verification_automatically_sent(context):
 @then('I should see a message "Please check your email for verification code"')
 def step_see_check_email_message(context):
     """Verify check email message is displayed."""
-    assert 'check your email' in context.registration_result['message']
+    assert 'check your email' in context.registration_result['message'], "Got email message to be displayed: {}, expected: 'check your email'".format(context.registration_result['message'])
 
 
 @then('the email verification modal should appear')

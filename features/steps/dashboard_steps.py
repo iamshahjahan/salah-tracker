@@ -59,8 +59,8 @@ def step_view_weekly_calendar(context):
         'wednesday': {'status': 'missed', 'prayers': []},
         'thursday': {'status': 'completed', 'prayers': ['FAJR', 'DHUHR', 'ASR']},
         'friday': {'status': 'completed', 'prayers': ['FAJR', 'DHUHR', 'ASR', 'MAGHRIB']},
-        'saturday': {'status': 'pending', 'prayers': []},
-        'sunday': {'status': 'pending', 'prayers': []}
+        'saturday': {'status': 'ongoing', 'prayers': []},
+        'sunday': {'status': 'ongoing', 'prayers': []}
     }
 
 
@@ -216,7 +216,7 @@ def step_missed_prayers_red_indicators(context):
 def step_pending_prayers_yellow_indicators(context):
     """Verify pending prayers have yellow indicators."""
     for day_data in context.calendar_data.values():
-        if day_data['status'] == 'pending':
+        if day_data['status'] == 'ongoing':
             assert day_data.get('indicator_color') == 'yellow'
 
 

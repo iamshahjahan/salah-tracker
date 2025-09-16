@@ -51,7 +51,7 @@ def before_all(context):
     print("Flask app fixture setup complete")
 
 
-def before_scenario(context, scenario):
+def before_scenario(context, _scenario):
     """Set up before each scenario."""
     # Clean up any existing data
     if hasattr(context, 'db'):
@@ -67,7 +67,7 @@ def before_scenario(context, scenario):
     context.test_data = {}
 
 
-def after_scenario(context, scenario):
+def after_scenario(context, _scenario):
     """Clean up after each scenario."""
     # Clean up any test data
     if hasattr(context, 'db'):

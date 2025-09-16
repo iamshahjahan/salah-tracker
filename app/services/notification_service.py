@@ -79,8 +79,7 @@ class NotificationService(BaseService):
                 subject = f"🕌 وقت صلاة {get_prayer_name_arabic(prayer_type)} - SalahTracker"
 
             template = get_prayer_reminder_template(
-                user, prayer_type, prayer_time, verse, hadith, completion_link,
-                current_app.config.get('FRONTEND_URL', 'https://salahtracker.app')
+                user, prayer_type, prayer_time, verse, hadith, completion_link
             )
 
             success = self.email_service._send_email(user.email, subject, template)

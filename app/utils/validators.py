@@ -181,6 +181,7 @@ def validate_time_string(time_string: str, format: str = '%H:%M') -> Tuple[bool,
         return False, f"Invalid time format. Expected {format}"
 
 
+# TODO: Consider breaking down this complex function
 def validate_user_registration_data(data: Dict[str, Any]) -> Tuple[bool, List[str]]:
     """Validate user registration data.
 

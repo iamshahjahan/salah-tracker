@@ -906,7 +906,7 @@ function displayPrayerTimes(prayers) {
                 buttonDisabled = true;
                 break;
                 
-            case 'pending':
+            case 'ongoing':
                 cardClass = 'in-progress'; // Blue - can go to completed
                 if (canComplete) {
                     buttonText = 'Mark as Complete';
@@ -1431,7 +1431,7 @@ function updatePrayerStatusForDate(dateString, prayers) {
     // Use the new 5-status system from backend
     const totalCount = prayers.length;
     const futureCount = prayers.filter(prayer => prayer.prayer_status === 'future').length;
-    const pendingCount = prayers.filter(prayer => prayer.prayer_status === 'pending').length;
+    const pendingCount = prayers.filter(prayer => prayer.prayer_status === 'ongoing').length;
     const missedCount = prayers.filter(prayer => prayer.prayer_status === 'missed').length;
     const completedCount = prayers.filter(prayer => prayer.prayer_status === 'completed').length;
     const qadaCount = prayers.filter(prayer => prayer.prayer_status === 'qada').length;
@@ -1440,7 +1440,7 @@ function updatePrayerStatusForDate(dateString, prayers) {
     console.log(`Status for ${dateString}: future=${futureCount}, pending=${pendingCount}, missed=${missedCount}, completed=${completedCount}, qada=${qadaCount}, total=${totalCount}`);
     
     // Remove existing status classes
-    cardElement.classList.remove('all-complete', 'has-qada', 'all-missed', 'pending', 'future', 'mixed');
+    cardElement.classList.remove('all-complete', 'has-qada', 'all-missed', 'ongoing', 'future', 'mixed');
     
     let statusClass, statusText, summaryText, cardStatusClass;
     
@@ -1471,10 +1471,10 @@ function updatePrayerStatusForDate(dateString, prayers) {
         cardStatusClass = 'all-missed';
     } else if (pendingCount > 0) {
         // Some prayers are pending (in progress)
-        statusClass = 'pending';
+        statusClass = 'ongoing';
         statusText = 'In Progress';
         summaryText = `${pendingCount} pending prayers`;
-        cardStatusClass = 'pending';
+        cardStatusClass = 'ongoing';
     } else {
         // Mixed status
         const completedTotal = completedCount + qadaCount;
@@ -1546,7 +1546,7 @@ function updatePrayerDots(dateStr, prayers) {
 
     let dotsHTML = '';
     prayers.forEach(prayer => {
-        let status = 'pending'; // Default orange for pending
+        let status = 'ongoing'; // Default orange for pending
 
         if (prayer.completed) {
             if (prayer.completion && prayer.completion.is_qada) {
@@ -1682,7 +1682,7 @@ function displaySelectedDayPrayers(prayers) {
             case 'future':
                 statusText = '⏳ Future';
                 break;
-            case 'pending':
+            case 'ongoing':
                 statusText = '⏰ Available Now';
                 break;
             case 'missed':
@@ -1700,7 +1700,7 @@ function displaySelectedDayPrayers(prayers) {
 
         let buttonHTML = '';
         // Show appropriate button based on prayer status
-        if (prayerStatus === 'pending' && canComplete) {
+        if (prayerStatus === 'ongoing' && canComplete) {
             buttonHTML = `
                 <button class="complete-btn-small" onclick="completePrayer(${prayer.id})">
                     <i class="fas fa-check"></i> Mark as Complete
