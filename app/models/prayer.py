@@ -3,18 +3,29 @@ from datetime import datetime, date
 from enum import Enum
 
 class PrayerType(Enum):
-    FAJR = "Fajr"
-    DHUHR = "Dhuhr"
-    ASR = "Asr"
-    MAGHRIB = "Maghrib"
-    ISHA = "Isha"
+    FAJR = "fajr"
+    DHUHR = "dhuhr"
+    ASR = "asr"
+    MAGHRIB = "maghrib"
+    ISHA = "isha"
+    ZAKAAT = "zakaat"
+    JUMMAH = "jummah"
+    FASTING = "fasting"
+    QURAN_TILAWAT = "quran_tilawat"
+    HAJJ = "Hajj"
 
 class PrayerStatus(Enum):
-    FUTURE = "FUTURE"        # Before prayer start time
-    PENDING = "PENDING"      # Time is between prayer's start and end
-    MISSED = "MISSED"        # After prayer end time, can be moved to qada
-    COMPLETE = "COMPLETE"    # Completed by customer at pending time (terminal)
-    QADA = "QADA"           # Completed by customer at missed time (terminal)
+    FUTURE = "future"  # Before prayer start time
+    ONGOING = "ongoing"  # Time is between prayer's start and end
+    MISSED = "missed"  # After prayer end time, can be moved to qada
+
+
+class PrayerCompletionStatus(Enum):
+    JAMAAT = "jamaat"
+    WITHOUT_JAMAAT = "without_jamaat"
+    MISSED = "missed"
+    QADA = "qada"
+
 
 class Prayer(db.Model):
     __tablename__ = 'prayers'
@@ -28,7 +39,7 @@ class Prayer(db.Model):
     location_lng = db.Column(db.Float, nullable=True)
     timezone = db.Column(db.String(50), default='UTC')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
+
     # Relationships
     user = db.relationship('User', backref='prayers')
 
@@ -55,7 +66,7 @@ class PrayerCompletion(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     prayer_id = db.Column(db.Integer, db.ForeignKey('prayers.id'), nullable=False)
     marked_at = db.Column(db.DateTime, nullable=True)
-    status = db.Column(db.Enum(PrayerStatus), nullable=False)
+    status = db.Column(db.Enum(PrayerCompletionStatus), nullable=False)
     notes = db.Column(db.Text, nullable=True)
 
     # Relationships

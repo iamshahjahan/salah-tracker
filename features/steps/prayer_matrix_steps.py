@@ -4,7 +4,7 @@ Step definitions for prayer state matrix testing.
 
 from behave import given, when, then
 from app.models.user import User
-from app.models.prayer import Prayer, PrayerCompletion, PrayerStatus, PrayerType
+from app.models.prayer import Prayer, PrayerCompletion, PrayerCompletionStatus, PrayerType
 from app.services.cache_service import CacheService
 from app.services.prayer_service import PrayerService
 from config.database import db

@@ -264,6 +264,9 @@ def step_see_error_message(context, error_message):
     elif hasattr(context, 'login_result'):
         actual = context.login_result['error']
         assert actual == error_message, f"Expected error '{error_message}' but got '{actual}'"
+    elif hasattr(context, 'completion_result'):
+        actual = context.login_result['error']
+        assert actual == error_message, f"Expected error '{error_message}' but got '{actual}'"
     else:
         assert False, "No error result found in context (neither registration_result nor login_result)"
 

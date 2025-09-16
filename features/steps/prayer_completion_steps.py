@@ -4,7 +4,7 @@ Step definitions for prayer completion features.
 
 from behave import given, when, then
 from app.models.user import User
-from app.models.prayer import Prayer, PrayerCompletion, PrayerStatus, PrayerType
+from app.models.prayer import Prayer, PrayerCompletion, PrayerCompletionStatus, PrayerType
 from app.services.cache_service import CacheService
 from app.services.prayer_service import PrayerService
 from config.database import db
@@ -137,7 +137,7 @@ def step_mixed_prayer_completion(context):
             prayer_date=yesterday,
             start_time=datetime.strptime('12:00', '%H:%M').time(),
             end_time=datetime.strptime('15:00', '%H:%M').time(),
-            status=PrayerStatus.COMPLETE
+            status=PrayerCompletionStatus.COMPLETE
         )
         context.db.session.add(prayer)
         
@@ -145,7 +145,7 @@ def step_mixed_prayer_completion(context):
             user_id=context.current_user.id,
             prayer_id=prayer.id,
             marked_at=datetime.utcnow() - timedelta(days=1),
-            status=PrayerStatus.COMPLETE
+            status=PrayerCompletionStatus.COMPLETE
         )
         context.db.session.add(completion)
     
@@ -157,21 +157,12 @@ def step_mixed_prayer_completion(context):
             prayer_date=yesterday,
             start_time=datetime.strptime('15:00', '%H:%M').time(),
             end_time=datetime.strptime('18:00', '%H:%M').time(),
-            status=PrayerStatus.MISSED
+            status=PrayerCompletionStatus.MISSED
         )
         context.db.session.add(prayer)
     
     context.db.session.commit()
 
-
-@when('I mark the Dhuhr prayer as completed')
-def step_mark_dhuhr_prayer_completed(context):
-    """Mark Dhuhr prayer as completed."""
-    prayer_service = PrayerService()
-    context.completion_result = prayer_service.complete_prayer(
-        context.current_user.id,
-        context.prayer_times['DHUHR'].id
-    )
 
 
 @when('I try to mark the Dhuhr prayer as completed')
@@ -249,13 +240,12 @@ def step_try_complete_same_prayer_multiple_times(context):
 @then('the prayer should be marked as "{status}"')
 def step_prayer_marked_as_status(context, status):
     """Verify prayer is marked with specific status."""
-    assert context.completion_result['success'] == True
+    assert context.completion_result['success'] == True, f"Got response: {context.completion_result['success']}"
     # Check the status in the completion object
     if 'completion' in context.completion_result:
-        assert context.completion_result['completion']['status'] == status.upper()
+        assert context.completion_result['completion']['status'] == status, f'Completion status should be {status}, but got {context.completion_result['completion']['status']}'
     else:
-        # Fallback to direct status field
-        assert context.completion_result.get('status') == status.upper()
+        assert False,"Unable to complete prayer"
 
 
 # This step is defined in email_verification_steps.py
@@ -357,8 +347,3 @@ def step_no_completion_recorded(context):
     """Verify no completion is recorded."""
     assert context.completion_result['success'] == False
 
-
-# This step is defined in api_steps.py
-
-
-# This step is covered by the generic error message step in authentication_steps.py

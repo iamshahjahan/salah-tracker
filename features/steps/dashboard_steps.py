@@ -4,7 +4,7 @@ Step definitions for dashboard features.
 
 from behave import given, when, then
 from app.models.user import User
-from app.models.prayer import Prayer, PrayerCompletion, PrayerStatus
+from app.models.prayer import Prayer, PrayerCompletion, PrayerCompletionStatus
 from app.services.prayer_service import PrayerService
 from config.database import db
 from datetime import datetime, timedelta

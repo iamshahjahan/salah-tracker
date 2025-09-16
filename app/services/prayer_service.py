@@ -16,9 +16,9 @@ import hashlib
 from .base_service import BaseService
 from .cache_service import cache_service
 from app.models.user import User
-from app.models.prayer import Prayer, PrayerCompletion, PrayerStatus
+from app.models.prayer import Prayer, PrayerCompletion, PrayerStatus, PrayerCompletionStatus
 from app.config.settings import Config
-
+from datetime import date
 
 class PrayerService(BaseService):
     """
@@ -46,7 +46,7 @@ class PrayerService(BaseService):
             config_obj = get_config()
             self.api_config = config_obj.EXTERNAL_API_CONFIG
             self.prayer_time_window = config_obj.PRAYER_TIME_WINDOW_MINUTES
-        
+
         # Cache TTL settings
         self._cache_ttl = 300  # 5 minutes in seconds
         self._api_cache_ttl = 86400  # 24 hours for API responses (prayer times for a day)
@@ -86,6 +86,7 @@ class PrayerService(BaseService):
                 target_date = current_time.date()
 
             # Check if date is before user account creation
+            # TODO: Along with date, I need to consider time as well.
             if target_date < user.created_at.date():
                 return {
                     'success': False,
@@ -120,80 +121,81 @@ class PrayerService(BaseService):
         except Exception as e:
             return self.handle_service_error(e, 'get_prayer_times')
 
-    def _get_cache_key_components(self, user: User, date: datetime.date) -> Tuple[str, str, str, str]:
+    def _get_cache_key_components(self, user: User, current_date: date) -> Tuple[str, str, str, str]:
         """
         Generate cache key components for prayer times.
-        
+
         Args:
             user: User instance.
-            date: Date for prayer times.
-            
+            current_date: Date for prayer times.
+
         Returns:
             Tuple of (user_id, date_str, fiqh_method, geo_hash).
         """
         user_id = str(user.id)
-        date_str = date.strftime('%Y-%m-%d')
+        date_str = current_date.strftime('%Y-%m-%d')
         fiqh_method = str(user.fiqh_method or 2)  # Default to ISNA method
         geo_hash = self._generate_geo_hash(user.location_lat or 0.0, user.location_lng or 0.0)
-        
+
         return user_id, date_str, fiqh_method, geo_hash
 
-    def _get_cached_api_response(self, user: User, date: datetime.date) -> Optional[Dict[str, Any]]:
+    def _get_cached_api_response(self, user: User, current_date: date) -> Optional[Dict[str, Any]]:
         """
         Get cached API response for prayer times.
-        
+
         Args:
             user: User instance.
-            date: Date for prayer times.
-            
+            current_date: Date for prayer times.
+
         Returns:
             Cached API response or None if not cached.
         """
-        user_id, date_str, fiqh_method, geo_hash = self._get_cache_key_components(user, date)
+        user_id, date_str, fiqh_method, geo_hash = self._get_cache_key_components(user, current_date)
         return cache_service.get_api_prayer_times(user_id, date_str, fiqh_method, geo_hash)
-    
-    def _cache_api_response(self, user: User, date: datetime.date, api_response: Dict[str, Any]) -> bool:
+
+    def _cache_api_response(self, user: User, current_date: date, api_response: Dict[str, Any]) -> bool:
         """
         Cache API response for prayer times.
-        
+
         Args:
             user: User instance.
-            date: Date for prayer times.
+            current_date: Date for prayer times.
             api_response: API response data.
-            
+
         Returns:
             True if cached successfully.
         """
-        user_id, date_str, fiqh_method, geo_hash = self._get_cache_key_components(user, date)
+        user_id, date_str, fiqh_method, geo_hash = self._get_cache_key_components(user, current_date)
         return cache_service.set_api_prayer_times(user_id, date_str, fiqh_method, geo_hash, api_response, self._api_cache_ttl)
 
     def _generate_geo_hash(self, latitude: float, longitude: float, precision: int = 4) -> str:
         """
         Generate a geo hash from latitude and longitude coordinates.
-        
+
         Args:
             latitude: Latitude coordinate.
             longitude: Longitude coordinate.
             precision: Number of decimal places for rounding (default: 4).
-            
+
         Returns:
             String hash of the coordinates.
         """
         # Round coordinates to specified precision to group nearby locations
         rounded_lat = round(latitude, precision)
         rounded_lng = round(longitude, precision)
-        
+
         # Create a string representation and hash it
         coord_string = f"{rounded_lat},{rounded_lng}"
         return hashlib.md5(coord_string.encode()).hexdigest()[:8]  # 8 character hash
 
-    def complete_prayer(self, user_id: int, prayer_id: int, current_time) -> Dict[str, Any]:
+    def complete_prayer(self, user_id: int, prayer_id: int, current_time: datetime) -> Dict[str, Any]:
         """
         Mark a prayer as completed with time validation.
 
         Args:
             user_id: ID of the user completing the prayer.
             prayer_id: ID of the prayer to complete.
+            current_time: ID of the prayer to complete.
 
         Returns:
             Dict[str, Any]: Completion result with success status or error.
@@ -235,10 +237,10 @@ class PrayerService(BaseService):
 
             # Determine status based on timing
             if is_late:
-                status = PrayerStatus.MISSED
+                status = PrayerCompletionStatus.MISSED
                 marked_at = None  # No timestamp for missed prayers
             else:
-                status = PrayerStatus.COMPLETE
+                status = PrayerCompletionStatus.JAMAAT
                 marked_at = datetime.now(pytz.UTC)
 
             # Create completion record
@@ -265,7 +267,7 @@ class PrayerService(BaseService):
         except Exception as e:
             return self.handle_service_error(e, 'complete_prayer')
 
-    def mark_prayer_qada(self, user_id: int, prayer_id: int) -> Dict[str, Any]:
+    def mark_prayer_qada(self, user_id: int, prayer_id: int, current_time: datetime) -> Dict[str, Any]:
         """
         Mark a missed prayer as Qada.
 
@@ -305,10 +307,10 @@ class PrayerService(BaseService):
 
             if existing_completion:
                 # Update existing completion to Qada (only from MISSED status)
-                if existing_completion.status == PrayerStatus.MISSED:
-                    self.update_record(
+                if existing_completion.status == PrayerCompletionStatus.MISSED:
+                    existing_completion = self.update_record(
                         existing_completion,
-                        status=PrayerStatus.QADA,
+                        status=PrayerCompletionStatus.QADA,
                         marked_at=datetime.now(pytz.UTC)
                     )
                     completion = existing_completion
@@ -318,13 +320,21 @@ class PrayerService(BaseService):
                         'error': 'Can only mark missed prayers as Qada'
                     }
             else:
+                prayer_info = self._build_prayer_info(prayer, None, user, prayer.prayer_date, current_time)
+
+                if not prayer_info['can_mark_qada']:
+                    return {
+                        'success': False,
+                        'error': 'Can not mark as Qada'
+                    }
+
                 # Create new Qada completion
                 completion = self.create_record(
                     PrayerCompletion,
                     prayer_id=prayer_id,
                     user_id=user_id,
                     marked_at=datetime.now(pytz.UTC),
-                    status=PrayerStatus.QADA
+                    status=PrayerCompletionStatus.QADA
                 )
 
             self.logger.info(f"Prayer marked as Qada: {prayer.prayer_type.value} for user {user.email}")
@@ -377,13 +387,13 @@ class PrayerService(BaseService):
         except Exception as e:
             return self.handle_service_error(e, 'auto_update_prayer_status')
 
-    def _get_or_create_prayers(self, user: User, date: datetime.date) -> List[Prayer]:
+    def _get_or_create_prayers(self, user: User, target_date: date) -> List[Prayer]:
         """
         Get existing prayers for a date or create new ones if they don't exist.
 
         Args:
             user: User instance.
-            date: Date to get prayers for.
+            target_date: Date to get prayers for.
 
         Returns:
             List[Prayer]: List of prayer instances for the date.
@@ -391,14 +401,14 @@ class PrayerService(BaseService):
         # Check if prayers already exist for this date
         existing_prayers = Prayer.query.filter_by(
             user_id=user.id,
-            prayer_date=date
+            prayer_date=target_date
         ).all()
 
         if existing_prayers:
             return existing_prayers
 
         # Fetch prayer times from API
-        prayer_times = self._fetch_prayer_times_from_api(user, date)
+        prayer_times = self._fetch_prayer_times_from_api(user, target_date)
         if not prayer_times:
             # If API fails, try to get existing prayers from database for any date
             # This provides fallback prayer times when API is unavailable
@@ -418,7 +428,7 @@ class PrayerService(BaseService):
                     user_id=user.id,
                     prayer_type=prayer_name,
                     prayer_time=prayer_time,
-                    prayer_date=date
+                    prayer_date=target_date
                 )
                 prayers.append(prayer)
 
@@ -427,27 +437,27 @@ class PrayerService(BaseService):
     def _get_all_prayer_times_for_date(self, user: User, date: datetime.date) -> Dict[str, datetime.time]:
         """
         Get all prayer times for a date including sunrise from API.
-        
+
         Args:
             user: User instance.
             date: Date to get prayer times for.
-            
+
         Returns:
             Dict[str, datetime.time]: Dictionary with all prayer times including sunrise.
         """
         try:
             # Fetch prayer times from API
             prayer_times = self._fetch_prayer_times_from_api(user, date)
-            
+
             # Also get prayers from database for this date
             prayers = Prayer.query.filter_by(
                 user_id=user.id,
                 prayer_date=date
             ).all()
-            
+
             # Create a complete mapping
             all_times = {}
-            
+
             # Add API times (including sunrise if available)
             for name, time in prayer_times.items():
                 # Ensure time is a datetime.time object
@@ -467,7 +477,7 @@ class PrayerService(BaseService):
                 else:
                     time_obj = time
                 all_times[name] = time_obj
-            
+
             # Add database prayer times (these should match API times)
             for prayer in prayers:
                 # Ensure prayer_time is a datetime.time object
@@ -487,7 +497,7 @@ class PrayerService(BaseService):
                 else:
                     prayer_time_obj = prayer.prayer_time
                 all_times[prayer.prayer_type.value] = prayer_time_obj
-            
+
             # If API failed and we have no prayers for this date, try to get fallback prayers
             if not prayer_times and not prayers:
                 fallback_prayers = Prayer.query.filter_by(user_id=user.id).order_by(Prayer.prayer_date.desc()).limit(5).all()
@@ -509,29 +519,29 @@ class PrayerService(BaseService):
                     else:
                         prayer_time_obj = prayer.prayer_time
                     all_times[prayer.prayer_type.value] = prayer_time_obj
-            
+
             return all_times
-            
+
         except Exception as e:
             self.logger.error(f"Error getting all prayer times for date: {str(e)}")
             return {}
 
-    def _fetch_prayer_times_from_api(self, user: User, date: datetime.date) -> Dict[str, datetime.time]:
+    def _fetch_prayer_times_from_api(self, user: User, target_date: date) -> Dict[str, datetime.time]:
         """
         Fetch prayer times from external API with caching.
 
         Args:
             user: User instance with location data.
-            date: Date to fetch prayer times for.
+            target_date: Date to fetch prayer times for.
 
         Returns:
             Dict[str, datetime.time]: Dictionary mapping prayer names to times.
         """
         try:
             # Check API response cache first (24-hour cache for API responses)
-            cached_api_response = self._get_cached_api_response(user, date)
+            cached_api_response = self._get_cached_api_response(user, target_date)
             if cached_api_response:
-                self.logger.info(f"Using cached API response for user {user.id} on {date}")
+                self.logger.info(f"Using cached API response for user {user.id} on {target_date}")
                 return self._parse_api_response_to_times(cached_api_response)
 
             if not user.location_lat or not user.location_lng:
@@ -539,7 +549,7 @@ class PrayerService(BaseService):
                 return {}
 
             # Format date for API
-            date_str = date.strftime('%d-%m-%Y')
+            date_str = target_date.strftime('%d-%m-%Y')
 
             # Build API URL
             url = f"{self.api_config.prayer_times_base_url}/timings/{date_str}"
@@ -550,18 +560,18 @@ class PrayerService(BaseService):
                 'timezone': user.timezone
             }
 
-            self.logger.info(f"Fetching prayer times from API for user {user.id} on {date}")
+            self.logger.info(f"Fetching prayer times from API for user {user.id} on {target_date}")
             response = requests.get(url, params=params, timeout=10)
             response.raise_for_status()
 
             data = response.json()
-            
+
             # Cache the full API response for 24 hours
-            self._cache_api_response(user, date, data)
-            
+            self._cache_api_response(user, target_date, data)
+
             # Parse prayer times from the response
             prayer_times = self._parse_api_response_to_times(data)
-            self.logger.info(f"Cached API response for user {user.id} on {date}")
+            self.logger.info(f"Cached API response for user {user.id} on {target_date}")
 
             return prayer_times
 
@@ -572,15 +582,15 @@ class PrayerService(BaseService):
     def _parse_api_response_to_times(self, data: Dict[str, Any]) -> Dict[str, datetime.time]:
         """
         Parse API response data to extract prayer times.
-        
+
         Args:
             data: API response data.
-            
+
         Returns:
             Dictionary mapping prayer names to times.
         """
         timings = data.get('data', {}).get('timings', {})
-        
+
         # Parse prayer times
         prayer_times = {}
         prayer_names = ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha']
@@ -636,7 +646,7 @@ class PrayerService(BaseService):
             return []
 
     def _build_prayer_info(self, prayer: Prayer, completion: Optional[PrayerCompletion],
-                          user: User, date: datetime.date, current_time: datetime) -> Dict[str, Any]:
+                           user: User, prayer_date: date, current_time: datetime) -> Dict[str, Any]:
         """
         Build prayer information dictionary with completion status and validation.
 
@@ -644,43 +654,28 @@ class PrayerService(BaseService):
             prayer: Prayer instance.
             completion: Prayer completion instance if exists.
             user: User instance.
-            date: Date of the prayer.
+            prayer_date: Date of the prayer.
             current_time: Current datetime in user's timezone.
 
         Returns:
             Dict[str, Any]: Prayer information dictionary.
         """
         # Get prayer time status
-        time_status = self._get_prayer_time_status(prayer, user, date,current_time)
-        is_missed = (time_status == 'missed')
-        # Check if prayer time is valid for completion
-        can_complete, is_late = self._validate_prayer_time(prayer, user, current_time)
+        prayer_status, start_time, end_time = self._get_prayer_time_status(prayer, user, prayer_date, current_time)
 
-        # Determine if can mark as Qada
-        can_mark_qada = self._can_mark_qada(prayer, completion, time_status, user, date)
-
-        # Get prayer time window information
-        start_time, end_time = self._get_prayer_time_window(prayer)
-
-        # Use injected current time
-        now = current_time
-
-        # Determine prayer status (four-state system)
-        prayer_status = self._get_prayer_status(completion, time_status, can_complete)
-        status_color = self._get_status_color(prayer_status)
-        status_text = self._get_status_text(prayer_status)
+        status_color, status_text = self._get_status_color_and_text(prayer_status=prayer_status, completion=completion)
 
         prayer_info = {
             'id': prayer.id,
             'prayer_type': prayer.prayer_type.value,
             'prayer_time': prayer.prayer_time.strftime('%H:%M'),
-            'completed': completion is not None,
-            'can_complete': can_complete,
-            'is_missed': is_missed,
-            'can_mark_qada': can_mark_qada,
-            'is_late': is_late,
+            'completed': (completion is not None),
+            'can_complete': (completion is None) and (prayer_status in [PrayerStatus.ONGOING, PrayerStatus.MISSED]),
+            'is_missed': prayer_status == PrayerStatus.MISSED,
+            'can_mark_qada': (completion is None) and (prayer_status == PrayerStatus.MISSED),
+            'is_late': prayer_status == PrayerStatus.MISSED,
             'completion': completion.to_dict() if completion else None,
-            'prayer_status': prayer_status,
+            'prayer_status': prayer_status.value,
             'status_color': status_color,
             'status_text': status_text,
             'time_window': {
@@ -689,96 +684,38 @@ class PrayerService(BaseService):
                 'start_datetime': start_time.isoformat(),
                 'end_datetime': end_time.isoformat()
             },
-            'current_time': now.strftime('%H:%M'),
-            'time_status': self._get_time_status(now, start_time, end_time)
+            'current_time': current_time.strftime('%H:%M'),
         }
 
         return prayer_info
 
-    def _get_prayer_status(self, completion: Optional[PrayerCompletion], time_status: str, can_complete: bool) -> str:
-        """
-        Determine prayer status based on completion and timing.
-        
-        Args:
-            completion: Prayer completion instance if exists.
-            time_status: Time status ('future', 'pending', 'missed').
-            can_complete: Whether prayer can be completed now.
-            
-        Returns:
-            str: Prayer status ('future', 'pending', 'missed', 'completed', 'qada').
-        """
-        if completion is not None:
-            # Prayer has been marked
-            if completion.status == PrayerStatus.QADA:
-                return 'qada'  # Marked as Qada (yellow) - terminal state
-            elif completion.status == PrayerStatus.COMPLETE:
-                return 'completed'  # Completed within time window (green) - terminal state
-            elif completion.status == PrayerStatus.PENDING:
-                return 'pending'  # Marked as pending (blue) - can go to completed
-            elif completion.status == PrayerStatus.MISSED:
-                return 'missed'  # Marked as missed (red) - can go to qada
-            elif completion.status == PrayerStatus.FUTURE:
-                return 'future'  # Marked as future (gray) - waiting for prayer time
-        else:
-            # Prayer not marked yet - use time status
-            return time_status
 
-    def _get_status_color(self, prayer_status: str) -> str:
+    def _get_status_color_and_text(self, prayer_status: PrayerStatus, completion: PrayerCompletion) -> Tuple[str, str]:
         """
         Get color for prayer status.
-        
+
         Args:
             prayer_status: Prayer status string.
-            
+
         Returns:
             str: Color class name.
         """
-        color_map = {
-            'future': 'gray',        # Before prayer start time
-            'pending': 'blue',       # Can go to completed - within time window
-            'missed': 'red',         # Can go to qada - time window passed
-            'completed': 'green',    # Terminal state - completed within time window
-            'qada': 'yellow'         # Terminal state - completed as qada
-        }
-        return color_map.get(prayer_status, 'red')
+        if completion is not None:
+            # todo handle this
+            if completion.status == PrayerCompletionStatus.JAMAAT or completion.status == PrayerCompletionStatus.WITHOUT_JAMAAT:
+                return 'green', 'Completed'
+            if completion.status == PrayerCompletionStatus.MISSED:
+                return 'red', "Missed"
+            if completion.status == PrayerCompletionStatus.QADA:
+                return 'yellow', "Qada"
 
-    def _get_status_text(self, prayer_status: str) -> str:
-        """
-        Get display text for prayer status.
-        
-        Args:
-            prayer_status: Prayer status string.
-            
-        Returns:
-            str: Status text to display.
-        """
-        text_map = {
-            'future': 'Future',
-            'pending': 'In Progress',
-            'missed': 'Missed',
-            'completed': 'Completed',
-            'qada': 'Qada'
-        }
-        return text_map.get(prayer_status, 'Missed')
+        if prayer_status == PrayerStatus.FUTURE:
+            return 'gray', "Future"
 
-    def _get_time_status(self, current_time: datetime, start_time: datetime, end_time: datetime) -> str:
-        """
-        Get the current time status relative to prayer window.
-        
-        Args:
-            current_time: Current time in user timezone.
-            start_time: Prayer window start time.
-            end_time: Prayer window end time.
-            
-        Returns:
-            str: Time status ('before', 'during', 'after')
-        """
-        if current_time < start_time:
-            return 'before'
-        elif current_time <= end_time:
-            return 'during'
-        else:
-            return 'after'
+        if prayer_status == PrayerStatus.MISSED:
+            return 'red', PrayerStatus.MISSED.value
+        return 'blue', PrayerStatus.ONGOING.value
+
 
     def _validate_prayer_time(self, prayer: Prayer, user: User, current_time) -> Tuple[bool, bool]:
         """
@@ -814,21 +751,21 @@ class PrayerService(BaseService):
         """
         Get the valid time window for completing a prayer using Islamic methodology.
         Each prayer ends when the next prayer begins.
-        
+
         Args:
             prayer: Prayer instance.
-            
+
         Returns:
             Tuple[datetime, datetime]: (start_time, end_time) for the prayer window.
         """
         from app.models.prayer import PrayerType
-        
+
         # Get all prayer times for the same date including sunrise
         prayer_times = self._get_all_prayer_times_for_date(prayer.user, prayer.prayer_date)
-        
+
         # Get user timezone
         user_tz = pytz.timezone(prayer.user.timezone)
-        
+
         # Calculate start and end times (timezone-aware)
         # Ensure prayer_time is a datetime.time object
         if isinstance(prayer.prayer_time, str):
@@ -848,10 +785,10 @@ class PrayerService(BaseService):
                 return datetime.now(), datetime.now() + timedelta(hours=2)
         else:
             prayer_time_obj = prayer.prayer_time
-            
+
         prayer_datetime = datetime.combine(prayer.prayer_date, prayer_time_obj)
         start_time = user_tz.localize(prayer_datetime)
-        
+
         # Determine end time based on Islamic methodology
         if prayer.prayer_type == PrayerType.FAJR:
             # Fajr ends at Sunrise (use actual sunrise if available, otherwise Dhuhr as approximation)
@@ -859,12 +796,12 @@ class PrayerService(BaseService):
                 end_datetime = datetime.combine(prayer.prayer_date, prayer_times['Sunrise'])
                 end_time = user_tz.localize(end_datetime)
             elif PrayerType.DHUHR in prayer_times:
-                end_datetime = datetime.combine(prayer.prayer_date, prayer_times[PrayerType.DHUHR])
+                end_datetime = datetime.combine(prayer.prayer_date, prayer_times[PrayerType.DHUHR.value])
                 end_time = user_tz.localize(end_datetime)
             else:
                 # Fallback: 6 hours after Fajr (approximate sunrise)
                 end_time = start_time + timedelta(hours=6)
-                
+
         elif prayer.prayer_type == PrayerType.DHUHR:
             # Dhuhr ends at Asr
             if PrayerType.ASR in prayer_times:
@@ -873,7 +810,7 @@ class PrayerService(BaseService):
             else:
                 # Fallback: 3 hours after Dhuhr
                 end_time = start_time + timedelta(hours=3)
-                
+
         elif prayer.prayer_type == PrayerType.ASR:
             # Asr ends at Maghrib
             if PrayerType.MAGHRIB in prayer_times:
@@ -882,7 +819,7 @@ class PrayerService(BaseService):
             else:
                 # Fallback: 2 hours after Asr
                 end_time = start_time + timedelta(hours=2)
-                
+
         elif prayer.prayer_type == PrayerType.MAGHRIB:
             # Maghrib ends at Isha
             if PrayerType.ISHA in prayer_times:
@@ -891,13 +828,13 @@ class PrayerService(BaseService):
             else:
                 # Fallback: 30 minutes after Maghrib
                 end_time = start_time + timedelta(minutes=30)
-                
+
         elif prayer.prayer_type == PrayerType.ISHA:
             # Isha ends at next day's Fajr
             # For Isha, we need to set the end time to next day's Fajr (03:21)
             # Since Isha is typically at 19:21 and Fajr is at 05:21, we add 10 hours
             # But to be safe, let's add 8 hours and then add a day
-            end_time = start_time + timedelta(hours=8, days=1)
+            end_time = start_time + timedelta(hours=8, days=0)
         else:
             # Default fallback
             end_time = start_time + timedelta(hours=2)
@@ -905,7 +842,7 @@ class PrayerService(BaseService):
         return start_time, end_time
 
 
-    def _get_prayer_time_status(self, prayer: Prayer, user: User, date: datetime.date,current_time) -> str:
+    def _get_prayer_time_status(self, prayer: Prayer, user: User, date: date,current_time) -> Tuple[PrayerStatus, datetime, datetime]:
         """
         Get the prayer time status based on current time relative to prayer window.
 
@@ -923,14 +860,12 @@ class PrayerService(BaseService):
 
             # Get prayer time window
             start_time, end_time = self._get_prayer_time_window(prayer)
-
             # Determine status based on current time
             if now < start_time:
-                return 'future'  # Before prayer start time
-            elif now <= end_time:
-                return 'pending'  # Between start and end time
-            else:
-                return 'missed'  # After prayer end time
+                return PrayerStatus.FUTURE, start_time, end_time  # Before prayer start time
+            if end_time >= now >= start_time:
+                return PrayerStatus.ONGOING , start_time, end_time # Between start and end time
+            return PrayerStatus.MISSED, start_time, end_time  # After prayer end time
 
         except Exception as e:
             self.logger.error(f"Error getting prayer time status: {str(e)}")
@@ -960,7 +895,7 @@ class PrayerService(BaseService):
             return True
 
         # Can mark Qada if prayer is marked as missed
-        if completion and completion.status == PrayerStatus.MISSED:
+        if completion and completion.status == PrayerCompletionStatus.MISSED:
             return True
 
         return False
@@ -1001,7 +936,7 @@ class PrayerService(BaseService):
                     prayer_id=prayer.id,
                     user_id=user.id,
                     marked_at=None,  # No timestamp for missed prayers
-                    status=PrayerStatus.MISSED
+                    status=PrayerCompletionStatus.MISSED
                 )
                 return True
 
@@ -1014,12 +949,12 @@ class PrayerService(BaseService):
     def _is_prayer_missed(self, prayer: Prayer, user: User, date: datetime.date, current_time) -> bool:
         """
         Check if a prayer is missed based on current time.
-        
+
         Args:
             prayer: Prayer instance.
             user: User instance.
             date: Date of the prayer.
-            
+
         Returns:
             bool: True if prayer is missed, False otherwise.
         """
@@ -1034,10 +969,10 @@ class PrayerService(BaseService):
     def get_user_statistics(self, user_id: int) -> Dict[str, Any]:
         """
         Get prayer completion statistics for a user.
-        
+
         Args:
             user_id: The ID of the user
-            
+
         Returns:
             Dict containing prayer statistics
         """
@@ -1048,13 +983,13 @@ class PrayerService(BaseService):
                     'success': False,
                     'error': 'User not found'
                 }
-            
+
             # Get today's date
             today = datetime.now().date()
-            
+
             # Get prayer completions for the last 30 days
             thirty_days_ago = today - timedelta(days=30)
-            
+
             # Query prayer completions
             completions = self.db.session.query(PrayerCompletion).join(Prayer).filter(
                 Prayer.user_id == user_id,
@@ -1063,14 +998,14 @@ class PrayerService(BaseService):
             
             # Calculate statistics
             total_prayers = len(completions)
-            completed_prayers = len([c for c in completions if c.status == PrayerStatus.COMPLETE])
-            qada_prayers = len([c for c in completions if c.status == PrayerStatus.QADA])
+            completed_prayers = len([c for c in completions if c.status == PrayerCompletionStatus.COMPLETE])
+            qada_prayers = len([c for c in completions if c.status == PrayerCompletionStatus.QADA])
             
             completion_rate = (completed_prayers / total_prayers * 100) if total_prayers > 0 else 0
             
             # Get today's statistics
             today_completions = [c for c in completions if c.prayer.prayer_date == today]
-            today_completed = len([c for c in today_completions if c.status == PrayerStatus.COMPLETE])
+            today_completed = len([c for c in today_completions if c.status == PrayerCompletionStatus.COMPLETE])
             today_total = len(today_completions)
             today_rate = (today_completed / today_total * 100) if today_total > 0 else 0
             

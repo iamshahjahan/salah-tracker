@@ -126,6 +126,12 @@ def mark_prayer_qada():
     """Mark a prayer as Qada (missed prayer)"""
     try:
         user_id = get_jwt_identity()
+
+        user = User.query.get(user_id)
+
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+
         data = request.get_json()
         
         if not data or 'prayer_id' not in data:
@@ -136,8 +142,10 @@ def mark_prayer_qada():
         # Use the modern service layer
         config = get_config()
         prayer_service = PrayerService(config)
+        user_tz = pytz.timezone(user.timezone)
+        current_time = datetime.now(user_tz)
         
-        result = prayer_service.mark_prayer_qada(user_id, prayer_id)
+        result = prayer_service.mark_prayer_qada(user_id, prayer_id, current_time)
         
         if not result.get('success'):
             return jsonify({'error': result.get('error', 'Failed to mark prayer as Qada')}), 400

@@ -10,6 +10,7 @@ Feature: Prayer State Matrix - Comprehensive Date and Time Validation
   @smoke @api @matrix @comprehensive
   Scenario Outline: Prayer state validation matrix
     Given I am checking the prayer times of "<date>" at time "<datetime>"
+    # Prayer state checks
     Then the Fajr prayer should be in "<fajr_state>" state
     And the Dhuhr prayer should be in "<dhuhr_state>" state
     And the Asr prayer should be in "<asr_state>" state
@@ -17,144 +18,23 @@ Feature: Prayer State Matrix - Comprehensive Date and Time Validation
     And the Isha prayer should be in "<isha_state>" state
 
     Examples: Prayer States Matrix
-      | timezone        | date       | datetime            | fajr_state | dhuhr_state | asr_state | maghrib_state | isha_state |
-      # Summer Solstice (Longest Day) - June 21, 2025
-      | Asia/Kolkata    | 2025-06-21 | 2025-06-20 04:30    | future     | future      | future    | future        | future     |
-      | Asia/Kolkata    | 2025-06-21 | 2025-06-21 05:00    | pending    | future      | future    | future        | future     |
-      | Asia/Kolkata    | 2025-06-21 | 2025-06-21 07:00    | missed    | future      | future    | future        | future     |
-      | Asia/Kolkata    | 2025-06-21 | 2025-06-21 13:00    | missed    | pending     | future    | future        | future     |
-      | Asia/Kolkata    | 2025-06-21 | 2025-06-21 14:00    | missed    | pending     | future    | future        | future     |
-      | Asia/Kolkata    | 2025-06-21 | 2025-06-21 16:00    | missed    | missed     | pending   | future        | future     |
-      | Asia/Kolkata    | 2025-06-21 | 2025-06-21 17:00    | missed    | missed     | pending   | future        | future     |
-      | Asia/Kolkata    | 2025-06-21 | 2025-06-21 18:00    | missed    | missed     | missed   | future        | future     |
-      | Asia/Kolkata    | 2025-06-21 | 2025-06-21 19:00    | missed    | missed     | missed   | pending        | future     |
-      | Asia/Kolkata    | 2025-06-21 | 2025-06-21 20:00    | missed    | missed     | missed   | missed        | pending     |
-      | Asia/Kolkata    | 2025-06-21 | 2025-06-21 21:00    | missed    | missed     | missed   | missed        | pending     |
-      | Asia/Kolkata    | 2025-06-21 | 2025-06-21 22:00    | missed    | missed     | missed   | missed        | pending     |
-      | Asia/Kolkata    | 2025-06-21 | 2025-06-21 23:00    | missed    | missed     | missed   | missed        | pending     |
-      | Asia/Kolkata    | 2025-06-21 | 2025-06-22 00:00    | missed    | missed     | missed   | missed        | pending     |
-      | Asia/Kolkata    | 2025-06-21 | 2025-06-22 01:00    | missed    | missed     | missed   | missed        | pending     |
-      | Asia/Kolkata    | 2025-06-21 | 2025-06-22 02:00    | missed    | missed     | missed   | missed        | pending     |
-      | Asia/Kolkata    | 2025-06-21 | 2025-06-22 03:00    | missed    | missed     | missed   | missed        | pending     |
-      | Asia/Kolkata    | 2025-06-21 | 2025-06-22 04:00    | missed    | missed     | missed   | missed        | pending     |
-
-#
-#      # Winter Solstice (Shortest Day) - December 21, 2025
-#      | Asia/Kolkata    | 2025-12-21 | 2025-12-21 04:00    | future     | future      | future    | future        | future     |
-#      | Asia/Kolkata    | 2025-12-21 | 2025-12-21 05:00    | future     | future      | future    | future        | future     |
-#      | Asia/Kolkata    | 2025-12-21 | 2025-12-21 06:00    | pending    | future      | future    | future        | future     |
-#      | Asia/Kolkata    | 2025-12-21 | 2025-12-21 07:00    | pending    | future      | future    | future        | future     |
-#      | Asia/Kolkata    | 2025-12-21 | 2025-12-21 08:00    | pending    | future      | future    | future        | future     |
-#      | Asia/Kolkata    | 2025-12-21 | 2025-12-21 09:00    | pending    | future      | future    | future        | future     |
-#      | Asia/Kolkata    | 2025-12-21 | 2025-12-21 10:00    | pending    | future      | future    | future        | future     |
-#      | Asia/Kolkata    | 2025-12-21 | 2025-12-21 11:00    | pending    | future      | future    | future        | future     |
-#      | Asia/Kolkata    | 2025-12-21 | 2025-12-21 12:00    | pending    | future      | future    | future        | future     |
-#      | Asia/Kolkata    | 2025-12-21 | 2025-12-21 12:30    | pending    | pending     | future    | future        | future     |
-#      | Asia/Kolkata    | 2025-12-21 | 2025-12-21 13:00    | pending    | pending     | future    | future        | future     |
-#      | Asia/Kolkata    | 2025-12-21 | 2025-12-21 14:00    | pending    | pending     | future    | future        | future     |
-#      | Asia/Kolkata    | 2025-12-21 | 2025-12-21 15:00    | pending    | pending     | future    | future        | future     |
-#      | Asia/Kolkata    | 2025-12-21 | 2025-12-21 15:30    | pending    | pending     | future    | future        | future     |
-#      | Asia/Kolkata    | 2025-12-21 | 2025-12-21 16:00    | pending    | pending     | pending   | future        | future     |
-#      | Asia/Kolkata    | 2025-12-21 | 2025-12-21 17:00    | pending    | pending     | pending   | future        | future     |
-#      | Asia/Kolkata    | 2025-12-21 | 2025-12-21 18:00    | pending    | pending     | pending   | future        | future     |
-#      | Asia/Kolkata    | 2025-12-21 | 2025-12-21 18:30    | pending    | pending     | pending   | pending       | future     |
-#      | Asia/Kolkata    | 2025-12-21 | 2025-12-21 19:00    | pending    | pending     | pending   | pending       | pending    |
-#      | Asia/Kolkata    | 2025-12-21 | 2025-12-21 20:00    | pending    | pending     | pending   | pending       | pending    |
-#      | Asia/Kolkata    | 2025-12-21 | 2025-12-21 21:00    | pending    | pending     | pending   | pending       | pending    |
-#      | Asia/Kolkata    | 2025-12-21 | 2025-12-21 22:00    | pending    | pending     | pending   | pending       | pending    |
-#      | Asia/Kolkata    | 2025-12-21 | 2025-12-21 23:00    | pending    | pending     | pending   | pending       | pending    |
-#
-#      # Spring Equinox - March 20, 2025
-#      | Asia/Kolkata    | 2025-03-20 | 2025-03-20 03:30    | future     | future      | future    | future        | future     |
-#      | Asia/Kolkata    | 2025-03-20 | 2025-03-20 05:00    | pending    | future      | future    | future        | future     |
-#      | Asia/Kolkata    | 2025-03-20 | 2025-03-20 12:00    | pending    | future      | future    | future        | future     |
-#      | Asia/Kolkata    | 2025-03-20 | 2025-03-20 12:30    | pending    | pending     | future    | future        | future     |
-#      | Asia/Kolkata    | 2025-03-20 | 2025-03-20 15:30    | pending    | pending     | future    | future        | future     |
-#      | Asia/Kolkata    | 2025-03-20 | 2025-03-20 16:00    | pending    | pending     | pending   | future        | future     |
-#      | Asia/Kolkata    | 2025-03-20 | 2025-03-20 18:00    | pending    | pending     | pending   | future        | future     |
-#      | Asia/Kolkata    | 2025-03-20 | 2025-03-20 18:30    | pending    | pending     | pending   | pending       | future     |
-#      | Asia/Kolkata    | 2025-03-20 | 2025-03-20 19:00    | pending    | pending     | pending   | pending       | pending    |
-#      | Asia/Kolkata    | 2025-03-20 | 2025-03-20 20:00    | pending    | pending     | pending   | pending       | pending    |
-#
-#      # Fall Equinox - September 22, 2025
-#      | Asia/Kolkata    | 2025-09-22 | 2025-09-22 04:00    | future     | future      | future    | future        | future     |
-#      | Asia/Kolkata    | 2025-09-22 | 2025-09-22 05:30    | pending    | future      | future    | future        | future     |
-#      | Asia/Kolkata    | 2025-09-22 | 2025-09-22 12:00    | pending    | future      | future    | future        | future     |
-#      | Asia/Kolkata    | 2025-09-22 | 2025-09-22 12:30    | pending    | pending     | future    | future        | future     |
-#      | Asia/Kolkata    | 2025-09-22 | 2025-09-22 15:30    | pending    | pending     | future    | future        | future     |
-#      | Asia/Kolkata    | 2025-09-22 | 2025-09-22 16:00    | pending    | pending     | pending   | future        | future     |
-#      | Asia/Kolkata    | 2025-09-22 | 2025-09-22 18:00    | pending    | pending     | pending   | future        | future     |
-#      | Asia/Kolkata    | 2025-09-22 | 2025-09-22 18:30    | pending    | pending     | pending   | pending       | future     |
-#      | Asia/Kolkata    | 2025-09-22 | 2025-09-22 19:00    | pending    | pending     | pending   | pending       | pending    |
-#      | Asia/Kolkata    | 2025-09-22 | 2025-09-22 20:00    | pending    | pending     | pending   | pending       | pending    |
-#
-#      # Different Timezones - New York (EST/EDT)
-#      | America/New_York| 2025-06-21 | 2025-06-21 03:00    | future     | future      | future    | future        | future     |
-#      | America/New_York| 2025-06-21 | 2025-06-21 05:00    | pending    | future      | future    | future        | future     |
-#      | America/New_York| 2025-06-21 | 2025-06-21 12:00    | pending    | future      | future    | future        | future     |
-#      | America/New_York| 2025-06-21 | 2025-06-21 12:30    | pending    | pending     | future    | future        | future     |
-#      | America/New_York| 2025-06-21 | 2025-06-21 15:30    | pending    | pending     | future    | future        | future     |
-#      | America/New_York| 2025-06-21 | 2025-06-21 16:00    | pending    | pending     | pending   | future        | future     |
-#      | America/New_York| 2025-06-21 | 2025-06-21 18:00    | pending    | pending     | pending   | future        | future     |
-#      | America/New_York| 2025-06-21 | 2025-06-21 18:30    | pending    | pending     | pending   | pending       | future     |
-#      | America/New_York| 2025-06-21 | 2025-06-21 19:00    | pending    | pending     | pending   | pending       | pending    |
-#      | America/New_York| 2025-06-21 | 2025-06-21 20:00    | pending    | pending     | pending   | pending       | pending    |
-#
-#      # Different Timezones - London (GMT/BST)
-#      | Europe/London   | 2025-06-21 | 2025-06-21 02:00    | future     | future      | future    | future        | future     |
-#      | Europe/London   | 2025-06-21 | 2025-06-21 04:00    | pending    | future      | future    | future        | future     |
-#      | Europe/London   | 2025-06-21 | 2025-06-21 12:00    | pending    | future      | future    | future        | future     |
-#      | Europe/London   | 2025-06-21 | 2025-06-21 12:30    | pending    | pending     | future    | future        | future     |
-#      | Europe/London   | 2025-06-21 | 2025-06-21 15:30    | pending    | pending     | future    | future        | future     |
-#      | Europe/London   | 2025-06-21 | 2025-06-21 16:00    | pending    | pending     | pending   | future        | future     |
-#      | Europe/London   | 2025-06-21 | 2025-06-21 18:00    | pending    | pending     | pending   | future        | future     |
-#      | Europe/London   | 2025-06-21 | 2025-06-21 18:30    | pending    | pending     | pending   | pending       | future     |
-#      | Europe/London   | 2025-06-21 | 2025-06-21 19:00    | pending    | pending     | pending   | pending       | pending    |
-#      | Europe/London   | 2025-06-21 | 2025-06-21 20:00    | pending    | pending     | pending   | pending       | pending    |
-#
-#      # Different Timezones - Dubai (GST)
-#      | Asia/Dubai      | 2025-06-21 | 2025-06-21 03:00    | future     | future      | future    | future        | future     |
-#      | Asia/Dubai      | 2025-06-21 | 2025-06-21 05:00    | pending    | future      | future    | future        | future     |
-#      | Asia/Dubai      | 2025-06-21 | 2025-06-21 12:00    | pending    | future      | future    | future        | future     |
-#      | Asia/Dubai      | 2025-06-21 | 2025-06-21 12:30    | pending    | pending     | future    | future        | future     |
-#      | Asia/Dubai      | 2025-06-21 | 2025-06-21 15:30    | pending    | pending     | future    | future        | future     |
-#      | Asia/Dubai      | 2025-06-21 | 2025-06-21 16:00    | pending    | pending     | pending   | future        | future     |
-#      | Asia/Dubai      | 2025-06-21 | 2025-06-21 18:00    | pending    | pending     | pending   | future        | future     |
-#      | Asia/Dubai      | 2025-06-21 | 2025-06-21 18:30    | pending    | pending     | pending   | pending       | future     |
-#      | Asia/Dubai      | 2025-06-21 | 2025-06-21 19:00    | pending    | pending     | pending   | pending       | pending    |
-#      | Asia/Dubai      | 2025-06-21 | 2025-06-21 20:00    | pending    | pending     | pending   | pending       | pending    |
-#
-#      # Edge Cases - Midnight Transitions
-#      | Asia/Kolkata    | 2025-06-21 | 2025-06-21 23:59    | pending    | pending     | pending   | pending       | pending    |
-#      | Asia/Kolkata    | 2025-06-22 | 2025-06-22 00:00    | pending    | pending     | pending   | pending       | pending    |
-#      | Asia/Kolkata    | 2025-06-22 | 2025-06-22 00:30    | pending    | pending     | pending   | pending       | pending    |
-#      | Asia/Kolkata    | 2025-06-22 | 2025-06-22 01:00    | pending    | pending     | pending   | pending       | pending    |
-#      | Asia/Kolkata    | 2025-06-22 | 2025-06-22 02:00    | pending    | pending     | pending   | pending       | pending    |
-#      | Asia/Kolkata    | 2025-06-22 | 2025-06-22 03:00    | pending    | pending     | pending   | pending       | pending    |
-#      | Asia/Kolkata    | 2025-06-22 | 2025-06-22 04:00    | pending    | pending     | pending   | pending       | pending    |
-#      | Asia/Kolkata    | 2025-06-22 | 2025-06-22 05:00    | pending    | pending     | pending   | pending       | pending    |
-#      | Asia/Kolkata    | 2025-06-22 | 2025-06-22 05:30    | pending    | pending     | pending   | pending       | pending    |
-#      | Asia/Kolkata    | 2025-06-22 | 2025-06-22 06:00    | pending    | future      | future    | future        | future     |
-#
-#      # Edge Cases - Leap Year
-#      | Asia/Kolkata    | 2024-02-29 | 2024-02-29 05:00    | pending    | future      | future    | future        | future     |
-#      | Asia/Kolkata    | 2024-02-29 | 2024-02-29 12:00    | pending    | future      | future    | future        | future     |
-#      | Asia/Kolkata    | 2024-02-29 | 2024-02-29 12:30    | pending    | pending     | future    | future        | future     |
-#      | Asia/Kolkata    | 2024-02-29 | 2024-02-29 15:30    | pending    | pending     | future    | future        | future     |
-#      | Asia/Kolkata    | 2024-02-29 | 2024-02-29 16:00    | pending    | pending     | pending   | future        | future     |
-#      | Asia/Kolkata    | 2024-02-29 | 2024-02-29 18:00    | pending    | pending     | pending   | future        | future     |
-#      | Asia/Kolkata    | 2024-02-29 | 2024-02-29 18:30    | pending    | pending     | pending   | pending       | future     |
-#      | Asia/Kolkata    | 2024-02-29 | 2024-02-29 19:00    | pending    | pending     | pending   | pending       | pending    |
-#      | Asia/Kolkata    | 2024-02-29 | 2024-02-29 20:00    | pending    | pending     | pending   | pending       | pending    |
-#
-#      # Edge Cases - Year End/Start
-#      | Asia/Kolkata    | 2024-12-31 | 2024-12-31 23:59    | pending    | pending     | pending   | pending       | pending    |
-#      | Asia/Kolkata    | 2025-01-01 | 2025-01-01 00:00    | pending    | pending     | pending   | pending       | pending    |
-#      | Asia/Kolkata    | 2025-01-01 | 2025-01-01 00:30    | pending    | pending     | pending   | pending       | pending    |
-#      | Asia/Kolkata    | 2025-01-01 | 2025-01-01 01:00    | pending    | pending     | pending   | pending       | pending    |
-#      | Asia/Kolkata    | 2025-01-01 | 2025-01-01 02:00    | pending    | pending     | pending   | pending       | pending    |
-#      | Asia/Kolkata    | 2025-01-01 | 2025-01-01 03:00    | pending    | pending     | pending   | pending       | pending    |
-#      | Asia/Kolkata    | 2025-01-01 | 2025-01-01 04:00    | pending    | pending     | pending   | pending       | pending    |
-#      | Asia/Kolkata    | 2025-01-01 | 2025-01-01 05:00    | pending    | pending     | pending   | pending       | pending    |
-#      | Asia/Kolkata    | 2025-01-01 | 2025-01-01 05:30    | pending    | pending     | pending   | pending       | pending    |
-#      | Asia/Kolkata    | 2025-01-01 | 2025-01-01 06:00    | pending    | future      | future    | future        | future     |
+  | timezone     | date       | datetime         | fajr_state | dhuhr_state | asr_state | maghrib_state | isha_state | fajr_completed | fajr_can_complete | fajr_is_missed | fajr_can_mark_qada | fajr_is_late | fajr_prayer_status | fajr_status_color | fajr_status_text | dhuhr_completed | dhuhr_can_complete | dhuhr_is_missed | dhuhr_can_mark_qada | dhuhr_is_late | dhuhr_prayer_status | dhuhr_status_color | dhuhr_status_text | asr_completed | asr_can_complete | asr_is_missed | asr_can_mark_qada | asr_is_late | asr_prayer_status | asr_status_color | asr_status_text | maghrib_completed | maghrib_can_complete | maghrib_is_missed | maghrib_can_mark_qada | maghrib_is_late | maghrib_prayer_status | maghrib_status_color | maghrib_status_text | isha_completed | isha_can_complete | isha_is_missed | isha_can_mark_qada | isha_is_late | isha_prayer_status | isha_status_color | isha_status_text |
+  # Summer Solstice (Longest Day) - June 21, 2025
+  | Asia/Kolkata | 2025-06-21 | 2025-06-20 04:30 | future     | future      | future    | future        | future     | false          | false             | false          | false              | false        | future             | gray              | future         | false           | false              | false           | false               | false          | future             | gray               | future          | false          | false             | false          | false              | false        | future             | gray              | future        | false             | false                 | false               | false                 | false             | future                | gray                  | future            | false          | false              | false           | false              | false        | future             | gray              | future        |
+  | Asia/Kolkata | 2025-06-21 | 2025-06-21 05:00 | ongoing    | future      | future    | future        | future     | false          | true              | false          | false              | false        | ongoing            | blue              | Ongoing          | false           | false              | false           | false               | false          | future             | gray               | future          | false          | false             | false          | false              | false        | future             | gray              | future        | false             | false                 | false               | false                 | false             | future                | gray                  | future            | false          | false              | false           | false              | false        | future             | gray              | future        |
+  | Asia/Kolkata | 2025-06-21 | 2025-06-21 07:00 | missed     | future      | future    | future        | future     | false          | true              | true           | true               | true         | missed             | red               | Missed           | false           | false              | false           | false               | false          | future             | gray               | future          | false          | false             | false          | false              | false        | future             | gray              | future        | false             | false                 | false               | false                 | false             | future                | gray                  | future            | false          | false              | false           | false              | false        | future             | gray              | future        |
+  | Asia/Kolkata | 2025-06-21 | 2025-06-21 13:00 | missed     | ongoing     | future    | future        | future     | false          | true              | true           | true               | true         | missed             | red               | Missed           | false           | true               | false           | false               | false          | ongoing            | blue               | Ongoing           | false          | false             | false          | false              | false        | future             | gray              | future        | false             | false                 | false               | false                 | false             | future                | gray                  | future            | false          | false              | false           | false              | false        | future             | gray              | future        |
+  | Asia/Kolkata | 2025-06-21 | 2025-06-21 14:00 | missed     | ongoing     | future    | future        | future     | false          | true              | true           | true               | true         | missed             | red               | Missed           | false           | true               | false           | false               | false          | ongoing            | blue               | Ongoing           | false          | false             | false          | false              | false        | future             | gray              | future        | false             | false                 | false               | false                 | false             | future                | gray                  | future            | false          | false              | false           | false              | false        | future             | gray              | future        |
+  | Asia/Kolkata | 2025-06-21 | 2025-06-21 16:00 | missed     | missed      | ongoing   | future        | future     | false          | true              | true           | true               | true         | missed             | red               | Missed           | false           | true               | true            | true                | true           | missed             | red                | Missed            | false          | true              | false          | false              | false        | ongoing            | blue              | Ongoing         | false             | false                 | false               | false                 | false             | future                | gray                  | future            | false          | false              | false           | false              | false        | future             | gray              | future        |
+  | Asia/Kolkata | 2025-06-21 | 2025-06-21 17:00 | missed     | missed      | ongoing   | future        | future     | false          | true              | true           | true               | true         | missed             | red               | Missed           | false           | true               | true            | true                | true           | missed             | red                | Missed            | false          | true              | false          | false              | false        | ongoing            | blue              | Ongoing         | false             | false                 | false               | false                 | false             | future                | gray                  | future            | false          | false              | false           | false              | false        | future             | gray              | future        |
+  | Asia/Kolkata | 2025-06-21 | 2025-06-21 18:00 | missed     | missed      | missed    | future        | future     | false          | true              | true           | true               | true         | missed             | red               | Missed           | false           | true               | true            | true                | true           | missed             | red                | Missed            | false          | true              | true           | true               | true         | missed             | red               | Missed          | false             | false                 | false               | false                 | false             | future                | gray                  | future            | false          | false              | false           | false              | false        | future             | gray              | future        |
+  | Asia/Kolkata | 2025-06-21 | 2025-06-21 19:00 | missed     | missed      | missed    | ongoing       | future     | false          | true              | true           | true               | true         | missed             | red               | Missed           | false           | true               | true            | true                | true           | missed             | red                | Missed            | false          | true              | true           | true               | true         | missed             | red               | Missed          | false             | true                  | false               | false                 | false             | ongoing               | blue                  | Ongoing             | false          | false              | false           | false              | false        | future             | gray              | future        |
+  | Asia/Kolkata | 2025-06-21 | 2025-06-21 20:00 | missed     | missed      | missed    | missed        | ongoing    | false          | true              | true           | true               | true         | missed             | red               | Missed           | false           | true               | true            | true                | true           | missed             | red                | Missed            | false          | true              | true           | true               | true         | missed             | red               | Missed          | false             | true                  | true                | true                  | true              | missed                | red                   | Missed              | false          | true               | false           | false              | false        | ongoing            | blue              | Ongoing         |
+  | Asia/Kolkata | 2025-06-21 | 2025-06-21 21:00 | missed     | missed      | missed    | missed        | ongoing    | false          | true              | true           | true               | true         | missed             | red               | Missed           | false           | true               | true            | true                | true           | missed             | red                | Missed            | false          | true              | true           | true               | true         | missed             | red               | Missed          | false             | true                  | true                | true                  | true              | missed                | red                   | Missed              | false          | true               | false           | false              | false        | ongoing            | blue              | Ongoing         |
+  | Asia/Kolkata | 2025-06-21 | 2025-06-21 22:00 | missed     | missed      | missed    | missed        | ongoing    | false          | true              | true           | true               | true         | missed             | red               | Missed           | false           | true               | true            | true                | true           | missed             | red                | Missed            | false          | true              | true           | true               | true         | missed             | red               | Missed          | false             | true                  | true                | true                  | true              | missed                | red                   | Missed              | false          | true               | false           | false              | false        | ongoing            | blue              | Ongoing         |
+  | Asia/Kolkata | 2025-06-21 | 2025-06-21 23:00 | missed     | missed      | missed    | missed        | ongoing    | false          | true              | true           | true               | true         | missed             | red               | Missed           | false           | true               | true            | true                | true           | missed             | red                | Missed            | false          | true              | true           | true               | true         | missed             | red               | Missed          | false             | true                  | true                | true                  | true              | missed                | red                   | Missed              | false          | true               | false           | false              | false        | ongoing            | blue              | Ongoing         |
+  | Asia/Kolkata | 2025-06-21 | 2025-06-22 00:00 | missed     | missed      | missed    | missed        | ongoing    | false          | true              | true           | true               | true         | missed             | red               | Missed           | false           | true               | true            | true                | true           | missed             | red                | Missed            | false          | true              | true           | true               | true         | missed             | red               | Missed          | false             | true                  | true                | true                  | true              | missed                | red                   | Missed              | false          | true               | false           | false              | false        | ongoing            | blue              | Ongoing         |
+  | Asia/Kolkata | 2025-06-21 | 2025-06-22 01:00 | missed     | missed      | missed    | missed        | ongoing    | false          | true              | true           | true               | true         | missed             | red               | Missed           | false           | true               | true            | true                | true           | missed             | red                | Missed            | false          | true              | true           | true               | true         | missed             | red               | Missed          | false             | true                  | true                | true                  | true              | missed                | red                   | Missed              | false          | true               | false           | false              | false        | ongoing            | blue              | Ongoing         |
+  | Asia/Kolkata | 2025-06-21 | 2025-06-22 02:00 | missed     | missed      | missed    | missed        | ongoing    | false          | true              | true           | true               | true         | missed             | red               | Missed           | false           | true               | true            | true                | true           | missed             | red                | Missed            | false          | true              | true           | true               | true         | missed             | red               | Missed          | false             | true                  | true                | true                  | true              | missed                | red                   | Missed              | false          | true               | false           | false              | false        | ongoing            | blue              | Ongoing         |
+  | Asia/Kolkata | 2025-06-21 | 2025-06-22 03:00 | missed     | missed      | missed    | missed        | ongoing    | false          | true              | true           | true               | true         | missed             | red               | Missed           | false           | true               | true            | true                | true           | missed             | red                | Missed            | false          | true              | true           | true               | true         | missed             | red               | Missed          | false             | true                  | true                | true                  | true              | missed                | red                   | Missed              | false          | true               | false           | false              | false        | ongoing            | blue              | Ongoing         |
+  | Asia/Kolkata | 2025-06-21 | 2025-06-22 04:00 | missed     | missed      | missed    | missed        | missed    | false          | true              | true           | true               | true         | missed             | red               | Missed           | false           | true               | true            | true                | true           | missed             | red                | Missed            | false          | true              | true           | true               | true         | missed             | red               | Missed          | false             | true                  | true                | true                  | true              | missed                | red                   | Missed              | false          | true               | true           | true              | true        | missed            | red              | missed         |

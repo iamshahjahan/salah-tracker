@@ -4,7 +4,7 @@ Step definitions for time-based prayer state testing.
 
 from behave import given, when, then
 from app.models.user import User
-from app.models.prayer import Prayer, PrayerCompletion, PrayerStatus, PrayerType
+from app.models.prayer import Prayer, PrayerCompletion, PrayerCompletionStatus, PrayerType
 from app.services.cache_service import CacheService
 from app.services.prayer_service import PrayerService
 from config.database import db
@@ -118,15 +118,43 @@ def step_check_prayer_status(context, prayer_name):
 
 @then('the {prayer_name} prayer should be in "{expected_status}" state')
 def step_prayer_should_be_in_state(context, prayer_name, expected_status):
-    """Verify prayer is in expected state."""
-    for prayer_info in context.prayer_times['prayers']:
-        if prayer_info.get('prayer_type') == prayer_name:
+    """Verify prayer is in expected state and validate metadata."""
+    # Find the prayer entry for the given prayer_name
+    prayer_info = next(
+        (p for p in context.prayer_times['prayers'] if p.get('prayer_type').upper() == prayer_name.upper()), None
+    )
+    assert prayer_info, f"Prayer {prayer_name} not found in response."
 
-            actual_status = prayer_info.get('prayer_status')
-            assert actual_status == expected_status, (
-                f"Expected {prayer_name} to be in '{expected_status}' state, "
-                f"but got '{actual_status}'"
-            )
+    # Check the main state (prayer_status)
+    actual_status = prayer_info.get('prayer_status')
+    assert actual_status == expected_status, (
+        f"Expected {prayer_name} to be in '{expected_status}' state, "
+        f"but got '{actual_status}'"
+    )
+
+    # Now check all metadata fields from the Examples table
+    # We dynamically build the placeholder keys based on the prayer name
+    key_prefix = prayer_name.lower()
+    expected_fields = {
+        "completed": context.active_outline.get(f"{key_prefix}_completed"),
+        "can_complete": context.active_outline.get(f"{key_prefix}_can_complete"),
+        "is_missed": context.active_outline.get(f"{key_prefix}_is_missed"),
+        "can_mark_qada": context.active_outline.get(f"{key_prefix}_can_mark_qada"),
+        "is_late": context.active_outline.get(f"{key_prefix}_is_late"),
+        # "prayer_status": context.active_outline.get(f"{key_prefix}_prayer_status"),
+        "status_color": context.active_outline.get(f"{key_prefix}_status_color"),
+        "status_text": context.active_outline.get(f"{key_prefix}_status_text"),
+    }
+
+    for field, expected_value in expected_fields.items():
+        if expected_value is None:
+            continue  # Skip if not defined in the Examples
+        actual_value = str(prayer_info[field]).lower()
+        expected_value = str(expected_value).lower()
+        assert actual_value == expected_value, (
+            f"For {prayer_name}, expected {field}='{expected_value}', "
+            f"but got '{actual_value}'"
+        )
 
 
 @then('I should be able to complete the {prayer_name} prayer')
@@ -188,36 +216,36 @@ def step_prayer_in_state(context, prayer_name, status):
             completion = PrayerCompletion(
                 prayer_id=prayer.id,
                 user_id=context.current_user.id,
-                status=PrayerStatus.COMPLETE,
+                status=PrayerCompletionStatus.COMPLETE,
                 marked_at=datetime.now(pytz.UTC)
             )
             context.db.session.add(completion)
         else:
-            existing_completion.status = PrayerStatus.COMPLETE
+            existing_completion.status = PrayerCompletionStatus.COMPLETE
             existing_completion.marked_at = datetime.now(pytz.UTC)
     elif status == "missed":
         if not existing_completion:
             completion = PrayerCompletion(
                 prayer_id=prayer.id,
                 user_id=context.current_user.id,
-                status=PrayerStatus.MISSED,
+                status=PrayerCompletionStatus.MISSED,
                 marked_at=None
             )
             context.db.session.add(completion)
         else:
-            existing_completion.status = PrayerStatus.MISSED
+            existing_completion.status = PrayerCompletionStatus.MISSED
             existing_completion.marked_at = None
     elif status == "qada":
         if not existing_completion:
             completion = PrayerCompletion(
                 prayer_id=prayer.id,
                 user_id=context.current_user.id,
-                status=PrayerStatus.QADA,
+                status=PrayerCompletionStatus.QADA,
                 marked_at=datetime.now(pytz.UTC)
             )
             context.db.session.add(completion)
         else:
-            existing_completion.status = PrayerStatus.QADA
+            existing_completion.status = PrayerCompletionStatus.QADA
             existing_completion.marked_at = datetime.now(pytz.UTC)
     elif status == "pending":
         if existing_completion:
@@ -229,22 +257,21 @@ def step_prayer_in_state(context, prayer_name, status):
 @when('I mark the {prayer_name} prayer as completed')
 def step_mark_prayer_completed(context, prayer_name):
     """Mark prayer as completed."""
-    prayer_type = PrayerType[prayer_name.upper()]
-    
-    # Find the prayer record
-    prayer = Prayer.query.filter_by(
-        user_id=context.current_user.id,
-        prayer_type=prayer_type,
-        prayer_date=context.current_time.date()
-    ).first()
-    
-    if not prayer:
-        raise AssertionError(f"Prayer {prayer_name} not found")
+    target_prayer_type = PrayerType[prayer_name.strip("\"").upper()]
+
+    print(context.prayer_times)
+    prayer_id = None
+
+    for prayer in context.prayer_times['prayers']:
+        if prayer['prayer_type'] == target_prayer_type.value:
+            prayer_id = prayer['id']
+            break
+
     
     # Call the prayer service to complete the prayer
     result = context.prayer_service.complete_prayer(
         context.current_user.id,
-        prayer.id,
+        prayer_id,
         current_time=context.current_time
     )
     
@@ -279,26 +306,24 @@ def step_try_mark_prayer_completed(context, prayer_name):
 @when('I mark the {prayer_name} prayer as qada')
 def step_mark_prayer_qada(context, prayer_name):
     """Mark prayer as qada."""
-    prayer_type = PrayerType[prayer_name.upper()]
-    
-    # Find the prayer record
-    prayer = Prayer.query.filter_by(
-        user_id=context.current_user.id,
-        prayer_type=prayer_type,
-        prayer_date=context.current_time.date()
-    ).first()
-    
-    if not prayer:
-        raise AssertionError(f"Prayer {prayer_name} not found")
-    
-    # Call the prayer service to mark as qada
+    target_prayer_type = PrayerType[prayer_name.strip("\"").upper()]
+
+    print(context.prayer_times)
+    prayer_id = None
+
+    for prayer in context.prayer_times['prayers']:
+        if prayer['prayer_type'] == target_prayer_type.value:
+            prayer_id = prayer['id']
+            break
+
+    # Call the prayer service to complete the prayer
     result = context.prayer_service.mark_prayer_qada(
         context.current_user.id,
-        prayer.id,
+        prayer_id,
         current_time=context.current_time
     )
-    
-    context.qada_result = result
+
+    context.completion_result = result
 
 
 # Using existing step definition from authentication_steps.py

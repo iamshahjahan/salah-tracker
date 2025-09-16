@@ -4,7 +4,7 @@ Step definitions for notification features.
 
 from behave import given, when, then
 from app.models.user import User
-from app.models.prayer import Prayer, PrayerCompletion, PrayerStatus
+from app.models.prayer import Prayer, PrayerCompletion, PrayerCompletionStatus
 from app.services.notification_service import NotificationService
 from app.services.email_service import EmailService
 from config.database import db
@@ -51,7 +51,7 @@ def step_have_completed_dhuhr_prayer(context):
         prayer_date=datetime.now().date(),
         start_time=datetime.strptime('12:15', '%H:%M').time(),
         end_time=datetime.strptime('15:15', '%H:%M').time(),
-        status=PrayerStatus.COMPLETE
+        status=PrayerCompletionStatus.COMPLETE
     )
     context.db.session.add(prayer)
     context.db.session.commit()
@@ -60,7 +60,7 @@ def step_have_completed_dhuhr_prayer(context):
         user_id=context.current_user.id,
         prayer_id=prayer.id,
         marked_at=datetime.utcnow(),
-        status=PrayerStatus.COMPLETE
+        status=PrayerCompletionStatus.COMPLETE
     )
     context.db.session.add(completion)
     context.db.session.commit()
