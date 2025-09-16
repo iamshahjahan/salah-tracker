@@ -1,0 +1,144 @@
+[tool.ruff]
+# Exclude a variety of commonly ignored directories.
+exclude = [
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".git-rewrite",
+    ".hg",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".pytype",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "node_modules",
+    "venv",
+    "migrations_backup",
+    "assets",
+    "logs",
+    "dump.rdb",
+]
+
+# Same as Black.
+line-length = 88
+indent-width = 4
+
+# Assume Python 3.8+
+target-version = "py38"
+
+[tool.ruff.lint]
+# Enable Pyflakes (`F`) and a subset of the pycodestyle (`E`)  codes by default.
+# Unlike Flake8, Ruff doesn't enable pycodestyle warnings (`W`) or
+# McCabe complexity (`C901`) by default.
+select = [
+    "E4",   # pycodestyle errors
+    "E7",   # pycodestyle errors
+    "E9",   # pycodestyle errors
+    "F",    # pyflakes
+    "W",    # pycodestyle warnings
+    "B",    # flake8-bugbear
+    "C4",   # flake8-comprehensions
+    "UP",   # pyupgrade
+    "ARG",  # flake8-unused-arguments
+    "SIM",  # flake8-simplify
+    "TCH",  # flake8-type-checking
+    "Q",    # flake8-quotes
+    "I",    # isort
+    "N",    # pep8-naming
+    "D",    # pydocstyle
+    "S",    # flake8-bandit
+    "T20",  # flake8-print
+    "RET",  # flake8-return
+    "PIE",  # flake8-pie
+    "A",    # flake8-builtins
+    "COM",  # flake8-commas
+    "C90",  # mccabe
+    "PT",   # flake8-pytest-style
+    "RUF",  # Ruff-specific rules
+]
+
+ignore = [
+    "D100",  # Missing docstring in public module
+    "D101",  # Missing docstring in public class
+    "D102",  # Missing docstring in public method
+    "D103",  # Missing docstring in public function
+    "D104",  # Missing docstring in public package
+    "D105",  # Missing docstring in magic method
+    "D107",  # Missing docstring in __init__
+    "S101",  # Use of assert detected
+    "S311",  # Standard pseudo-random generators are not suitable for cryptographic purposes
+    "S603",  # subprocess call - check for execution of untrusted input
+    "S607",  # Starting a process with a partial executable path
+    "T201",  # print found
+    "COM812", # Missing trailing comma
+    "COM819", # Prohibited trailing comma
+    "ISC001", # Implicitly concatenated string literals on one line
+    "ISC002", # Implicitly concatenated string literals over continuation line
+    "Q000", # Single quotes found but double quotes preferred
+    "Q001", # Single quote multiline found but double quotes preferred
+    "Q002", # Single quote docstring found but double quotes preferred
+    "Q003", # Change outer quotes to avoid escaping inner quotes
+]
+
+# Allow fix for all enabled rules (when `--fix`) is provided.
+fixable = ["ALL"]
+unfixable = []
+
+# Allow unused variables when underscore-prefixed.
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+[tool.ruff.lint.per-file-ignores]
+# Tests can use magic values, assertions, and relative imports
+"tests/**/*.py" = [
+    "S101",  # assert
+    "S106",  # hardcoded password
+    "S108",  # hardcoded temp file
+    "PLR2004", # magic value
+    "TID252", # relative imports
+]
+# Allow print statements in scripts
+"scripts/**/*.py" = [
+    "T201",  # print
+    "S101",  # assert
+]
+# Allow print statements in migrations
+"migrations/**/*.py" = [
+    "T201",  # print
+    "S101",  # assert
+    "D",     # docstrings
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["app", "config", "scripts", "tools"]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 10
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.pyupgrade]
+# Preserve types, even if a file imports `from __future__ import annotations`.
+keep-runtime-typing = true
+
+[tool.ruff.format]
+# Like Black, use double quotes for strings.
+quote-style = "double"
+
+# Like Black, indent with spaces, rather than tabs.
+indent-style = "space"
+
+# Like Black, respect magic trailing commas.
+skip-magic-trailing-comma = false
+
+# Like Black, automatically detect the appropriate line ending.
+line-ending = "auto"

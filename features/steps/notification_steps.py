@@ -1,16 +1,13 @@
-"""
-Step definitions for notification features.
-"""
+"""Step definitions for notification features."""
 
-from behave import given, when, then
-from app.models.user import User
-from app.models.prayer import Prayer, PrayerCompletion, PrayerCompletionStatus
-from app.services.notification_service import NotificationService
-from app.services.email_service import EmailService
-from config.database import db
-from datetime import datetime, timedelta
+from datetime import datetime
+
 import pytz
+from behave import given, then, when
 
+from app.models.prayer import Prayer, PrayerCompletion, PrayerCompletionStatus
+from app.models.user import User
+from app.services.notification_service import NotificationService
 
 # This step is defined in dashboard_steps.py
 
@@ -43,7 +40,7 @@ def step_have_not_completed_prayer(context):
 def step_have_completed_dhuhr_prayer(context):
     """Set up completed prayer."""
     context.prayer_completed = True
-    
+
     # Create prayer completion record
     prayer = Prayer(
         user_id=context.current_user.id,
@@ -55,7 +52,7 @@ def step_have_completed_dhuhr_prayer(context):
     )
     context.db.session.add(prayer)
     context.db.session.commit()
-    
+
     completion = PrayerCompletion(
         user_id=context.current_user.id,
         prayer_id=prayer.id,
@@ -86,7 +83,7 @@ def step_10_minutes_before_dhuhr_timezone(context):
 def step_requested_multiple_reminders_rapidly(context):
     """Set up rapid reminder requests."""
     context.rapid_requests = []
-    for i in range(6):  # More than rate limit
+    for _i in range(6):  # More than rate limit
         context.rapid_requests.append({
             'timestamp': datetime.utcnow(),
             'user_id': context.current_user.id
@@ -170,11 +167,11 @@ def step_reminder_system_processes_all_users(context):
     """Process reminders for all users."""
     notification_service = NotificationService()
     start_time = datetime.utcnow()
-    
+
     context.bulk_reminder_result = notification_service.send_bulk_reminders(
         context.users_needing_reminders
     )
-    
+
     end_time = datetime.utcnow()
     context.processing_time = (end_time - start_time).total_seconds()
 
@@ -182,7 +179,7 @@ def step_reminder_system_processes_all_users(context):
 @then('I should receive a prayer reminder email')
 def step_receive_prayer_reminder_email(context):
     """Verify prayer reminder email is received."""
-    assert context.reminder_result['success'] == True
+    assert context.reminder_result['success']
     assert 'email_sent' in context.reminder_result
 
 
@@ -203,7 +200,7 @@ def step_email_contains_completion_link(context):
 @then('I should receive a missed prayer reminder')
 def step_receive_missed_prayer_reminder(context):
     """Verify missed prayer reminder is received."""
-    assert context.reminder_result['success'] == True
+    assert context.reminder_result['success']
     assert context.reminder_result['reminder_type'] == 'missed_prayer'
 
 
@@ -217,7 +214,7 @@ def step_email_contains_qada_completion_link(context):
 @then('I should not receive a prayer reminder')
 def step_not_receive_prayer_reminder(context):
     """Verify no prayer reminder is received."""
-    assert context.reminder_result['success'] == False or 'email_sent' not in context.reminder_result
+    assert not context.reminder_result['success'] or 'email_sent' not in context.reminder_result
 
 
 @then('the prayer time should be displayed in my timezone')
@@ -242,7 +239,7 @@ def step_email_includes_family_prayer_status(context):
 @then('my preferences should be saved')
 def step_preferences_saved(context):
     """Verify preferences are saved."""
-    assert context.preferences_saved == True
+    assert context.preferences_saved
 
 
 # This step is defined in email_verification_steps.py
@@ -251,7 +248,7 @@ def step_preferences_saved(context):
 @then('I should not receive any prayer reminders')
 def step_not_receive_any_reminders(context):
     """Verify no prayer reminders are received."""
-    assert context.reminders_disabled == True
+    assert context.reminders_disabled
     # Test that no reminders are sent
     notification_service = NotificationService()
     result = notification_service.send_prayer_reminder(
@@ -259,19 +256,19 @@ def step_not_receive_any_reminders(context):
         'DHUHR',
         datetime.now()
     )
-    assert result['success'] == False
+    assert not result['success']
 
 
 @then('my preference should be saved')
 def step_preference_saved(context):
     """Verify preference is saved."""
-    assert context.reminders_disabled == True
+    assert context.reminders_disabled
 
 
 @then('the delivery should fail gracefully')
 def step_delivery_fail_gracefully(context):
     """Verify delivery fails gracefully."""
-    assert context.email_result['success'] == False
+    assert not context.email_result['success']
     assert 'error' in context.email_result
 
 
@@ -284,13 +281,13 @@ def step_failure_logged(context):
 @then('I should not receive the reminder')
 def step_not_receive_reminder(context):
     """Verify reminder is not received."""
-    assert context.email_result['success'] == False
+    assert not context.email_result['success']
 
 
 @then('all users should receive their reminders')
 def step_all_users_receive_reminders(context):
     """Verify all users receive reminders."""
-    assert context.bulk_reminder_result['success'] == True
+    assert context.bulk_reminder_result['success']
     assert context.bulk_reminder_result['users_processed'] == 100
 
 
@@ -309,5 +306,5 @@ def step_see_prayer_details(context):
 @then('I should see a success page')
 def step_see_success_page(context):
     """Verify success page is shown."""
-    assert context.reminder_result['success'] == True
+    assert context.reminder_result['success']
     assert 'success_page' in context.reminder_result

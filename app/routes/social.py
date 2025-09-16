@@ -1,20 +1,21 @@
-from flask import Blueprint, request, jsonify
-from flask_jwt_extended import jwt_required, get_jwt_identity
-from config.database import db
+from datetime import date, datetime, timedelta
+
+from flask import Blueprint, jsonify, request
+from flask_jwt_extended import get_jwt_identity, jwt_required
 from flask_mail import Message
-from config.mail_config import mail
-from app.models.user import User
+
 from app.models.family import FamilyMember
 from app.models.prayer import Prayer, PrayerCompletion
-from datetime import datetime, date, timedelta
-import requests
+from app.models.user import User
+from config.database import db
+from config.mail_config import mail
 
 social_bp = Blueprint('social', __name__)
 
 @social_bp.route('/family', methods=['GET'])
 @jwt_required()
 def get_family_members():
-    """Get user's family members"""
+    """Get user's family members."""
     try:
         user_id = get_jwt_identity()
         family_members = FamilyMember.query.filter_by(user_id=user_id).all()
@@ -29,7 +30,7 @@ def get_family_members():
 @social_bp.route('/family', methods=['POST'])
 @jwt_required()
 def add_family_member():
-    """Add a new family member"""
+    """Add a new family member."""
     try:
         user_id = get_jwt_identity()
         data = request.get_json()
@@ -61,7 +62,7 @@ def add_family_member():
 @social_bp.route('/family/<int:member_id>', methods=['PUT'])
 @jwt_required()
 def update_family_member(member_id):
-    """Update a family member"""
+    """Update a family member."""
     try:
         user_id = get_jwt_identity()
         family_member = FamilyMember.query.filter_by(
@@ -100,7 +101,7 @@ def update_family_member(member_id):
 @social_bp.route('/family/<int:member_id>', methods=['DELETE'])
 @jwt_required()
 def delete_family_member(member_id):
-    """Delete a family member"""
+    """Delete a family member."""
     try:
         user_id = get_jwt_identity()
         family_member = FamilyMember.query.filter_by(
@@ -123,7 +124,7 @@ def delete_family_member(member_id):
 @social_bp.route('/remind', methods=['POST'])
 @jwt_required()
 def send_prayer_reminder():
-    """Send prayer reminder to family members"""
+    """Send prayer reminder to family members."""
     try:
         user_id = get_jwt_identity()
         data = request.get_json()
@@ -139,7 +140,7 @@ def send_prayer_reminder():
         family_members = FamilyMember.query.filter(
             FamilyMember.id.in_(data['member_ids']),
             FamilyMember.user_id == user_id,
-            FamilyMember.reminder_enabled == True
+            FamilyMember.reminder_enabled
         ).all()
 
         if not family_members:
@@ -170,7 +171,7 @@ def send_prayer_reminder():
 @social_bp.route('/motivation', methods=['GET'])
 @jwt_required()
 def get_motivational_content():
-    """Get motivational content for the user"""
+    """Get motivational content for the user."""
     try:
         user_id = get_jwt_identity()
 
@@ -216,7 +217,7 @@ def get_motivational_content():
         return jsonify({'error': str(e)}), 500
 
 def send_email_reminder(user, family_member, prayer_type):
-    """Send email reminder to family member"""
+    """Send email reminder to family member."""
     try:
         msg = Message(
             subject=f"Prayer Reminder - {prayer_type}",
@@ -239,7 +240,7 @@ SalahTracker Team
         raise
 
 def send_sms_reminder(user, family_member, prayer_type):
-    """Send SMS reminder to family member (placeholder - would need SMS service integration)"""
+    """Send SMS reminder to family member (placeholder - would need SMS service integration)."""
     try:
         # This would integrate with a service like Twilio
         # For now, we'll just log the action

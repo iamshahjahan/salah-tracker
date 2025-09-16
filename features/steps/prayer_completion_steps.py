@@ -1,15 +1,18 @@
-"""
-Step definitions for prayer completion features.
-"""
+"""Step definitions for prayer completion features."""
 
-from behave import given, when, then
+from datetime import datetime, timedelta
+
+import pytz
+from behave import given, then, when
+
+from app.models.prayer import (
+    Prayer,
+    PrayerCompletion,
+    PrayerCompletionStatus,
+)
 from app.models.user import User
-from app.models.prayer import Prayer, PrayerCompletion, PrayerCompletionStatus, PrayerType
 from app.services.cache_service import CacheService
 from app.services.prayer_service import PrayerService
-from config.database import db
-from datetime import datetime, timedelta
-import pytz
 
 
 @given('I am logged in as a user')
@@ -121,14 +124,13 @@ def step_new_user_no_completions(context):
     """Set up new user with no prayer completions."""
     # User already created in step_logged_in_as_user
     # No additional prayer completions needed
-    pass
 
 
 @given('I have completed some prayers and missed others')
 def step_mixed_prayer_completion(context):
     """Set up mixed prayer completion history."""
     yesterday = datetime.now().date() - timedelta(days=1)
-    
+
     # Completed prayers
     for prayer_name in ['FAJR', 'DHUHR']:
         prayer = Prayer(
@@ -140,7 +142,7 @@ def step_mixed_prayer_completion(context):
             status=PrayerCompletionStatus.COMPLETE
         )
         context.db.session.add(prayer)
-        
+
         completion = PrayerCompletion(
             user_id=context.current_user.id,
             prayer_id=prayer.id,
@@ -148,7 +150,7 @@ def step_mixed_prayer_completion(context):
             status=PrayerCompletionStatus.COMPLETE
         )
         context.db.session.add(completion)
-    
+
     # Missed prayers
     for prayer_name in ['ASR', 'MAGHRIB']:
         prayer = Prayer(
@@ -160,7 +162,7 @@ def step_mixed_prayer_completion(context):
             status=PrayerCompletionStatus.MISSED
         )
         context.db.session.add(prayer)
-    
+
     context.db.session.commit()
 
 
@@ -227,8 +229,8 @@ def step_try_complete_same_prayer_multiple_times(context):
     """Try to complete same prayer multiple times."""
     prayer_service = PrayerService()
     context.rapid_completions = []
-    
-    for i in range(6):  # More than rate limit
+
+    for _i in range(6):  # More than rate limit
         result = prayer_service.complete_prayer(
             context.current_user.id,
             context.prayer_times['DHUHR'].id,
@@ -240,12 +242,12 @@ def step_try_complete_same_prayer_multiple_times(context):
 @then('the prayer should be marked as "{status}"')
 def step_prayer_marked_as_status(context, status):
     """Verify prayer is marked with specific status."""
-    assert context.completion_result['success'] == True, f"Got response: {context.completion_result['success']}"
+    assert context.completion_result['success'], f"Got response: {context.completion_result['success']}"
     # Check the status in the completion object
     if 'completion' in context.completion_result:
         assert context.completion_result['completion']['status'] == status, f'Completion status should be {status}, but got {context.completion_result['completion']['status']}'
     else:
-        assert False,"Unable to complete prayer"
+        raise AssertionError("Unable to complete prayer")
 
 
 # This step is defined in email_verification_steps.py
@@ -276,7 +278,7 @@ def step_prayer_status_updated_accordingly(context):
 @then('the prayer should remain in "pending" status')
 def step_prayer_remains_pending(context):
     """Verify prayer remains in pending status."""
-    assert context.completion_result['success'] == False
+    assert not context.completion_result['success']
 
 
 @then('the completion time should be recorded correctly')
@@ -336,7 +338,7 @@ def step_see_authentication_error(context):
 @then('the prayer should not be completed')
 def step_prayer_not_completed(context):
     """Verify prayer was not completed."""
-    assert context.completion_result['success'] == False
+    assert not context.completion_result['success']
 
 
 # This step is covered by the generic error message step in authentication_steps.py
@@ -345,5 +347,5 @@ def step_prayer_not_completed(context):
 @then('no completion should be recorded')
 def step_no_completion_recorded(context):
     """Verify no completion is recorded."""
-    assert context.completion_result['success'] == False
+    assert not context.completion_result['success']
 

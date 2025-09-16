@@ -1,21 +1,22 @@
-"""
-Step definitions for time-based prayer state testing.
-"""
+"""Step definitions for time-based prayer state testing."""
 
-from behave import given, when, then
-from app.models.user import User
-from app.models.prayer import Prayer, PrayerCompletion, PrayerCompletionStatus, PrayerType
-from app.services.cache_service import CacheService
-from app.services.prayer_service import PrayerService
-from config.database import db
-from datetime import datetime, timedelta, time
+from datetime import datetime, time
+
 import pytz
+from behave import given, then, when
+
+from app.models.prayer import (
+    Prayer,
+    PrayerCompletion,
+    PrayerCompletionStatus,
+    PrayerType,
+)
+from app.models.user import User
 
 
 @given('I am logged in as a user with timezone "{timezone}"')
 def step_logged_in_user_with_timezone(context, timezone):
     """Set up logged-in user with specific timezone."""
-
     user = User(
         username="testuser",
         email="test@example.com",
@@ -70,7 +71,7 @@ def step_prayer_times_table(context):
 def step_current_time_in_timezone_extended(context, time_str):
     """Set current time in user's timezone with extended format support."""
     user_tz = pytz.timezone(context.current_user.timezone)
-    
+
     # Parse time string (HH:MM or HH:MM:SS format)
     if ':' in time_str:
         parts = time_str.split(':')
@@ -83,7 +84,7 @@ def step_current_time_in_timezone_extended(context, time_str):
             raise ValueError(f"Invalid time format: {time_str}")
     else:
         raise ValueError(f"Invalid time format: {time_str}")
-    
+
     # Create datetime for today with the specified time
     today = datetime.now().date()
     context.current_time = user_tz.localize(
@@ -95,13 +96,13 @@ def step_current_time_in_timezone_extended(context, time_str):
 def step_check_prayer_status(context, prayer_name):
     """Check the status of a specific prayer."""
     prayer_type = PrayerType[prayer_name.upper()]
-    
+
     # Get prayer times with current time
     prayer_times_result = context.prayer_service.get_prayer_times(
         context.current_user.id,
         current_time=context.current_time
     )
-    
+
     if prayer_times_result.get('success'):
         prayers = prayer_times_result.get('prayers', [])
         context.current_prayer = None
@@ -109,7 +110,7 @@ def step_check_prayer_status(context, prayer_name):
             if prayer_info.get('prayer_type') == prayer_type.value:
                 context.current_prayer = prayer_info
                 break
-        
+
         if not context.current_prayer:
             raise AssertionError(f"Prayer {prayer_name} not found in prayer times")
     else:
@@ -161,7 +162,7 @@ def step_prayer_should_be_in_state(context, prayer_name, expected_status):
 def step_should_be_able_to_complete_prayer(context, prayer_name):
     """Verify prayer can be completed."""
     assert context.current_prayer is not None, f"Prayer {prayer_name} not found"
-    
+
     can_complete = context.current_prayer.get('can_complete', False)
     assert can_complete, f"Should be able to complete {prayer_name} prayer"
 
@@ -170,7 +171,7 @@ def step_should_be_able_to_complete_prayer(context, prayer_name):
 def step_should_not_be_able_to_complete_prayer(context, prayer_name):
     """Verify prayer cannot be completed."""
     assert context.current_prayer is not None, f"Prayer {prayer_name} not found"
-    
+
     can_complete = context.current_prayer.get('can_complete', False)
     assert not can_complete, f"Should not be able to complete {prayer_name} prayer"
 
@@ -179,7 +180,7 @@ def step_should_not_be_able_to_complete_prayer(context, prayer_name):
 def step_should_be_able_to_mark_qada(context, prayer_name):
     """Verify prayer can be marked as qada."""
     assert context.current_prayer is not None, f"Prayer {prayer_name} not found"
-    
+
     can_mark_qada = context.current_prayer.get('can_mark_qada', False)
     assert can_mark_qada, f"Should be able to mark {prayer_name} as qada"
 
@@ -188,7 +189,7 @@ def step_should_be_able_to_mark_qada(context, prayer_name):
 def step_should_not_be_able_to_mark_qada(context, prayer_name):
     """Verify prayer cannot be marked as qada."""
     assert context.current_prayer is not None, f"Prayer {prayer_name} not found"
-    
+
     can_mark_qada = context.current_prayer.get('can_mark_qada', False)
     assert not can_mark_qada, f"Should not be able to mark {prayer_name} as qada"
 
@@ -197,20 +198,20 @@ def step_should_not_be_able_to_mark_qada(context, prayer_name):
 def step_prayer_in_state(context, prayer_name, status):
     """Set prayer to specific state."""
     prayer_type = PrayerType[prayer_name.upper()]
-    
+
     # Find the prayer record
     prayer = Prayer.query.filter_by(
         user_id=context.current_user.id,
         prayer_type=prayer_type,
         prayer_date=context.current_time.date()
     ).first()
-    
+
     if not prayer:
         raise AssertionError(f"Prayer {prayer_name} not found")
-    
+
     # Set up completion record based on status
     existing_completion = PrayerCompletion.query.filter_by(prayer_id=prayer.id).first()
-    
+
     if status == "completed":
         if not existing_completion:
             completion = PrayerCompletion(
@@ -247,10 +248,9 @@ def step_prayer_in_state(context, prayer_name, status):
         else:
             existing_completion.status = PrayerCompletionStatus.QADA
             existing_completion.marked_at = datetime.now(pytz.UTC)
-    elif status == "pending":
-        if existing_completion:
-            context.db.session.delete(existing_completion)
-    
+    elif status == "pending" and existing_completion:
+        context.db.session.delete(existing_completion)
+
     context.db.session.commit()
 
 
@@ -267,14 +267,14 @@ def step_mark_prayer_completed(context, prayer_name):
             prayer_id = prayer['id']
             break
 
-    
+
     # Call the prayer service to complete the prayer
     result = context.prayer_service.complete_prayer(
         context.current_user.id,
         prayer_id,
         current_time=context.current_time
     )
-    
+
     context.completion_result = result
 
 
@@ -282,24 +282,24 @@ def step_mark_prayer_completed(context, prayer_name):
 def step_try_mark_prayer_completed(context, prayer_name):
     """Try to mark prayer as completed."""
     prayer_type = PrayerType[prayer_name.upper()]
-    
+
     # Find the prayer record
     prayer = Prayer.query.filter_by(
         user_id=context.current_user.id,
         prayer_type=prayer_type,
         prayer_date=context.current_time.date()
     ).first()
-    
+
     if not prayer:
         raise AssertionError(f"Prayer {prayer_name} not found")
-    
+
     # Call the prayer service to complete the prayer
     result = context.prayer_service.complete_prayer(
         context.current_user.id,
         prayer.id,
         current_time=context.current_time
     )
-    
+
     context.completion_result = result
 
 
@@ -333,24 +333,24 @@ def step_mark_prayer_qada(context, prayer_name):
 def step_should_not_complete_prayer_again(context, prayer_name):
     """Verify prayer cannot be completed again."""
     prayer_type = PrayerType[prayer_name.upper()]
-    
+
     # Find the prayer record
     prayer = Prayer.query.filter_by(
         user_id=context.current_user.id,
         prayer_type=prayer_type,
         prayer_date=context.current_time.date()
     ).first()
-    
+
     if not prayer:
         raise AssertionError(f"Prayer {prayer_name} not found")
-    
+
     # Try to complete again
     result = context.prayer_service.complete_prayer(
         context.current_user.id,
         prayer.id,
         current_time=context.current_time
     )
-    
+
     assert not result.get('success', True), f"Should not be able to complete {prayer_name} again"
     assert 'already completed' in result.get('error', '').lower()
 
@@ -359,24 +359,24 @@ def step_should_not_complete_prayer_again(context, prayer_name):
 def step_should_not_mark_qada_again(context, prayer_name):
     """Verify prayer cannot be marked as qada again."""
     prayer_type = PrayerType[prayer_name.upper()]
-    
+
     # Find the prayer record
     prayer = Prayer.query.filter_by(
         user_id=context.current_user.id,
         prayer_type=prayer_type,
         prayer_date=context.current_time.date()
     ).first()
-    
+
     if not prayer:
         raise AssertionError(f"Prayer {prayer_name} not found")
-    
+
     # Try to mark as qada again
     result = context.prayer_service.mark_prayer_qada(
         context.current_user.id,
         prayer.id,
         current_time=context.current_time
     )
-    
+
     assert not result.get('success', True), f"Should not be able to mark {prayer_name} as qada again"
 
 
@@ -384,12 +384,12 @@ def step_should_not_mark_qada_again(context, prayer_name):
 def step_prayer_time_displayed_in_timezone(context, timezone):
     """Verify prayer time is displayed in correct timezone."""
     assert context.current_prayer is not None, "No current prayer found"
-    
+
     prayer_time = context.current_prayer.get('prayer_time')
     assert prayer_time is not None, "Prayer time not found"
-    
+
     # The prayer time should be in the user's timezone
-    user_tz = pytz.timezone(timezone)
+    pytz.timezone(timezone)
     # This is a basic check - in a real implementation, you'd verify the timezone conversion
     assert isinstance(prayer_time, str), "Prayer time should be a string"
 
@@ -427,12 +427,12 @@ def step_prayer_should_remain_in_state(context, prayer_name, status):
     """Verify prayer remains in the same state after an operation."""
     # Re-check the prayer status to ensure it hasn't changed
     prayer_type = PrayerType[prayer_name.upper()]
-    
+
     prayer_times_result = context.prayer_service.get_prayer_times(
         context.current_user.id,
         current_time=context.current_time
     )
-    
+
     if prayer_times_result.get('success'):
         prayers = prayer_times_result.get('prayers', [])
         current_prayer = None
@@ -440,7 +440,7 @@ def step_prayer_should_remain_in_state(context, prayer_name, status):
             if prayer_info.get('prayer_type') == prayer_type.value:
                 current_prayer = prayer_info
                 break
-        
+
         if current_prayer:
             actual_status = current_prayer.get('status')
             assert actual_status == status, (

@@ -1,18 +1,17 @@
-"""
-Formatting utilities for the Salah Tracker application.
+"""Formatting utilities for the Salah Tracker application.
 
 This module provides formatting functions for dates, times, and other data
 with proper localization and user-friendly display.
 """
 
+from datetime import date, datetime, time
 from typing import Any, Dict, Optional
-from datetime import datetime, date, time
+
 import pytz
 
 
 def format_prayer_time(prayer_time: time, timezone: Optional[str] = None) -> str:
-    """
-    Format prayer time for display.
+    """Format prayer time for display.
 
     Args:
         prayer_time: Time object to format.
@@ -28,8 +27,7 @@ def format_prayer_time(prayer_time: time, timezone: Optional[str] = None) -> str
 
 
 def format_date(date_obj: date, format_type: str = 'display') -> str:
-    """
-    Format date for display.
+    """Format date for display.
 
     Args:
         date_obj: Date object to format.
@@ -54,8 +52,7 @@ def format_date(date_obj: date, format_type: str = 'display') -> str:
 
 def format_datetime(datetime_obj: datetime, format_type: str = 'display',
                    timezone: Optional[str] = None) -> str:
-    """
-    Format datetime for display.
+    """Format datetime for display.
 
     Args:
         datetime_obj: Datetime object to format.
@@ -91,8 +88,7 @@ def format_datetime(datetime_obj: datetime, format_type: str = 'display',
 
 
 def format_duration(seconds: int) -> str:
-    """
-    Format duration in seconds to human-readable format.
+    """Format duration in seconds to human-readable format.
 
     Args:
         seconds: Duration in seconds.
@@ -105,28 +101,24 @@ def format_duration(seconds: int) -> str:
 
     if seconds < 60:
         return f"{seconds} seconds"
-    elif seconds < 3600:
+    if seconds < 3600:
         minutes = seconds // 60
         return f"{minutes} minute{'s' if minutes != 1 else ''}"
-    elif seconds < 86400:
+    if seconds < 86400:
         hours = seconds // 3600
         minutes = (seconds % 3600) // 60
         if minutes == 0:
             return f"{hours} hour{'s' if hours != 1 else ''}"
-        else:
-            return f"{hours} hour{'s' if hours != 1 else ''} {minutes} minute{'s' if minutes != 1 else ''}"
-    else:
-        days = seconds // 86400
-        hours = (seconds % 86400) // 3600
-        if hours == 0:
-            return f"{days} day{'s' if days != 1 else ''}"
-        else:
-            return f"{days} day{'s' if days != 1 else ''} {hours} hour{'s' if hours != 1 else ''}"
+        return f"{hours} hour{'s' if hours != 1 else ''} {minutes} minute{'s' if minutes != 1 else ''}"
+    days = seconds // 86400
+    hours = (seconds % 86400) // 3600
+    if hours == 0:
+        return f"{days} day{'s' if days != 1 else ''}"
+    return f"{days} day{'s' if days != 1 else ''} {hours} hour{'s' if hours != 1 else ''}"
 
 
 def format_percentage(value: float, decimals: int = 1) -> str:
-    """
-    Format percentage value for display.
+    """Format percentage value for display.
 
     Args:
         value: Percentage value (0-100).
@@ -145,8 +137,7 @@ def format_percentage(value: float, decimals: int = 1) -> str:
 
 
 def format_file_size(bytes_size: int) -> str:
-    """
-    Format file size in bytes to human-readable format.
+    """Format file size in bytes to human-readable format.
 
     Args:
         bytes_size: File size in bytes.
@@ -169,8 +160,7 @@ def format_file_size(bytes_size: int) -> str:
 
 
 def format_phone_number(phone_number: str) -> str:
-    """
-    Format phone number for display.
+    """Format phone number for display.
 
     Args:
         phone_number: Raw phone number string.
@@ -186,15 +176,13 @@ def format_phone_number(phone_number: str) -> str:
 
     if len(digits) == 10:
         return f"({digits[:3]}) {digits[3:6]}-{digits[6:]}"
-    elif len(digits) == 11 and digits[0] == '1':
+    if len(digits) == 11 and digits[0] == '1':
         return f"+1 ({digits[1:4]}) {digits[4:7]}-{digits[7:]}"
-    else:
-        return phone_number  # Return original if can't format
+    return phone_number  # Return original if can't format
 
 
 def format_user_name(first_name: str, last_name: str) -> str:
-    """
-    Format user's full name for display.
+    """Format user's full name for display.
 
     Args:
         first_name: User's first name.
@@ -208,17 +196,15 @@ def format_user_name(first_name: str, last_name: str) -> str:
 
     if first_name and last_name:
         return f"{first_name} {last_name}"
-    elif first_name:
+    if first_name:
         return first_name
-    elif last_name:
+    if last_name:
         return last_name
-    else:
-        return "Unknown User"
+    return "Unknown User"
 
 
 def format_prayer_status(completed: bool, is_late: bool = False, is_qada: bool = False) -> str:
-    """
-    Format prayer completion status for display.
+    """Format prayer completion status for display.
 
     Args:
         completed: Whether prayer is completed.
@@ -230,18 +216,16 @@ def format_prayer_status(completed: bool, is_late: bool = False, is_qada: bool =
     """
     if not completed:
         return "Not Completed"
-    elif is_qada:
+    if is_qada:
         return "Qada"
-    elif is_late:
+    if is_late:
         return "Completed (Late)"
-    else:
-        return "Completed"
+    return "Completed"
 
 
 def format_api_response(data: Any, success: bool = True, message: str = "",
                        errors: Optional[list] = None) -> Dict[str, Any]:
-    """
-    Format API response in consistent structure.
+    """Format API response in consistent structure.
 
     Args:
         data: Response data.
@@ -266,8 +250,7 @@ def format_api_response(data: Any, success: bool = True, message: str = "",
 
 
 def format_validation_errors(errors: list) -> str:
-    """
-    Format validation errors for display.
+    """Format validation errors for display.
 
     Args:
         errors: List of validation error messages.
@@ -280,14 +263,12 @@ def format_validation_errors(errors: list) -> str:
 
     if len(errors) == 1:
         return errors[0]
-    else:
-        return f"Multiple errors: {'; '.join(errors)}"
+    return f"Multiple errors: {'; '.join(errors)}"
 
 
 def format_location(latitude: float, longitude: float, city: str = "",
                    country: str = "") -> str:
-    """
-    Format location information for display.
+    """Format location information for display.
 
     Args:
         latitude: Latitude coordinate.
@@ -300,9 +281,8 @@ def format_location(latitude: float, longitude: float, city: str = "",
     """
     if city and country:
         return f"{city}, {country}"
-    elif city:
+    if city:
         return city
-    elif country:
+    if country:
         return country
-    else:
-        return f"{latitude:.4f}, {longitude:.4f}"
+    return f"{latitude:.4f}, {longitude:.4f}"

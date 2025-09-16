@@ -1,13 +1,10 @@
-"""
-Step definitions for dashboard features.
-"""
+"""Step definitions for dashboard features."""
 
-from behave import given, when, then
-from app.models.user import User
-from app.models.prayer import Prayer, PrayerCompletion, PrayerCompletionStatus
-from app.services.prayer_service import PrayerService
-from config.database import db
 from datetime import datetime, timedelta
+
+from behave import given, then, when
+
+from app.services.prayer_service import PrayerService
 
 
 @given('I am on the dashboard page')
@@ -33,7 +30,7 @@ def step_set_prayer_reminder_preferences(context):
 def step_have_family_members(context):
     """Set up family members."""
     from app.models.family import FamilyMember
-    
+
     family_member = FamilyMember(
         user_id=context.current_user.id,
         name="Family Member",
@@ -100,8 +97,8 @@ def step_view_statistics_multiple_times(context):
     """View statistics multiple times."""
     context.view_count = 5
     context.cached_responses = []
-    
-    for i in range(context.view_count):
+
+    for _i in range(context.view_count):
         prayer_service = PrayerService()
         stats = prayer_service.get_user_statistics(context.current_user.id)
         context.cached_responses.append(stats)

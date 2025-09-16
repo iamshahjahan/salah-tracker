@@ -1,7 +1,9 @@
-from config.database import db
-from datetime import datetime, timedelta
 import secrets
 import string
+from datetime import datetime, timedelta
+
+from config.database import db
+
 
 class EmailVerification(db.Model):
     __tablename__ = 'email_verifications'
@@ -20,12 +22,12 @@ class EmailVerification(db.Model):
 
     @staticmethod
     def generate_verification_code(length=6):
-        """Generate a random verification code"""
+        """Generate a random verification code."""
         return ''.join(secrets.choice(string.digits) for _ in range(length))
 
     @staticmethod
     def create_verification(user_id, email, verification_type, expires_in_minutes=15):
-        """Create a new verification record"""
+        """Create a new verification record."""
         # Invalidate any existing verification codes for this user and type
         EmailVerification.query.filter_by(
             user_id=user_id,
@@ -50,16 +52,16 @@ class EmailVerification(db.Model):
         return verification
 
     def is_valid(self):
-        """Check if the verification code is still valid"""
+        """Check if the verification code is still valid."""
         return not self.is_used and datetime.utcnow() < self.expires_at
 
     def mark_as_used(self):
-        """Mark the verification code as used"""
+        """Mark the verification code as used."""
         self.is_used = True
         db.session.commit()
 
     def to_dict(self):
-        """Convert verification object to dictionary"""
+        """Convert verification object to dictionary."""
         return {
             'id': self.id,
             'user_id': self.user_id,

@@ -1,13 +1,13 @@
-"""
-API helper utilities for the Salah Tracker application.
+"""API helper utilities for the Salah Tracker application.
 
 This module provides helper functions for making API requests, handling responses,
 and managing external API integrations with proper error handling and retry logic.
 """
 
-from typing import Dict, Any, Optional, Tuple
-import requests
 import time
+from typing import Any, Dict, Optional, Tuple
+
+import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
@@ -15,8 +15,7 @@ from urllib3.util.retry import Retry
 def make_api_request(url: str, method: str = 'GET', params: Optional[Dict[str, Any]] = None,
                     data: Optional[Dict[str, Any]] = None, headers: Optional[Dict[str, str]] = None,
                     timeout: int = 10, max_retries: int = 3) -> Tuple[bool, Optional[Dict[str, Any]], Optional[str]]:
-    """
-    Make HTTP API request with retry logic and error handling.
+    """Make HTTP API request with retry logic and error handling.
 
     Args:
         url: API endpoint URL.
@@ -74,14 +73,13 @@ def make_api_request(url: str, method: str = 'GET', params: Optional[Dict[str, A
     except requests.exceptions.HTTPError as e:
         return False, None, f"HTTP error: {e.response.status_code}"
     except requests.exceptions.RequestException as e:
-        return False, None, f"Request error: {str(e)}"
+        return False, None, f"Request error: {e!s}"
     except Exception as e:
-        return False, None, f"Unexpected error: {str(e)}"
+        return False, None, f"Unexpected error: {e!s}"
 
 
 def handle_api_response(response_data: Dict[str, Any], expected_keys: Optional[list] = None) -> Tuple[bool, Optional[Dict[str, Any]], Optional[str]]:
-    """
-    Handle and validate API response data.
+    """Handle and validate API response data.
 
     Args:
         response_data: API response data.
@@ -110,13 +108,12 @@ def handle_api_response(response_data: Dict[str, Any], expected_keys: Optional[l
         return True, response_data, None
 
     except Exception as e:
-        return False, None, f"Error processing response: {str(e)}"
+        return False, None, f"Error processing response: {e!s}"
 
 
 def fetch_prayer_times(latitude: float, longitude: float, date_str: str,
                       timezone: str, api_key: str = "", base_url: str = "http://api.aladhan.com/v1") -> Tuple[bool, Optional[Dict[str, Any]], Optional[str]]:
-    """
-    Fetch prayer times from external API.
+    """Fetch prayer times from external API.
 
     Args:
         latitude: Latitude coordinate.
@@ -164,13 +161,12 @@ def fetch_prayer_times(latitude: float, longitude: float, date_str: str,
         return True, timings, None
 
     except Exception as e:
-        return False, None, f"Error fetching prayer times: {str(e)}"
+        return False, None, f"Error fetching prayer times: {e!s}"
 
 
 def fetch_city_from_coordinates(latitude: float, longitude: float,
                                api_key: str = "", base_url: str = "https://api.bigdatacloud.net/data") -> Tuple[bool, Optional[Dict[str, Any]], Optional[str]]:
-    """
-    Fetch city information from coordinates using geocoding API.
+    """Fetch city information from coordinates using geocoding API.
 
     Args:
         latitude: Latitude coordinate.
@@ -213,12 +209,11 @@ def fetch_city_from_coordinates(latitude: float, longitude: float,
         return True, city_info, None
 
     except Exception as e:
-        return False, None, f"Error fetching city information: {str(e)}"
+        return False, None, f"Error fetching city information: {e!s}"
 
 
 def validate_api_credentials(api_key: str, service: str) -> bool:
-    """
-    Validate API credentials for a service.
+    """Validate API credentials for a service.
 
     Args:
         api_key: API key to validate.
@@ -240,7 +235,7 @@ def validate_api_credentials(api_key: str, service: str) -> bool:
     if service == 'prayer_times':
         # Prayer times API might have specific key format requirements
         return len(api_key) >= 10
-    elif service == 'geocoding':
+    if service == 'geocoding':
         # Geocoding API might have different requirements
         return len(api_key) >= 8
 
@@ -248,8 +243,7 @@ def validate_api_credentials(api_key: str, service: str) -> bool:
 
 
 def get_api_rate_limit_info(response_headers: Dict[str, str]) -> Dict[str, Any]:
-    """
-    Extract rate limit information from API response headers.
+    """Extract rate limit information from API response headers.
 
     Args:
         response_headers: HTTP response headers.
@@ -279,8 +273,7 @@ def get_api_rate_limit_info(response_headers: Dict[str, str]) -> Dict[str, Any]:
 
 
 def should_retry_request(response_status: int, response_headers: Dict[str, str]) -> Tuple[bool, Optional[int]]:
-    """
-    Determine if a request should be retried based on response.
+    """Determine if a request should be retried based on response.
 
     Args:
         response_status: HTTP response status code.
@@ -312,8 +305,7 @@ def should_retry_request(response_status: int, response_headers: Dict[str, str])
 
 def log_api_request(url: str, method: str, status_code: int, response_time: float,
                    error: Optional[str] = None) -> None:
-    """
-    Log API request details for monitoring and debugging.
+    """Log API request details for monitoring and debugging.
 
     Args:
         url: Request URL.
@@ -341,8 +333,7 @@ def log_api_request(url: str, method: str, status_code: int, response_time: floa
 
 
 def create_api_error_response(error_message: str, status_code: int = 500) -> Dict[str, Any]:
-    """
-    Create standardized API error response.
+    """Create standardized API error response.
 
     Args:
         error_message: Error message.

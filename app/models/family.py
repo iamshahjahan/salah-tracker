@@ -1,5 +1,7 @@
-from config.database import db
 from datetime import datetime
+
+from config.database import db
+
 
 class FamilyMember(db.Model):
     __tablename__ = 'family_members'
@@ -15,7 +17,7 @@ class FamilyMember(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     def to_dict(self):
-        """Convert family member object to dictionary"""
+        """Convert family member object to dictionary."""
         return {
             'id': self.id,
             'user_id': self.user_id,

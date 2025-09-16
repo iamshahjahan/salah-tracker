@@ -1,9 +1,6 @@
-"""
-Simple authentication step definitions for testing.
-"""
+"""Simple authentication step definitions for testing."""
 
-from behave import given, when, then
-
+from behave import then, when
 
 # This step is defined in authentication_steps.py
 
@@ -21,8 +18,8 @@ def step_check_authentication_available(context):
 @then('I should see that authentication is working')
 def step_see_authentication_working(context):
     """Verify authentication is working."""
-    assert context.app_running == True
-    assert context.auth_available == True
+    assert context.app_running
+    assert context.auth_available
     print("✅ Authentication test passed!")
 
 

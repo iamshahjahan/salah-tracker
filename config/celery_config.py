@@ -1,17 +1,19 @@
-"""
-Celery configuration for background task processing.
+"""Celery configuration for background task processing.
 
 This module configures Celery for handling background tasks like
 prayer reminders, email notifications, and other scheduled jobs.
 """
 
 import os
+
 from celery import Celery
 from celery.schedules import crontab
+
 from app.config.settings import get_config
 
 # Set up logging for Celery
-from config.logging_config import setup_logging, get_logger
+from config.logging_config import get_logger, setup_logging
+
 setup_logging(log_level=os.getenv('LOG_LEVEL', 'INFO'))
 logger = get_logger(__name__)
 
@@ -34,13 +36,13 @@ celery_app.conf.update(
     result_serializer='json',
     timezone='UTC',
     enable_utc=True,
-    
+
     # Task routing
     task_routes={
         'app.tasks.prayer_reminders.*': {'queue': 'prayer_reminders'},
         'app.tasks.consistency_checks.*': {'queue': 'consistency_checks'},
     },
-    
+
     # Queue configuration
     task_default_queue='default',
     task_queues={
@@ -54,7 +56,7 @@ celery_app.conf.update(
             'routing_key': 'default',
         },
     },
-    
+
     # Beat schedule for periodic tasks
     beat_schedule={
         'send-prayer-reminders': {
@@ -82,15 +84,15 @@ celery_app.conf.update(
             'schedule': crontab(hour=1, minute=0),  # Daily at 1 AM
         },
     },
-    
+
     # Worker settings
     worker_prefetch_multiplier=1,
     task_acks_late=True,
     worker_disable_rate_limits=True,
-    
+
     # Result backend settings
     result_expires=3600,  # 1 hour
-    
+
     # Task time limits
     task_soft_time_limit=300,  # 5 minutes
     task_time_limit=600,  # 10 minutes

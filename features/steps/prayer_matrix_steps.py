@@ -1,16 +1,12 @@
-"""
-Step definitions for prayer state matrix testing.
-"""
+"""Step definitions for prayer state matrix testing."""
 
-from behave import given, when, then
-from app.models.user import User
-from app.models.prayer import Prayer, PrayerCompletion, PrayerCompletionStatus, PrayerType
+from datetime import datetime
+
+import pytz
+from behave import given, then
+
 from app.services.cache_service import CacheService
 from app.services.prayer_service import PrayerService
-from config.database import db
-from datetime import datetime, timedelta, time
-import pytz
-
 
 # Using existing step definition from time_based_prayer_steps.py
 
@@ -20,25 +16,25 @@ def step_checking_prayer_times_at_datetime_matrix(context, date, datetime_str):
     # Parse the date and datetime
     date = date.strip('"')
     datetime_str = datetime_str.strip('"')
-    target_date = datetime.strptime(date, '%Y-%m-%d').date()
+    datetime.strptime(date, '%Y-%m-%d').date()
     current_datetime = datetime.strptime(datetime_str, '%Y-%m-%d %H:%M')
-    
+
     # Convert to user's timezone
     user_tz = pytz.timezone(context.current_user.timezone)
     context.current_time = user_tz.localize(current_datetime)
-    
+
     # Initialize prayer service
     context.prayer_service = PrayerService()
     context.cache_service = CacheService()
     context.cache_service.invalidate_user_prayer_times(context.current_user.id)
-    
+
     # Get prayer times for the specific date
     prayer_times_result = context.prayer_service.get_prayer_times(
         context.current_user.id,
         date_str=date,
         current_time=context.current_time
     )
-    
+
     if prayer_times_result.get('success'):
         context.prayer_times = prayer_times_result
         context.prayers = prayer_times_result.get('prayers', [])
@@ -52,7 +48,7 @@ def step_checking_prayer_times_at_datetime_matrix(context, date, datetime_str):
 def _verify_prayer_state(context, prayer_type, expected_state):
     """Helper function to verify prayer state."""
     prayer_found = False
-    
+
     for prayer_info in context.prayers:
         if prayer_info.get('prayer_type') == prayer_type:
             actual_state = prayer_info.get('status')
@@ -62,7 +58,7 @@ def _verify_prayer_state(context, prayer_type, expected_state):
             )
             prayer_found = True
             break
-    
+
     if not prayer_found:
         raise AssertionError(f"Prayer {prayer_type} not found in prayer times")
 
@@ -85,7 +81,7 @@ def step_should_see_prayer_times_table(context):
     for row in context.table:
         prayer_type = row['Prayer'].upper()
         expected_time = row['Time']
-        
+
         prayer_found = False
         for prayer_info in context.prayers:
             if prayer_info.get('prayer_type') == prayer_type:
@@ -96,7 +92,7 @@ def step_should_see_prayer_times_table(context):
                 )
                 prayer_found = True
                 break
-        
+
         if not prayer_found:
             raise AssertionError(f"Prayer {prayer_type} not found in prayer times")
 
@@ -107,7 +103,7 @@ def step_prayer_completion_rates_should_be_table(context):
     for row in context.table:
         prayer_type = row['Prayer'].upper()
         expected_rate = float(row['Rate'])
-        
+
         prayer_found = False
         for prayer_info in context.prayers:
             if prayer_info.get('prayer_type') == prayer_type:
@@ -118,7 +114,7 @@ def step_prayer_completion_rates_should_be_table(context):
                 )
                 prayer_found = True
                 break
-        
+
         if not prayer_found:
             raise AssertionError(f"Prayer {prayer_type} not found in prayer times")
 
@@ -139,7 +135,7 @@ def step_current_time_should_be(context, expected_time):
     expected_datetime = datetime.strptime(expected_time, '%Y-%m-%d %H:%M')
     user_tz = pytz.timezone(context.current_user.timezone)
     expected_datetime = user_tz.localize(expected_datetime)
-    
+
     assert context.current_time == expected_datetime, (
         f"Expected current time to be '{expected_datetime}', "
         f"but got '{context.current_time}'"
@@ -150,26 +146,26 @@ def step_current_time_should_be(context, expected_time):
 def step_prayer_window_should_be(context, start_time, end_time, prayer_type):
     """Verify prayer window times."""
     prayer_type = prayer_type.upper()
-    
+
     prayer_found = False
     for prayer_info in context.prayers:
         if prayer_info.get('prayer_type') == prayer_type:
             actual_start = prayer_info.get('window_start')
             actual_end = prayer_info.get('window_end')
-            
+
             assert actual_start == start_time, (
                 f"Expected {prayer_type} window start to be '{start_time}', "
                 f"but got '{actual_start}'"
             )
-            
+
             assert actual_end == end_time, (
                 f"Expected {prayer_type} window end to be '{end_time}', "
                 f"but got '{actual_end}'"
             )
-            
+
             prayer_found = True
             break
-    
+
     if not prayer_found:
         raise AssertionError(f"Prayer {prayer_type} not found in prayer times")
 
@@ -178,7 +174,7 @@ def step_prayer_window_should_be(context, start_time, end_time, prayer_type):
 def step_prayer_should_be_action_for_type(context, action, prayer_type):
     """Verify prayer action availability."""
     prayer_type = prayer_type.upper()
-    
+
     prayer_found = False
     for prayer_info in context.prayers:
         if prayer_info.get('prayer_type') == prayer_type:
@@ -194,9 +190,9 @@ def step_prayer_should_be_action_for_type(context, action, prayer_type):
             elif action == "not qada markable":
                 can_mark_qada = prayer_info.get('can_mark_qada', False)
                 assert not can_mark_qada, f"{prayer_type} should not be qada markable but is"
-            
+
             prayer_found = True
             break
-    
+
     if not prayer_found:
         raise AssertionError(f"Prayer {prayer_type} not found in prayer times")

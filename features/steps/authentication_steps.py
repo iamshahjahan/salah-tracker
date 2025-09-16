@@ -1,12 +1,10 @@
-"""
-Step definitions for authentication features.
-"""
+"""Step definitions for authentication features."""
 
-from behave import given, when, then
+
+from behave import given, then, when
+
 from app.models.user import User
 from app.services.auth_service import AuthService
-from config.database import db
-import json
 
 
 @given('the application is running')
@@ -92,7 +90,7 @@ def step_user_with_unverified_email_exists(context):
     # Clean up any existing user first
     context.db.session.query(User).filter(User.username == "unverifieduser").delete(synchronize_session=False)
     context.db.session.commit()
-    
+
     user = User(
         username="unverifieduser",
         email="unverified@example.com",
@@ -224,7 +222,7 @@ def step_click_login_with_code(context):
     """Click login with code button."""
     auth_service = AuthService(context.app_config)
     context.login_result = auth_service.authenticate_with_otp(
-        context.otp_email, 
+        context.otp_email,
         context.otp_code
     )
 
@@ -234,7 +232,7 @@ def step_registration_successful(context):
     """Verify registration was successful."""
     if 'error' in context.registration_result:
         print(context.registration_result['error'])
-    assert context.registration_result['success'] == True
+    assert context.registration_result['success']
 
 
 @then('I should receive a confirmation message')
@@ -252,7 +250,7 @@ def step_automatically_logged_in(context):
 @then('an email verification should be sent to my email')
 def step_email_verification_sent(context):
     """Verify email verification was sent."""
-    assert context.registration_result.get('verification_sent') == True
+    assert context.registration_result.get('verification_sent')
 
 
 @then('I should see an error message "{error_message}"')
@@ -261,27 +259,24 @@ def step_see_error_message(context, error_message):
     if hasattr(context, 'registration_result'):
         actual = context.registration_result['error']
         assert actual == error_message, f"Expected error '{error_message}' but got '{actual}'"
-    elif hasattr(context, 'login_result'):
-        actual = context.login_result['error']
-        assert actual == error_message, f"Expected error '{error_message}' but got '{actual}'"
-    elif hasattr(context, 'completion_result'):
+    elif hasattr(context, 'login_result') or hasattr(context, 'completion_result'):
         actual = context.login_result['error']
         assert actual == error_message, f"Expected error '{error_message}' but got '{actual}'"
     else:
-        assert False, "No error result found in context (neither registration_result nor login_result)"
+        raise AssertionError("No error result found in context (neither registration_result nor login_result)")
 
 
 
 @then('I should not be registered')
 def step_not_registered(context):
     """Verify user was not registered."""
-    assert context.registration_result['success'] == False
+    assert not context.registration_result['success']
 
 
 @then('I should be logged in successfully')
 def step_logged_in_successfully(context):
     """Verify login was successful."""
-    assert context.login_result['success'], f"Expected true but got false"
+    assert context.login_result['success'], "Expected true but got false"
 
 @then('I should be redirected to the prayers page')
 def step_redirected_to_prayers(context):
@@ -299,13 +294,13 @@ def step_see_user_profile(context):
 @then('I should not be logged in')
 def step_not_logged_in(context):
     """Verify user was not logged in."""
-    assert context.login_result['success'] == False
+    assert not context.login_result['success']
 
 
 @then('I should receive an OTP code via email')
 def step_receive_otp_code(context):
     """Verify OTP code was sent via email."""
-    assert context.otp_result['success'] == True
+    assert context.otp_result['success']
 
 
 @then('I should see an error message about invalid email format')
@@ -392,7 +387,7 @@ def step_submit_forgot_password_form(context):
 @then('I should receive a password reset email')
 def step_receive_password_reset_email(context):
     """Verify password reset email was sent."""
-    assert context.forgot_password_result['success'] == True
+    assert context.forgot_password_result['success']
     assert 'message' in context.forgot_password_result
 
 
@@ -400,11 +395,11 @@ def step_receive_password_reset_email(context):
 def step_have_valid_reset_code(context, email):
     """Create a valid password reset code for the user."""
     from app.models.email_verification import EmailVerification
-    
+
     # Get the user
     user = User.query.filter_by(email=email).first()
     assert user is not None, f"User with email {email} not found"
-    
+
     # Create a password reset verification
     verification = EmailVerification.create_verification(
         user_id=user.id,
@@ -414,7 +409,7 @@ def step_have_valid_reset_code(context, email):
     )
     context.db.session.add(verification)
     context.db.session.commit()
-    
+
     context.reset_code = verification.verification_code
     context.reset_user = user
 
@@ -428,13 +423,14 @@ def step_have_invalid_reset_code(context):
 @given('I have an expired password reset code for "{email}"')
 def step_have_expired_reset_code(context, email):
     """Create an expired password reset code for the user."""
-    from app.models.email_verification import EmailVerification
     from datetime import datetime, timedelta
-    
+
+    from app.models.email_verification import EmailVerification
+
     # Get the user
     user = User.query.filter_by(email=email).first()
     assert user is not None, f"User with email {email} not found"
-    
+
     # Create an expired password reset verification
     verification = EmailVerification.create_verification(
         user_id=user.id,
@@ -446,7 +442,7 @@ def step_have_expired_reset_code(context, email):
     verification.expires_at = datetime.utcnow() - timedelta(hours=1)
     context.db.session.add(verification)
     context.db.session.commit()
-    
+
     context.reset_code = verification.verification_code
     context.reset_user = user
 
@@ -485,7 +481,7 @@ def step_submit_reset_password_form(context):
 @then('my password should be reset successfully')
 def step_password_reset_successful(context):
     """Verify password was reset successfully."""
-    assert context.reset_result['success'] == True
+    assert context.reset_result['success']
     assert 'message' in context.reset_result
 
 
@@ -497,7 +493,7 @@ def step_able_to_login_with_new_password(context):
         context.reset_user.email,
         context.new_password
     )
-    assert login_result['success'] == True
+    assert login_result['success']
     assert 'access_token' in login_result
 
 
@@ -531,7 +527,7 @@ def step_password_not_changed(context):
         context.reset_user.email,
         'oldpassword123'  # Original password
     )
-    assert login_result['success'] == True
+    assert login_result['success']
 
 
 @given("I have an invalid OTP code {invalid_code} and email: {email}")
@@ -573,4 +569,4 @@ def step_impl(context):
 
 @when("I should receive a password reset email")
 def step_impl(context):
-    raise NotImplementedError(u'STEP: Then I should receive a password reset email')
+    raise NotImplementedError('STEP: Then I should receive a password reset email')

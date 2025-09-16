@@ -1,18 +1,18 @@
-"""
-Base service class for common functionality.
+"""Base service class for common functionality.
 
 This module provides a base service class that other services can inherit from,
 providing common functionality like database session management and error handling.
 """
 
-from typing import Any, Dict, Optional, Type, TypeVar
-from sqlalchemy.orm import Session
-from sqlalchemy.exc import SQLAlchemyError
-from flask import current_app
 import logging
+from typing import Any, Dict, Optional, Type, TypeVar
 
-from config.database import db
+from flask import current_app
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import Session
+
 from app.config.settings import Config
+from config.database import db
 
 T = TypeVar('T')
 
@@ -20,16 +20,14 @@ logger = logging.getLogger(__name__)
 
 
 class BaseService:
-    """
-    Base service class providing common functionality for all services.
+    """Base service class providing common functionality for all services.
 
     This class provides database session management, error handling, and
     common CRUD operations that can be inherited by specific service classes.
     """
 
     def __init__(self, config: Optional[Config] = None):
-        """
-        Initialize the base service.
+        """Initialize the base service.
 
         Args:
             config: Configuration instance. If None, will use current app config.
@@ -48,8 +46,7 @@ class BaseService:
 
     @property
     def db_session(self) -> Session:
-        """
-        Get the current database session.
+        """Get the current database session.
 
         Returns:
             Session: The current SQLAlchemy database session.
@@ -57,8 +54,7 @@ class BaseService:
         return db.session
 
     def commit_session(self) -> None:
-        """
-        Commit the current database session.
+        """Commit the current database session.
 
         Raises:
             SQLAlchemyError: If the commit fails.
@@ -68,19 +64,16 @@ class BaseService:
             self.logger.debug("Database session committed successfully")
         except SQLAlchemyError as e:
             self.db_session.rollback()
-            self.logger.error(f"Database commit failed: {str(e)}")
+            self.logger.error(f"Database commit failed: {e!s}")
             raise
 
     def rollback_session(self) -> None:
-        """
-        Rollback the current database session.
-        """
+        """Rollback the current database session."""
         self.db_session.rollback()
         self.logger.debug("Database session rolled back")
 
     def create_record(self, model_class: Type[T], **kwargs) -> T:
-        """
-        Create a new database record.
+        """Create a new database record.
 
         Args:
             model_class: The SQLAlchemy model class.
@@ -100,12 +93,11 @@ class BaseService:
             return record
         except SQLAlchemyError as e:
             self.rollback_session()
-            self.logger.error(f"Failed to create {model_class.__name__} record: {str(e)}")
+            self.logger.error(f"Failed to create {model_class.__name__} record: {e!s}")
             raise
 
     def get_record_by_id(self, model_class: Type[T], record_id: int) -> Optional[T]:
-        """
-        Get a database record by its ID.
+        """Get a database record by its ID.
 
         Args:
             model_class: The SQLAlchemy model class.
@@ -117,12 +109,11 @@ class BaseService:
         try:
             return model_class.query.get(record_id)
         except SQLAlchemyError as e:
-            self.logger.error(f"Failed to get {model_class.__name__} by ID {record_id}: {str(e)}")
+            self.logger.error(f"Failed to get {model_class.__name__} by ID {record_id}: {e!s}")
             return None
 
     def update_record(self, record: T, **kwargs) -> T:
-        """
-        Update a database record.
+        """Update a database record.
 
         Args:
             record: The model instance to update.
@@ -144,12 +135,11 @@ class BaseService:
             return record
         except SQLAlchemyError as e:
             self.rollback_session()
-            self.logger.error(f"Failed to update {record.__class__.__name__} record: {str(e)}")
+            self.logger.error(f"Failed to update {record.__class__.__name__} record: {e!s}")
             raise
 
     def delete_record(self, record: T) -> bool:
-        """
-        Delete a database record.
+        """Delete a database record.
 
         Args:
             record: The model instance to delete.
@@ -164,12 +154,11 @@ class BaseService:
             return True
         except SQLAlchemyError as e:
             self.rollback_session()
-            self.logger.error(f"Failed to delete {record.__class__.__name__} record: {str(e)}")
+            self.logger.error(f"Failed to delete {record.__class__.__name__} record: {e!s}")
             return False
 
     def handle_service_error(self, error: Exception, operation: str) -> Dict[str, Any]:
-        """
-        Handle service errors and return a standardized error response.
+        """Handle service errors and return a standardized error response.
 
         Args:
             error: The exception that occurred.
@@ -178,7 +167,7 @@ class BaseService:
         Returns:
             Dict[str, Any]: Standardized error response.
         """
-        self.logger.error(f"Service error in {operation}: {str(error)}")
+        self.logger.error(f"Service error in {operation}: {error!s}")
 
         return {
             'success': False,
@@ -188,8 +177,7 @@ class BaseService:
         }
 
     def _get_current_timestamp(self) -> str:
-        """
-        Get the current timestamp in ISO format.
+        """Get the current timestamp in ISO format.
 
         Returns:
             str: Current timestamp in ISO format.

@@ -1,27 +1,28 @@
-from flask import Blueprint, request, jsonify
-from flask_jwt_extended import jwt_required, get_jwt_identity
-from config.database import db
+from datetime import date, timedelta
+
+from flask import Blueprint, jsonify, request
+from flask_jwt_extended import get_jwt_identity, jwt_required
+from sqlalchemy import and_, func
+
+from app.models.prayer import Prayer, PrayerCompletion
 from app.models.user import User
-from app.models.prayer import Prayer, PrayerCompletion, PrayerType
 from app.services.cache_service import cache_service
-from datetime import datetime, date, timedelta
-from sqlalchemy import func, and_
+from config.database import db
 
 dashboard_bp = Blueprint('dashboard', __name__)
 
 @dashboard_bp.route('/stats', methods=['GET'])
 @jwt_required()
 def get_user_stats():
-    """Get user's prayer statistics"""
+    """Get user's prayer statistics."""
     try:
         user_id = get_jwt_identity()
-        
+
         # Check cache first
-        cache_key = f"dashboard_stats_{user_id}"
         cached_data = cache_service.get_dashboard_stats(user_id)
         if cached_data:
             return jsonify(cached_data), 200
-        
+
         user = User.query.get(user_id)
 
         if not user:
@@ -109,7 +110,7 @@ def get_user_stats():
 @dashboard_bp.route('/calendar/<year>/<month>', methods=['GET'])
 @jwt_required()
 def get_calendar_data(year, month):
-    """Get prayer completion data for calendar view"""
+    """Get prayer completion data for calendar view."""
     try:
         user_id = get_jwt_identity()
 
@@ -172,7 +173,7 @@ def get_calendar_data(year, month):
 @dashboard_bp.route('/recent', methods=['GET'])
 @jwt_required()
 def get_recent_activity():
-    """Get recent prayer completion activity"""
+    """Get recent prayer completion activity."""
     try:
         user_id = get_jwt_identity()
         limit = int(request.args.get('limit', 10))
@@ -190,7 +191,7 @@ def get_recent_activity():
         return jsonify({'error': str(e)}), 500
 
 def get_prayer_streak(user_id):
-    """Helper function to calculate prayer streak"""
+    """Helper function to calculate prayer streak."""
     try:
         # Get all completions ordered by date
         completions = db.session.query(PrayerCompletion).join(Prayer).filter(
@@ -228,5 +229,5 @@ def get_prayer_streak(user_id):
 
         return streak
 
-    except Exception as e:
+    except Exception:
         return 0

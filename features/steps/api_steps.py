@@ -1,13 +1,10 @@
-"""
-Step definitions for API endpoint features.
-"""
+"""Step definitions for API endpoint features."""
 
-from behave import given, when, then
-import requests
-import json
+
+from behave import given, then, when
+
 from app.models.user import User
 from app.services.auth_service import AuthService
-from config.database import db
 
 
 @given('the API is accessible')
@@ -33,7 +30,7 @@ def step_have_valid_api_token(context):
     user.set_password("password123")
     context.db.session.add(user)
     context.db.session.commit()
-    
+
     auth_service = AuthService(context.app_config)
     token_result = auth_service.authenticate_user_using_email("apitestuser", "password123")
     context.api_token = token_result.get('access_token')
@@ -66,7 +63,7 @@ def step_make_get_request(context, endpoint):
     headers = {}
     if hasattr(context, 'api_token'):
         headers['Authorization'] = f'Bearer {context.api_token}'
-    
+
     try:
         response = context.test_client.get(endpoint, headers=headers)
         context.api_response = response
@@ -83,9 +80,9 @@ def step_make_post_request(context, endpoint):
     headers = {'Content-Type': 'application/json'}
     if hasattr(context, 'api_token'):
         headers['Authorization'] = f'Bearer {context.api_token}'
-    
+
     data = getattr(context, 'request_data', {})
-    
+
     try:
         response = context.test_client.post(
             endpoint,
@@ -172,7 +169,7 @@ def step_make_request_with_invalid_data(context):
 def step_make_multiple_requests_rapidly(context):
     """Make multiple requests rapidly."""
     context.rapid_requests = []
-    for i in range(10):  # Make 10 rapid requests
+    for _i in range(10):  # Make 10 rapid requests
         step_make_get_request(context, "/api/prayers/times")
         context.rapid_requests.append({
             'status_code': context.api_status_code,
@@ -202,7 +199,7 @@ def step_make_requests_to_various_endpoints(context):
         "/api/dashboard/stats",
         "/api/auth/profile"
     ]
-    
+
     context.various_responses = []
     for endpoint in endpoints:
         step_make_get_request(context, endpoint)
@@ -256,7 +253,7 @@ def step_response_is_json_format(context):
 @then('the prayer should be marked as completed')
 def step_prayer_marked_as_completed(context):
     """Verify prayer is marked as completed."""
-    assert context.api_response_data.get('success') == True
+    assert context.api_response_data.get('success')
     assert context.api_response_data.get('status') == 'completed'
 
 
@@ -380,13 +377,13 @@ def step_response_contains_user_information(context):
 @then('the response should indicate verification email was sent')
 def step_response_indicates_verification_email_sent(context):
     """Verify response indicates verification email was sent."""
-    assert context.api_response_data.get('verification_sent') == True
+    assert context.api_response_data.get('verification_sent')
 
 
 @then('the response should indicate successful completion')
 def step_response_indicates_successful_completion(context):
     """Verify response indicates successful completion."""
-    assert context.api_response_data.get('success') == True
+    assert context.api_response_data.get('success')
 
 
 @then('the response should contain prayer statistics')
@@ -412,7 +409,7 @@ def step_prayer_times_in_timezone(context):
 @then('the response should indicate successful verification')
 def step_response_indicates_successful_verification(context):
     """Verify response indicates successful verification."""
-    assert context.api_response_data.get('success') == True
+    assert context.api_response_data.get('success')
 
 
 @then('the response should contain a generic error message')

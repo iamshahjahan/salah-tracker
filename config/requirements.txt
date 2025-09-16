@@ -48,6 +48,7 @@ freezegun>=1.2.0
 locust>=2.15.0
 
 # Code Quality
+ruff>=0.1.0
 flake8>=5.0.0
 black>=22.0.0
 isort>=5.10.0

@@ -1,6 +1,8 @@
-from config.database import db
-from datetime import datetime, date
+from datetime import datetime
 from enum import Enum
+
+from config.database import db
+
 
 class PrayerType(Enum):
     FAJR = "fajr"
@@ -44,7 +46,7 @@ class Prayer(db.Model):
     user = db.relationship('User', backref='prayers')
 
     def to_dict(self):
-        """Convert prayer object to dictionary"""
+        """Convert prayer object to dictionary."""
         return {
             'id': self.id,
             'prayer_type': self.prayer_type.value,
@@ -73,7 +75,7 @@ class PrayerCompletion(db.Model):
     prayer = db.relationship('Prayer', backref='completions')
 
     def to_dict(self):
-        """Convert prayer completion object to dictionary"""
+        """Convert prayer completion object to dictionary."""
         return {
             'id': self.id,
             'user_id': self.user_id,

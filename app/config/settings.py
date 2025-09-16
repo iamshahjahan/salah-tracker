@@ -1,13 +1,13 @@
-"""
-Application configuration settings.
+"""Application configuration settings.
 
 This module provides environment-based configuration management with proper
 validation and type hints for the Salah Tracker application.
 """
 
 import os
-from typing import Optional
 from dataclasses import dataclass
+from typing import Optional
+
 from dotenv import load_dotenv
 
 # Load environment variables
@@ -64,7 +64,7 @@ class CeleryConfig:
     result_serializer: str = "json"
     timezone: str = "UTC"
     enable_utc: bool = True
-    
+
     def __post_init__(self):
         if self.accept_content is None:
             self.accept_content = ["json"]
@@ -164,8 +164,7 @@ class TestingConfig(Config):
 
 
 def get_config() -> Config:
-    """
-    Get configuration based on environment.
+    """Get configuration based on environment.
 
     Returns:
         Config: The appropriate configuration instance based on FLASK_ENV.

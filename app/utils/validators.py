@@ -1,18 +1,16 @@
-"""
-Validation utilities for the Salah Tracker application.
+"""Validation utilities for the Salah Tracker application.
 
 This module provides validation functions for user inputs, data formats,
 and business logic validation with proper error handling.
 """
 
 import re
+from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
-from datetime import datetime, date
 
 
 def validate_email(email: str) -> Tuple[bool, Optional[str]]:
-    """
-    Validate email address format.
+    """Validate email address format.
 
     Args:
         email: Email address to validate.
@@ -22,7 +20,7 @@ def validate_email(email: str) -> Tuple[bool, Optional[str]]:
     """
     if email is None:
         return False, "Email is required"
-    
+
     if not email:
         return False, "Email is required"
 
@@ -31,7 +29,7 @@ def validate_email(email: str) -> Tuple[bool, Optional[str]]:
 
     # Basic email regex pattern (more strict)
     email_pattern = r'^[a-zA-Z0-9]([a-zA-Z0-9._-]*[a-zA-Z0-9])?@[a-zA-Z0-9]([a-zA-Z0-9.-]*[a-zA-Z0-9])?\.[a-zA-Z]{2,}$'
-    
+
     # Additional check for consecutive dots
     if '..' in email:
         return False, "Invalid email format"
@@ -46,8 +44,7 @@ def validate_email(email: str) -> Tuple[bool, Optional[str]]:
 
 
 def validate_password(password: str) -> Tuple[bool, Optional[str]]:
-    """
-    Validate password strength and format.
+    """Validate password strength and format.
 
     Args:
         password: Password to validate.
@@ -87,8 +84,7 @@ def validate_password(password: str) -> Tuple[bool, Optional[str]]:
 
 
 def validate_coordinates(latitude: float, longitude: float) -> Tuple[bool, Optional[str]]:
-    """
-    Validate geographic coordinates.
+    """Validate geographic coordinates.
 
     Args:
         latitude: Latitude coordinate.
@@ -113,8 +109,7 @@ def validate_coordinates(latitude: float, longitude: float) -> Tuple[bool, Optio
 
 
 def validate_phone_number(phone_number: str) -> Tuple[bool, Optional[str]]:
-    """
-    Validate phone number format.
+    """Validate phone number format.
 
     Args:
         phone_number: Phone number to validate.
@@ -141,8 +136,7 @@ def validate_phone_number(phone_number: str) -> Tuple[bool, Optional[str]]:
 
 
 def validate_date_string(date_string: str, format: str = '%Y-%m-%d') -> Tuple[bool, Optional[str]]:
-    """
-    Validate date string format.
+    """Validate date string format.
 
     Args:
         date_string: Date string to validate.
@@ -165,8 +159,7 @@ def validate_date_string(date_string: str, format: str = '%Y-%m-%d') -> Tuple[bo
 
 
 def validate_time_string(time_string: str, format: str = '%H:%M') -> Tuple[bool, Optional[str]]:
-    """
-    Validate time string format.
+    """Validate time string format.
 
     Args:
         time_string: Time string to validate.
@@ -189,8 +182,7 @@ def validate_time_string(time_string: str, format: str = '%H:%M') -> Tuple[bool,
 
 
 def validate_user_registration_data(data: Dict[str, Any]) -> Tuple[bool, List[str]]:
-    """
-    Validate user registration data.
+    """Validate user registration data.
 
     Args:
         data: Dictionary containing user registration data.
@@ -241,8 +233,7 @@ def validate_user_registration_data(data: Dict[str, Any]) -> Tuple[bool, List[st
 
 
 def validate_prayer_completion_data(data: Dict[str, Any]) -> Tuple[bool, List[str]]:
-    """
-    Validate prayer completion data.
+    """Validate prayer completion data.
 
     Args:
         data: Dictionary containing prayer completion data.
@@ -267,8 +258,7 @@ def validate_prayer_completion_data(data: Dict[str, Any]) -> Tuple[bool, List[st
 
 
 def validate_pagination_params(page: int, per_page: int) -> Tuple[bool, Optional[str]]:
-    """
-    Validate pagination parameters.
+    """Validate pagination parameters.
 
     Args:
         page: Page number (1-based).
@@ -290,8 +280,7 @@ def validate_pagination_params(page: int, per_page: int) -> Tuple[bool, Optional
 
 
 def sanitize_string(value: str, max_length: Optional[int] = None) -> str:
-    """
-    Sanitize string input by removing dangerous characters and limiting length.
+    """Sanitize string input by removing dangerous characters and limiting length.
 
     Args:
         value: String to sanitize.
@@ -302,7 +291,7 @@ def sanitize_string(value: str, max_length: Optional[int] = None) -> str:
     """
     if value is None:
         return ""
-    
+
     if not isinstance(value, str):
         return ""
 
@@ -320,8 +309,7 @@ def sanitize_string(value: str, max_length: Optional[int] = None) -> str:
 
 
 def validate_timezone(timezone: str) -> Tuple[bool, Optional[str]]:
-    """
-    Validate timezone string.
+    """Validate timezone string.
 
     Args:
         timezone: Timezone string to validate.

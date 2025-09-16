@@ -1,31 +1,30 @@
-"""
-User service for managing user profiles and settings.
+"""User service for managing user profiles and settings.
 
 This service handles user profile management, location updates, and user statistics
 with proper validation and data integrity.
 """
 
-from typing import Dict, Any, Optional, List
-from datetime import datetime, timedelta
+from datetime import datetime
+from typing import Any, Dict, List, Optional
+
 import requests
 
-from .base_service import BaseService
-from app.models.user import User
-from app.models.prayer import Prayer, PrayerCompletion
 from app.config.settings import Config
+from app.models.prayer import Prayer, PrayerCompletion
+from app.models.user import User
+
+from .base_service import BaseService
 
 
 class UserService(BaseService):
-    """
-    Service for managing user profiles and settings.
+    """Service for managing user profiles and settings.
 
     This service provides methods for updating user profiles, managing locations,
     and calculating user statistics with proper validation.
     """
 
     def __init__(self, config: Optional[Config] = None):
-        """
-        Initialize the user service.
+        """Initialize the user service.
 
         Args:
             config: Configuration instance. If None, will use current app config.
@@ -34,8 +33,7 @@ class UserService(BaseService):
         self.api_config = self.config.EXTERNAL_API_CONFIG
 
     def get_user_profile(self, user_id: int) -> Dict[str, Any]:
-        """
-        Get user profile information.
+        """Get user profile information.
 
         Args:
             user_id: ID of the user.
@@ -61,8 +59,7 @@ class UserService(BaseService):
             return self.handle_service_error(e, 'get_user_profile')
 
     def update_user_profile(self, user_id: int, profile_data: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Update user profile information.
+        """Update user profile information.
 
         Args:
             user_id: ID of the user.
@@ -112,8 +109,7 @@ class UserService(BaseService):
 
     def update_user_location(self, user_id: int, latitude: float, longitude: float,
                            timezone: Optional[str] = None) -> Dict[str, Any]:
-        """
-        Update user location with geocoding to get city information.
+        """Update user location with geocoding to get city information.
 
         Args:
             user_id: ID of the user.
@@ -168,8 +164,7 @@ class UserService(BaseService):
             return self.handle_service_error(e, 'update_user_location')
 
     def get_user_statistics(self, user_id: int) -> Dict[str, Any]:
-        """
-        Get user prayer statistics and completion rates.
+        """Get user prayer statistics and completion rates.
 
         Args:
             user_id: ID of the user.
@@ -199,8 +194,7 @@ class UserService(BaseService):
 
     def get_user_prayer_history(self, user_id: int, start_date: Optional[str] = None,
                                end_date: Optional[str] = None, limit: int = 30) -> Dict[str, Any]:
-        """
-        Get user prayer completion history.
+        """Get user prayer completion history.
 
         Args:
             user_id: ID of the user.
@@ -257,8 +251,7 @@ class UserService(BaseService):
             return self.handle_service_error(e, 'get_user_prayer_history')
 
     def _get_city_from_coordinates(self, latitude: float, longitude: float) -> Dict[str, Any]:
-        """
-        Get city information from coordinates using geocoding API.
+        """Get city information from coordinates using geocoding API.
 
         Args:
             latitude: Latitude coordinate.
@@ -287,7 +280,7 @@ class UserService(BaseService):
             }
 
         except Exception as e:
-            self.logger.error(f"Error getting city from coordinates: {str(e)}")
+            self.logger.error(f"Error getting city from coordinates: {e!s}")
             return {
                 'city': 'Unknown',
                 'country': 'Unknown',
@@ -295,8 +288,7 @@ class UserService(BaseService):
             }
 
     def _calculate_user_statistics(self, user: User) -> Dict[str, Any]:
-        """
-        Calculate comprehensive user statistics.
+        """Calculate comprehensive user statistics.
 
         Args:
             user: User instance.
@@ -352,13 +344,12 @@ class UserService(BaseService):
             }
 
         except Exception as e:
-            self.logger.error(f"Error calculating user statistics: {str(e)}")
+            self.logger.error(f"Error calculating user statistics: {e!s}")
             return {}
 
     def _calculate_daily_completion_stats(self, prayers: List[Prayer], completions: List[PrayerCompletion],
                                         start_date: datetime.date, end_date: datetime.date) -> Dict[str, Any]:
-        """
-        Calculate daily completion statistics.
+        """Calculate daily completion statistics.
 
         Args:
             prayers: List of prayer instances.
@@ -397,13 +388,12 @@ class UserService(BaseService):
             return daily_stats
 
         except Exception as e:
-            self.logger.error(f"Error calculating daily completion stats: {str(e)}")
+            self.logger.error(f"Error calculating daily completion stats: {e!s}")
             return {}
 
     def _calculate_prayer_specific_stats(self, prayers: List[Prayer],
                                        completions: List[PrayerCompletion]) -> Dict[str, Any]:
-        """
-        Calculate prayer-specific completion statistics.
+        """Calculate prayer-specific completion statistics.
 
         Args:
             prayers: List of prayer instances.
@@ -444,13 +434,12 @@ class UserService(BaseService):
             return prayer_stats
 
         except Exception as e:
-            self.logger.error(f"Error calculating prayer-specific stats: {str(e)}")
+            self.logger.error(f"Error calculating prayer-specific stats: {e!s}")
             return {}
 
     def _get_prayer_history(self, user: User, start_date: datetime.date,
                            end_date: datetime.date, limit: int) -> List[Dict[str, Any]]:
-        """
-        Get prayer completion history for a user.
+        """Get prayer completion history for a user.
 
         Args:
             user: User instance.
@@ -494,5 +483,5 @@ class UserService(BaseService):
             return history
 
         except Exception as e:
-            self.logger.error(f"Error getting prayer history: {str(e)}")
+            self.logger.error(f"Error getting prayer history: {e!s}")
             return []

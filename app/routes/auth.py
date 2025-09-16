@@ -1,15 +1,17 @@
-from flask import Blueprint, request, jsonify, render_template
-from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
-from config.database import db
+from datetime import datetime
+
+from flask import Blueprint, jsonify, request
+from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_required
+
 from app.models.user import User
 from app.services.auth_service import AuthService
-from datetime import datetime
+from config.database import db
 
 auth_bp = Blueprint('auth', __name__)
 
 @auth_bp.route('/register', methods=['POST'])
 def register():
-    """Register a new user"""
+    """Register a new user."""
     try:
         data = request.get_json()
 
@@ -62,7 +64,7 @@ def register():
             from app.services.auth_service import AuthService
             auth_service = AuthService()
             verification_result = auth_service.send_email_verification(user.id)
-            
+
             if verification_result['success']:
                 return jsonify({
                     'message': 'User registered successfully. Please check your email for verification code.',
@@ -70,15 +72,14 @@ def register():
                     'user': user.to_dict(),
                     'verification_sent': True
                 }), 201
-            else:
-                # Registration successful but email verification failed
-                return jsonify({
-                    'message': 'User registered successfully. Email verification could not be sent.',
-                    'access_token': access_token,
-                    'user': user.to_dict(),
-                    'verification_sent': False,
-                    'verification_error': verification_result.get('error', 'Unknown error')
-                }), 201
+            # Registration successful but email verification failed
+            return jsonify({
+                'message': 'User registered successfully. Email verification could not be sent.',
+                'access_token': access_token,
+                'user': user.to_dict(),
+                'verification_sent': False,
+                'verification_error': verification_result.get('error', 'Unknown error')
+            }), 201
         except Exception as email_error:
             # Registration successful but email verification failed
             return jsonify({
@@ -95,7 +96,7 @@ def register():
 
 @auth_bp.route('/login', methods=['POST'])
 def login():
-    """Login user and return access token"""
+    """Login user and return access token."""
     try:
         data = request.get_json()
 
@@ -125,7 +126,7 @@ def login():
 @auth_bp.route('/profile', methods=['GET'])
 @jwt_required()
 def get_profile():
-    """Get current user's profile"""
+    """Get current user's profile."""
     try:
         user_id = get_jwt_identity()
         user = User.query.get(user_id)
@@ -141,7 +142,7 @@ def get_profile():
 @auth_bp.route('/profile', methods=['PUT'])
 @jwt_required()
 def update_profile():
-    """Update current user's profile"""
+    """Update current user's profile."""
     try:
         user_id = get_jwt_identity()
         user = User.query.get(user_id)
@@ -198,7 +199,7 @@ def update_profile():
 @auth_bp.route('/change-password', methods=['POST'])
 @jwt_required()
 def change_password():
-    """Change user's password"""
+    """Change user's password."""
     try:
         user_id = get_jwt_identity()
         user = User.query.get(user_id)
@@ -229,7 +230,7 @@ def change_password():
 @auth_bp.route('/send-verification', methods=['POST'])
 @jwt_required()
 def send_email_verification():
-    """Send email verification code to current user"""
+    """Send email verification code to current user."""
     try:
         user_id = get_jwt_identity()
         auth_service = AuthService()
@@ -238,15 +239,14 @@ def send_email_verification():
 
         if result['success']:
             return jsonify(result), 200
-        else:
-            return jsonify(result), 400
+        return jsonify(result), 400
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
 @auth_bp.route('/verify-email', methods=['POST'])
 def verify_email():
-    """Verify user's email with verification code"""
+    """Verify user's email with verification code."""
     try:
         data = request.get_json()
 
@@ -258,15 +258,14 @@ def verify_email():
 
         if result['success']:
             return jsonify(result), 200
-        else:
-            return jsonify(result), 400
+        return jsonify(result), 400
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
 @auth_bp.route('/send-login-otp', methods=['POST'])
 def send_login_otp():
-    """Send OTP for login to user's email"""
+    """Send OTP for login to user's email."""
     try:
         data = request.get_json()
 
@@ -278,15 +277,14 @@ def send_login_otp():
 
         if result['success']:
             return jsonify(result), 200
-        else:
-            return jsonify(result), 400
+        return jsonify(result), 400
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
 @auth_bp.route('/login-with-otp', methods=['POST'])
 def login_with_otp():
-    """Login user with OTP"""
+    """Login user with OTP."""
     try:
         data = request.get_json()
 
@@ -302,15 +300,14 @@ def login_with_otp():
                 'access_token': result['access_token'],
                 'user': result['user']
             }), 200
-        else:
-            return jsonify(result), 400
+        return jsonify(result), 400
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
 @auth_bp.route('/forgot-password', methods=['POST'])
 def forgot_password():
-    """Send password reset link to user's email"""
+    """Send password reset link to user's email."""
     try:
         data = request.get_json()
 
@@ -322,15 +319,14 @@ def forgot_password():
 
         if result['success']:
             return jsonify(result), 200
-        else:
-            return jsonify(result), 400
+        return jsonify(result), 400
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
 @auth_bp.route('/reset-password', methods=['POST'])
 def reset_password():
-    """Reset user's password using verification code"""
+    """Reset user's password using verification code."""
     try:
         data = request.get_json()
 
@@ -342,8 +338,7 @@ def reset_password():
 
         if result['success']:
             return jsonify(result), 200
-        else:
-            return jsonify(result), 400
+        return jsonify(result), 400
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500

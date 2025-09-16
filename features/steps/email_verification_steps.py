@@ -1,13 +1,12 @@
-"""
-Step definitions for email verification features.
-"""
+"""Step definitions for email verification features."""
 
-from behave import given, when, then
-from app.models.user import User
-from app.models.email_verification import EmailVerification
-from app.services.auth_service import AuthService
-from config.database import db
 from datetime import datetime, timedelta
+
+from behave import given, then, when
+
+from app.models.email_verification import EmailVerification
+from app.models.user import User
+from app.services.auth_service import AuthService
 
 
 @given('I have received a verification email')
@@ -64,7 +63,7 @@ def step_enter_correct_verification_code(context):
         verification_type='email_verification',
         is_used=False
     ).first()
-    
+
     if verification:
         context.verification_code = verification.verification_code
     else:
@@ -130,8 +129,8 @@ def step_request_verification_codes_rapidly(context):
     """Request verification codes multiple times rapidly."""
     auth_service = AuthService()
     context.rapid_requests = []
-    
-    for i in range(6):  # More than the rate limit
+
+    for _i in range(6):  # More than the rate limit
         result = auth_service.send_email_verification(context.test_user.id)
         context.rapid_requests.append(result)
 
@@ -146,11 +145,11 @@ def step_try_verify_email_again(context):
 @then('my email should be verified')
 def step_email_should_be_verified(context):
     """Verify email is marked as verified."""
-    assert context.verification_result['success'] == True
-    
+    assert context.verification_result['success']
+
     # Check database
     user = User.query.get(context.test_user.id)
-    assert user.email_verified == True
+    assert user.email_verified
 
 
 @then('I should see a success message')
@@ -158,26 +157,26 @@ def step_see_success_message(context):
     """Verify success message is displayed."""
     # Check for success message in various context attributes
     success_found = False
-    
+
     # Check verification_result if it exists
     if hasattr(context, 'verification_result') and context.verification_result:
         if 'message' in context.verification_result:
             success_found = True
-    
+
     # Check registration_result if it exists
     if hasattr(context, 'registration_result') and context.registration_result:
         if 'message' in context.registration_result:
             success_found = True
-    
+
     # Check login_result if it exists
     if hasattr(context, 'login_result') and context.login_result:
         if 'message' in context.login_result:
             success_found = True
-    
+
     # For simple test cases, just verify the application is running
     if hasattr(context, 'app_running') and context.app_running:
         success_found = True
-    
+
     assert success_found, "No success message found in any context"
 
 
@@ -194,11 +193,11 @@ def step_email_verification_header_disappears(context):
 @then('my email should remain unverified')
 def step_email_remains_unverified(context):
     """Verify email remains unverified."""
-    assert context.verification_result['success'] == False
-    
+    assert not context.verification_result['success']
+
     # Check database
     user = User.query.get(context.test_user.id)
-    assert user.email_verified == False
+    assert not user.email_verified
 
 
 # This step is covered by the generic error message step in authentication_steps.py
@@ -207,7 +206,7 @@ def step_email_remains_unverified(context):
 @then('I should receive a new verification email')
 def step_receive_new_verification_email(context):
     """Verify new verification email was sent."""
-    assert context.resend_result['success'] == True
+    assert context.resend_result['success']
 
 
 @then('I should see a confirmation message')
@@ -231,7 +230,7 @@ def step_previous_verification_code_invalidated(context):
 @then('I should see the email verification header')
 def step_see_email_verification_header(context):
     """Verify email verification header is displayed."""
-    assert context.header_visible == True
+    assert context.header_visible
 
 
 @then('the header should display "Verify your email to receive email reminders"')
@@ -249,7 +248,7 @@ def step_header_has_buttons(context):
 @then('the header should disappear')
 def step_header_disappears(context):
     """Verify header disappears."""
-    assert context.header_dismissed == True
+    assert context.header_dismissed
 
 
 @then('the header should not appear again in this session')
@@ -261,7 +260,7 @@ def step_header_not_appear_again(context):
 @then('an email verification should be automatically sent')
 def step_email_verification_automatically_sent(context):
     """Verify email verification was automatically sent."""
-    assert context.registration_result.get('verification_sent') == True
+    assert context.registration_result.get('verification_sent')
 
 
 @then('I should see a message "Please check your email for verification code"')
@@ -280,7 +279,7 @@ def step_email_verification_modal_appears(context):
 def step_rate_limited_after_5_attempts(context):
     """Verify rate limiting after 5 attempts."""
     # Check that the 6th request was rate limited
-    assert context.rapid_requests[5]['success'] == False
+    assert not context.rapid_requests[5]['success']
 
 
 # This step is covered by the generic error message step in authentication_steps.py
@@ -292,4 +291,4 @@ def step_rate_limited_after_5_attempts(context):
 @then('no new verification code should be sent')
 def step_no_new_verification_code_sent(context):
     """Verify no new verification code was sent."""
-    assert context.duplicate_verification_result['success'] == False
+    assert not context.duplicate_verification_result['success']

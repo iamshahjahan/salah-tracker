@@ -1,18 +1,17 @@
-"""
-Date and time utilities for the Salah Tracker application.
+"""Date and time utilities for the Salah Tracker application.
 
 This module provides date/time handling functions with proper timezone support
 and prayer time calculations.
 """
 
+from datetime import date, datetime, time, timedelta
 from typing import Optional, Tuple
-from datetime import datetime, date, time, timedelta
+
 import pytz
 
 
 def get_user_timezone(user_timezone: str) -> pytz.timezone:
-    """
-    Get timezone object for user's timezone.
+    """Get timezone object for user's timezone.
 
     Args:
         user_timezone: User's timezone string.
@@ -28,8 +27,7 @@ def get_user_timezone(user_timezone: str) -> pytz.timezone:
 
 
 def convert_to_user_timezone(dt: datetime, user_timezone: str) -> datetime:
-    """
-    Convert datetime to user's timezone.
+    """Convert datetime to user's timezone.
 
     Args:
         dt: Datetime object to convert.
@@ -48,8 +46,7 @@ def convert_to_user_timezone(dt: datetime, user_timezone: str) -> datetime:
 
 
 def get_prayer_time_window(prayer_time: time, window_minutes: int = 30) -> Tuple[time, time]:
-    """
-    Get prayer time window (start and end times).
+    """Get prayer time window (start and end times).
 
     Args:
         prayer_time: Prayer time.
@@ -73,8 +70,7 @@ def get_prayer_time_window(prayer_time: time, window_minutes: int = 30) -> Tuple
 
 def is_prayer_time_valid(prayer_time: time, user_timezone: str,
                         window_minutes: int = 30) -> Tuple[bool, bool]:
-    """
-    Check if current time is within prayer time window.
+    """Check if current time is within prayer time window.
 
     Args:
         prayer_time: Prayer time.
@@ -99,16 +95,14 @@ def is_prayer_time_valid(prayer_time: time, user_timezone: str,
     # Check if current time is within prayer window
     if now < window_start:
         return False, False  # Too early
-    elif now <= window_end:
+    if now <= window_end:
         return True, False   # On time
-    else:
-        return True, True    # Late but can still complete
+    return True, True    # Late but can still complete
 
 
 def is_prayer_missed(prayer_time: time, user_timezone: str,
                     window_minutes: int = 30) -> bool:
-    """
-    Check if a prayer is missed (time has passed without completion).
+    """Check if a prayer is missed (time has passed without completion).
 
     Args:
         prayer_time: Prayer time.
@@ -134,8 +128,7 @@ def is_prayer_missed(prayer_time: time, user_timezone: str,
 
 
 def get_next_prayer_time(prayer_times: dict, user_timezone: str) -> Optional[Tuple[str, time]]:
-    """
-    Get the next upcoming prayer time.
+    """Get the next upcoming prayer time.
 
     Args:
         prayer_times: Dictionary mapping prayer names to times.
@@ -163,8 +156,7 @@ def get_next_prayer_time(prayer_times: dict, user_timezone: str) -> Optional[Tup
 
 
 def get_prayer_time_until_next(prayer_times: dict, user_timezone: str) -> Optional[timedelta]:
-    """
-    Get time remaining until next prayer.
+    """Get time remaining until next prayer.
 
     Args:
         prayer_times: Dictionary mapping prayer names to times.
@@ -189,8 +181,7 @@ def get_prayer_time_until_next(prayer_times: dict, user_timezone: str) -> Option
 
 
 def format_time_until_next(time_remaining: timedelta) -> str:
-    """
-    Format time remaining until next prayer in human-readable format.
+    """Format time remaining until next prayer in human-readable format.
 
     Args:
         time_remaining: Time remaining as timedelta.
@@ -212,15 +203,13 @@ def format_time_until_next(time_remaining: timedelta) -> str:
 
     if hours > 0:
         return f"{hours}h {minutes}m"
-    elif minutes > 0:
+    if minutes > 0:
         return f"{minutes}m {seconds}s"
-    else:
-        return f"{seconds}s"
+    return f"{seconds}s"
 
 
 def get_date_range(start_date: date, end_date: date) -> list:
-    """
-    Get list of dates between start and end date (inclusive).
+    """Get list of dates between start and end date (inclusive).
 
     Args:
         start_date: Start date.
@@ -240,8 +229,7 @@ def get_date_range(start_date: date, end_date: date) -> list:
 
 
 def get_month_dates(year: int, month: int) -> list:
-    """
-    Get all dates for a specific month.
+    """Get all dates for a specific month.
 
     Args:
         year: Year.
@@ -263,8 +251,7 @@ def get_month_dates(year: int, month: int) -> list:
 
 
 def is_same_date(date1: date, date2: date) -> bool:
-    """
-    Check if two dates are the same.
+    """Check if two dates are the same.
 
     Args:
         date1: First date.
@@ -277,8 +264,7 @@ def is_same_date(date1: date, date2: date) -> bool:
 
 
 def is_today(date_obj: date) -> bool:
-    """
-    Check if a date is today.
+    """Check if a date is today.
 
     Args:
         date_obj: Date to check.
@@ -290,8 +276,7 @@ def is_today(date_obj: date) -> bool:
 
 
 def is_yesterday(date_obj: date) -> bool:
-    """
-    Check if a date is yesterday.
+    """Check if a date is yesterday.
 
     Args:
         date_obj: Date to check.
@@ -304,8 +289,7 @@ def is_yesterday(date_obj: date) -> bool:
 
 
 def is_tomorrow(date_obj: date) -> bool:
-    """
-    Check if a date is tomorrow.
+    """Check if a date is tomorrow.
 
     Args:
         date_obj: Date to check.
@@ -318,8 +302,7 @@ def is_tomorrow(date_obj: date) -> bool:
 
 
 def get_week_start_end(date_obj: date) -> Tuple[date, date]:
-    """
-    Get start and end dates of the week containing the given date.
+    """Get start and end dates of the week containing the given date.
 
     Args:
         date_obj: Date within the week.
@@ -340,8 +323,7 @@ def get_week_start_end(date_obj: date) -> Tuple[date, date]:
 
 
 def get_month_start_end(date_obj: date) -> Tuple[date, date]:
-    """
-    Get start and end dates of the month containing the given date.
+    """Get start and end dates of the month containing the given date.
 
     Args:
         date_obj: Date within the month.
@@ -362,8 +344,7 @@ def get_month_start_end(date_obj: date) -> Tuple[date, date]:
 
 
 def parse_date_string(date_string: str, format: str = '%Y-%m-%d') -> Optional[date]:
-    """
-    Parse date string to date object.
+    """Parse date string to date object.
 
     Args:
         date_string: Date string to parse.
@@ -379,8 +360,7 @@ def parse_date_string(date_string: str, format: str = '%Y-%m-%d') -> Optional[da
 
 
 def parse_time_string(time_string: str, format: str = '%H:%M') -> Optional[time]:
-    """
-    Parse time string to time object.
+    """Parse time string to time object.
 
     Args:
         time_string: Time string to parse.

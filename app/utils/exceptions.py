@@ -1,16 +1,14 @@
-"""
-Custom exceptions for the Salah Tracker application.
+"""Custom exceptions for the Salah Tracker application.
 
 This module provides custom exception classes for better error handling
 and more specific error messages throughout the application.
 """
 
-from typing import Optional, Dict, Any
+from typing import Any, Dict, Optional
 
 
 class SalahRemindersException(Exception):
-    """
-    Base exception class for all Salah Tracker application exceptions.
+    """Base exception class for all Salah Tracker application exceptions.
 
     This class provides a common base for all custom exceptions with
     additional context and error code support.
@@ -18,8 +16,7 @@ class SalahRemindersException(Exception):
 
     def __init__(self, message: str, error_code: Optional[str] = None,
                  context: Optional[Dict[str, Any]] = None):
-        """
-        Initialize the exception.
+        """Initialize the exception.
 
         Args:
             message: Error message.
@@ -32,8 +29,7 @@ class SalahRemindersException(Exception):
         self.context = context or {}
 
     def to_dict(self) -> Dict[str, Any]:
-        """
-        Convert exception to dictionary for API responses.
+        """Convert exception to dictionary for API responses.
 
         Returns:
             Dict[str, Any]: Exception data as dictionary.
@@ -46,8 +42,7 @@ class SalahRemindersException(Exception):
 
 
 class ValidationError(SalahRemindersException):
-    """
-    Exception raised for validation errors.
+    """Exception raised for validation errors.
 
     This exception is raised when input validation fails,
     such as invalid email format or missing required fields.
@@ -55,8 +50,7 @@ class ValidationError(SalahRemindersException):
 
     def __init__(self, message: str, field: Optional[str] = None,
                  value: Optional[Any] = None):
-        """
-        Initialize validation error.
+        """Initialize validation error.
 
         Args:
             message: Validation error message.
@@ -73,16 +67,14 @@ class ValidationError(SalahRemindersException):
 
 
 class AuthenticationError(SalahRemindersException):
-    """
-    Exception raised for authentication errors.
+    """Exception raised for authentication errors.
 
     This exception is raised when authentication fails,
     such as invalid credentials or expired tokens.
     """
 
     def __init__(self, message: str = "Authentication failed"):
-        """
-        Initialize authentication error.
+        """Initialize authentication error.
 
         Args:
             message: Authentication error message.
@@ -91,16 +83,14 @@ class AuthenticationError(SalahRemindersException):
 
 
 class AuthorizationError(SalahRemindersException):
-    """
-    Exception raised for authorization errors.
+    """Exception raised for authorization errors.
 
     This exception is raised when a user doesn't have permission
     to perform a specific action.
     """
 
     def __init__(self, message: str = "Access denied"):
-        """
-        Initialize authorization error.
+        """Initialize authorization error.
 
         Args:
             message: Authorization error message.
@@ -109,16 +99,14 @@ class AuthorizationError(SalahRemindersException):
 
 
 class UserNotFoundError(SalahRemindersException):
-    """
-    Exception raised when a user is not found.
+    """Exception raised when a user is not found.
 
     This exception is raised when attempting to access a user
     that doesn't exist in the database.
     """
 
     def __init__(self, user_id: Optional[int] = None, email: Optional[str] = None):
-        """
-        Initialize user not found error.
+        """Initialize user not found error.
 
         Args:
             user_id: ID of the user that was not found.
@@ -140,16 +128,14 @@ class UserNotFoundError(SalahRemindersException):
 
 
 class PrayerNotFoundError(SalahRemindersException):
-    """
-    Exception raised when a prayer is not found.
+    """Exception raised when a prayer is not found.
 
     This exception is raised when attempting to access a prayer
     that doesn't exist in the database.
     """
 
     def __init__(self, prayer_id: Optional[int] = None):
-        """
-        Initialize prayer not found error.
+        """Initialize prayer not found error.
 
         Args:
             prayer_id: ID of the prayer that was not found.
@@ -166,16 +152,14 @@ class PrayerNotFoundError(SalahRemindersException):
 
 
 class PrayerTimeError(SalahRemindersException):
-    """
-    Exception raised for prayer time related errors.
+    """Exception raised for prayer time related errors.
 
     This exception is raised when there are issues with prayer time
     calculations or validations.
     """
 
     def __init__(self, message: str, prayer_name: Optional[str] = None):
-        """
-        Initialize prayer time error.
+        """Initialize prayer time error.
 
         Args:
             message: Prayer time error message.
@@ -189,8 +173,7 @@ class PrayerTimeError(SalahRemindersException):
 
 
 class ExternalAPIError(SalahRemindersException):
-    """
-    Exception raised for external API errors.
+    """Exception raised for external API errors.
 
     This exception is raised when there are issues with external API
     calls, such as prayer times API or geocoding API.
@@ -198,8 +181,7 @@ class ExternalAPIError(SalahRemindersException):
 
     def __init__(self, message: str, api_name: Optional[str] = None,
                  status_code: Optional[int] = None):
-        """
-        Initialize external API error.
+        """Initialize external API error.
 
         Args:
             message: API error message.
@@ -216,16 +198,14 @@ class ExternalAPIError(SalahRemindersException):
 
 
 class DatabaseError(SalahRemindersException):
-    """
-    Exception raised for database errors.
+    """Exception raised for database errors.
 
     This exception is raised when there are issues with database
     operations, such as connection failures or constraint violations.
     """
 
     def __init__(self, message: str, operation: Optional[str] = None):
-        """
-        Initialize database error.
+        """Initialize database error.
 
         Args:
             message: Database error message.
@@ -239,16 +219,14 @@ class DatabaseError(SalahRemindersException):
 
 
 class ConfigurationError(SalahRemindersException):
-    """
-    Exception raised for configuration errors.
+    """Exception raised for configuration errors.
 
     This exception is raised when there are issues with application
     configuration, such as missing environment variables.
     """
 
     def __init__(self, message: str, config_key: Optional[str] = None):
-        """
-        Initialize configuration error.
+        """Initialize configuration error.
 
         Args:
             message: Configuration error message.
@@ -262,16 +240,14 @@ class ConfigurationError(SalahRemindersException):
 
 
 class NotificationError(SalahRemindersException):
-    """
-    Exception raised for notification errors.
+    """Exception raised for notification errors.
 
     This exception is raised when there are issues with sending
     notifications, such as email delivery failures.
     """
 
     def __init__(self, message: str, notification_type: Optional[str] = None):
-        """
-        Initialize notification error.
+        """Initialize notification error.
 
         Args:
             message: Notification error message.
@@ -285,8 +261,7 @@ class NotificationError(SalahRemindersException):
 
 
 class RateLimitError(SalahRemindersException):
-    """
-    Exception raised for rate limiting errors.
+    """Exception raised for rate limiting errors.
 
     This exception is raised when API rate limits are exceeded
     or when too many requests are made in a short time period.
@@ -294,8 +269,7 @@ class RateLimitError(SalahRemindersException):
 
     def __init__(self, message: str = "Rate limit exceeded",
                  retry_after: Optional[int] = None):
-        """
-        Initialize rate limit error.
+        """Initialize rate limit error.
 
         Args:
             message: Rate limit error message.
@@ -309,16 +283,14 @@ class RateLimitError(SalahRemindersException):
 
 
 class BusinessLogicError(SalahRemindersException):
-    """
-    Exception raised for business logic errors.
+    """Exception raised for business logic errors.
 
     This exception is raised when business rules are violated,
     such as attempting to complete a prayer outside its time window.
     """
 
     def __init__(self, message: str, rule: Optional[str] = None):
-        """
-        Initialize business logic error.
+        """Initialize business logic error.
 
         Args:
             message: Business logic error message.

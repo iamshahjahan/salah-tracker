@@ -1,32 +1,30 @@
-"""
-Email service for sending verification codes, OTPs, and password reset links.
+"""Email service for sending verification codes, OTPs, and password reset links.
 
 This service handles all email-related functionality including sending verification
 codes for email verification, OTPs for login, and password reset links.
 """
 
-from typing import Dict, Any, Optional
-from flask import current_app, url_for
+from typing import Any, Dict, Optional
+
+from flask import current_app
 from flask_mail import Message
-from datetime import datetime
+
+from app.config.settings import Config
+from app.models.email_verification import EmailVerification
+from app.models.user import User
 
 from .base_service import BaseService
-from app.models.user import User
-from app.models.email_verification import EmailVerification
-from app.config.settings import Config
 
 
 class EmailService(BaseService):
-    """
-    Service for handling email operations.
+    """Service for handling email operations.
 
     This service provides methods for sending verification codes, OTPs,
     and password reset links with proper email templates and error handling.
     """
 
     def __init__(self, config: Optional[Config] = None):
-        """
-        Initialize the email service.
+        """Initialize the email service.
 
         Args:
             config: Configuration instance. If None, will use current app config.
@@ -42,8 +40,7 @@ class EmailService(BaseService):
         }
 
     def send_email_verification(self, user: User) -> Dict[str, Any]:
-        """
-        Send email verification code to user.
+        """Send email verification code to user.
 
         Args:
             user: User instance to send verification to.
@@ -73,18 +70,16 @@ class EmailService(BaseService):
                     'message': 'Verification code sent to your email',
                     'verification_id': verification.id
                 }
-            else:
-                return {
-                    'success': False,
-                    'error': 'Failed to send verification email'
-                }
+            return {
+                'success': False,
+                'error': 'Failed to send verification email'
+            }
 
         except Exception as e:
             return self.handle_service_error(e, 'send_email_verification')
 
     def send_login_otp(self, user: User) -> Dict[str, Any]:
-        """
-        Send OTP for login to user.
+        """Send OTP for login to user.
 
         Args:
             user: User instance to send OTP to.
@@ -114,18 +109,16 @@ class EmailService(BaseService):
                     'message': 'Login code sent to your email',
                     'verification_id': verification.id
                 }
-            else:
-                return {
-                    'success': False,
-                    'error': 'Failed to send login code'
-                }
+            return {
+                'success': False,
+                'error': 'Failed to send login code'
+            }
 
         except Exception as e:
             return self.handle_service_error(e, 'send_login_otp')
 
     def send_password_reset(self, user: User) -> Dict[str, Any]:
-        """
-        Send password reset link to user.
+        """Send password reset link to user.
 
         Args:
             user: User instance to send reset link to.
@@ -157,18 +150,16 @@ class EmailService(BaseService):
                     'success': True,
                     'message': 'Password reset link sent to your email'
                 }
-            else:
-                return {
-                    'success': False,
-                    'error': 'Failed to send password reset email'
-                }
+            return {
+                'success': False,
+                'error': 'Failed to send password reset email'
+            }
 
         except Exception as e:
             return self.handle_service_error(e, 'send_password_reset')
 
     def verify_code(self, email: str, code: str, verification_type: str) -> Dict[str, Any]:
-        """
-        Verify a verification code.
+        """Verify a verification code.
 
         Args:
             email: User's email address.
@@ -227,8 +218,7 @@ class EmailService(BaseService):
             return self.handle_service_error(e, 'verify_code')
 
     def _send_email(self, to_email: str, subject: str, template: str) -> bool:
-        """
-        Send email using Flask-Mail.
+        """Send email using Flask-Mail.
 
         Args:
             to_email: Recipient email address.
@@ -255,7 +245,7 @@ class EmailService(BaseService):
             return True
 
         except Exception as e:
-            self.logger.error(f"Failed to send email to {to_email}: {str(e)}")
+            self.logger.error(f"Failed to send email to {to_email}: {e!s}")
             return False
 
     def _get_email_verification_template(self, user: User, code: str) -> str:

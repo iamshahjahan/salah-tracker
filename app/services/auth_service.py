@@ -1,34 +1,33 @@
-"""
-Authentication service for user management and JWT token handling.
+"""Authentication service for user management and JWT token handling.
 
 This service handles user authentication, registration, and JWT token management
 with proper validation and security measures.
 """
 
-from typing import Dict, Any, Optional, Tuple
-from datetime import datetime, timedelta
+from datetime import timedelta
+from typing import Any, Dict, Optional
+
 import jwt
-from werkzeug.security import generate_password_hash, check_password_hash
 from flask import current_app
+from werkzeug.security import check_password_hash, generate_password_hash
+
+from app.config.settings import Config
+from app.models.email_verification import EmailVerification
+from app.models.user import User
 
 from .base_service import BaseService
 from .email_service import EmailService
-from app.models.user import User
-from app.models.email_verification import EmailVerification
-from app.config.settings import Config
 
 
 class AuthService(BaseService):
-    """
-    Service for handling user authentication and authorization.
+    """Service for handling user authentication and authorization.
 
     This service provides methods for user registration, login, password validation,
     and JWT token management with proper security measures.
     """
 
     def __init__(self, config: Optional[Config] = None):
-        """
-        Initialize the authentication service.
+        """Initialize the authentication service.
 
         Args:
             config: Configuration instance. If None, will use current app config.
@@ -40,8 +39,7 @@ class AuthService(BaseService):
         self.email_service = EmailService(config)
 
     def register_user(self, user_data: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Register a new user with validation and password hashing.
+        """Register a new user with validation and password hashing.
 
         Args:
             user_data: Dictionary containing user registration data including:
@@ -116,8 +114,7 @@ class AuthService(BaseService):
             return self.handle_service_error(e, 'user_registration')
 
     def authenticate_user_using_email(self, email: str, password: str) -> Dict[str, Any]:
-        """
-        Authenticate a user with email and password.
+        """Authenticate a user with email and password.
 
         Args:
             email: User's email address.
@@ -160,8 +157,7 @@ class AuthService(BaseService):
             return self.handle_service_error(e, 'user_authentication')
 
     def authenticate_user_using_username(self, username: str, password: str) -> Dict[str, Any]:
-        """
-        Authenticate a user with email and password.
+        """Authenticate a user with email and password.
 
         Args:
             email: User's email address.
@@ -204,8 +200,7 @@ class AuthService(BaseService):
             return self.handle_service_error(e, 'user_authentication')
 
     def refresh_access_token(self, refresh_token: str) -> Dict[str, Any]:
-        """
-        Generate a new access token using a valid refresh token.
+        """Generate a new access token using a valid refresh token.
 
         Args:
             refresh_token: Valid refresh token.
@@ -259,8 +254,7 @@ class AuthService(BaseService):
             return self.handle_service_error(e, 'token_refresh')
 
     def validate_token(self, token: str) -> Dict[str, Any]:
-        """
-        Validate a JWT access token.
+        """Validate a JWT access token.
 
         Args:
             token: JWT access token to validate.
@@ -309,8 +303,7 @@ class AuthService(BaseService):
             return self.handle_service_error(e, 'token_validation')
 
     def change_password(self, user_id: int, current_password: str, new_password: str) -> Dict[str, Any]:
-        """
-        Change user password with current password verification.
+        """Change user password with current password verification.
 
         Args:
             user_id: ID of the user changing password.
@@ -352,8 +345,7 @@ class AuthService(BaseService):
             return self.handle_service_error(e, 'password_change')
 
     def send_email_verification(self, user_id: int) -> Dict[str, Any]:
-        """
-        Send email verification code to user.
+        """Send email verification code to user.
 
         Args:
             user_id: ID of the user to send verification to.
@@ -381,8 +373,7 @@ class AuthService(BaseService):
             return self.handle_service_error(e, 'send_email_verification')
 
     def verify_email(self, email: str, code: str) -> Dict[str, Any]:
-        """
-        Verify user's email with verification code.
+        """Verify user's email with verification code.
 
         Args:
             email: User's email address.
@@ -398,8 +389,7 @@ class AuthService(BaseService):
             return self.handle_service_error(e, 'verify_email')
 
     def send_login_otp(self, email: str) -> Dict[str, Any]:
-        """
-        Send OTP for login to user's email.
+        """Send OTP for login to user's email.
 
         Args:
             email: User's email address.
@@ -421,8 +411,7 @@ class AuthService(BaseService):
             return self.handle_service_error(e, 'send_login_otp')
 
     def authenticate_with_otp(self, email: str, otp: str) -> Dict[str, Any]:
-        """
-        Authenticate user with OTP.
+        """Authenticate user with OTP.
 
         Args:
             email: User's email address.
@@ -465,8 +454,7 @@ class AuthService(BaseService):
             return self.handle_service_error(e, 'authenticate_with_otp')
 
     def send_password_reset(self, email: str) -> Dict[str, Any]:
-        """
-        Send password reset link to user's email.
+        """Send password reset link to user's email.
 
         Args:
             email: User's email address.
@@ -489,8 +477,7 @@ class AuthService(BaseService):
             return self.handle_service_error(e, 'send_password_reset')
 
     def reset_password_with_code(self, code: str, new_password: str) -> Dict[str, Any]:
-        """
-        Reset user's password using verification code.
+        """Reset user's password using verification code.
 
         Args:
             code: Password reset verification code.
@@ -545,8 +532,7 @@ class AuthService(BaseService):
             return self.handle_service_error(e, 'reset_password_with_code')
 
     def _get_user_by_email(self, email: str) -> Optional[User]:
-        """
-        Get user by email address.
+        """Get user by email address.
 
         Args:
             email: User's email address.
@@ -557,12 +543,11 @@ class AuthService(BaseService):
         try:
             return User.query.filter_by(email=email).first()
         except Exception as e:
-            self.logger.error(f"Error getting user by email {email}: {str(e)}")
+            self.logger.error(f"Error getting user by email {email}: {e!s}")
             return None
 
     def _get_user_by_username(self, username: str) -> Optional[User]:
-        """
-        Get user by email address.
+        """Get user by email address.
 
         Args:
             email: User's email address.
@@ -573,12 +558,11 @@ class AuthService(BaseService):
         try:
             return User.query.filter_by(email=username).first()
         except Exception as e:
-            self.logger.error(f"Error getting user by email {username}: {str(e)}")
+            self.logger.error(f"Error getting user by email {username}: {e!s}")
             return None
 
     def _generate_access_token(self, user: User) -> str:
-        """
-        Generate JWT access token for user.
+        """Generate JWT access token for user.
 
         Args:
             user: User instance.
@@ -590,8 +574,7 @@ class AuthService(BaseService):
         return create_access_token(identity=user.id)
 
     def _generate_refresh_token(self, user: User) -> str:
-        """
-        Generate JWT refresh token for user.
+        """Generate JWT refresh token for user.
 
         Args:
             user: User instance.
