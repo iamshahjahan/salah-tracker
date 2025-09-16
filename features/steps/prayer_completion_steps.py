@@ -94,7 +94,7 @@ def step_current_time_in_timezone(context, time):
 @given('the Dhuhr prayer time is "{time}" in my timezone')
 def step_dhuhr_prayer_time_in_timezone(context, time):
     """Set Dhuhr prayer time in user's timezone."""
-    hour, minute = map(int, time.split(':'))
+    _hour, _minute = map(int, time.split(':'))
     context.prayer_times['DHUHR'].start_time = datetime.strptime(time, '%H:%M').time()
 
 
@@ -245,7 +245,7 @@ def step_prayer_marked_as_status(context, status):
     assert context.completion_result['success'], f"Got response: {context.completion_result['success']}"
     # Check the status in the completion object
     if 'completion' in context.completion_result:
-        assert context.completion_result['completion']['status'] == status, f'Completion status should be {status}, but got {context.completion_result['completion']['status']}'
+        assert context.completion_result['completion']['status'] == status, f"Completion status should be {status}, but got {context.completion_result['completion']['status']}"
     else:
         raise AssertionError("Unable to complete prayer")
 

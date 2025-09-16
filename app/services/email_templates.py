@@ -13,20 +13,20 @@ from app.models.user import User
 
 def get_prayer_reminder_template(user: User, prayer_type: str, prayer_time: datetime,
                                 verse: Optional[QuranicVerse], hadith: Optional[Hadith],
-                                completion_link: str, frontend_url: str = 'https://salahtracker.app') -> str:
+                                completion_link: str) -> str:
     """Get prayer reminder email template."""
-    get_prayer_name_arabic(prayer_type)
-    get_prayer_name_english(prayer_type)
+    _ = get_prayer_name_arabic(prayer_type)
+    _ = get_prayer_name_english(prayer_type)
 
     # Use user's language preference
     if user.language == 'en':
-        return get_english_prayer_reminder_template(user, prayer_type, prayer_time, verse, hadith, completion_link, frontend_url)
-    return get_arabic_prayer_reminder_template(user, prayer_type, prayer_time, verse, hadith, completion_link, frontend_url)
+        return get_english_prayer_reminder_template(user, prayer_type, prayer_time, verse, hadith, completion_link)
+    return get_arabic_prayer_reminder_template(user, prayer_type, prayer_time, verse, hadith, completion_link)
 
 
 def get_arabic_prayer_reminder_template(user: User, prayer_type: str, prayer_time: datetime,
                                        verse: Optional[QuranicVerse], hadith: Optional[Hadith],
-                                       completion_link: str, frontend_url: str = 'https://salahtracker.app') -> str:
+                                       completion_link: str) -> str:
     """Get Arabic prayer reminder email template."""
     prayer_name_arabic = get_prayer_name_arabic(prayer_type)
 
@@ -109,7 +109,7 @@ def get_arabic_prayer_reminder_template(user: User, prayer_type: str, prayer_tim
 
 
 def get_consistency_nudge_template(user: User, verse: Optional[QuranicVerse],
-                                  hadith: Optional[Hadith]) -> str:
+                                  hadith: Optional[Hadith], frontend_url: str = "https://salah-tracker.com") -> str:
     """Get consistency nudge email template."""
     return f"""
     <!DOCTYPE html>
@@ -209,7 +209,7 @@ def get_prayer_name_english(prayer_type: str) -> str:
 
 def get_english_prayer_reminder_template(user: User, prayer_type: str, prayer_time: datetime,
                                         verse: Optional[QuranicVerse], hadith: Optional[Hadith],
-                                        completion_link: str, frontend_url: str = 'https://salahtracker.app') -> str:
+                                        completion_link: str) -> str:
     """Get English prayer reminder email template."""
     prayer_name_english = get_prayer_name_english(prayer_type)
 
@@ -293,19 +293,19 @@ def get_english_prayer_reminder_template(user: User, prayer_type: str, prayer_ti
 
 def get_prayer_window_reminder_template(user: User, prayer_type: str, prayer_time: datetime,
                                        verse: Optional[QuranicVerse], hadith: Optional[Hadith],
-                                       completion_link: str, end_time: str, frontend_url: str = 'https://salahtracker.app') -> str:
+                                       completion_link: str, end_time: str) -> str:
     """Get prayer window reminder email template."""
-    get_prayer_name_english(prayer_type)
+    _ = get_prayer_name_english(prayer_type)
 
     # Use user's language preference
     if user.language == 'en':
-        return get_english_prayer_window_reminder_template(user, prayer_type, prayer_time, verse, hadith, completion_link, end_time, frontend_url)
-    return get_arabic_prayer_window_reminder_template(user, prayer_type, prayer_time, verse, hadith, completion_link, end_time, frontend_url)
+        return get_english_prayer_window_reminder_template(user, prayer_type, prayer_time, verse, hadith, completion_link, end_time)
+    return get_arabic_prayer_reminder_template(user, prayer_type, prayer_time, verse, hadith, completion_link)
 
 
 def get_english_prayer_window_reminder_template(user: User, prayer_type: str, prayer_time: datetime,
                                                verse: Optional[QuranicVerse], hadith: Optional[Hadith],
-                                               completion_link: str, end_time: str, frontend_url: str = 'https://salahtracker.app') -> str:
+                                               completion_link: str, end_time: str) -> str:
     """Get English prayer window reminder email template."""
     prayer_name_english = get_prayer_name_english(prayer_type)
 
