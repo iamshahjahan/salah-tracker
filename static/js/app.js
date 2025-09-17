@@ -893,33 +893,28 @@ function displayPrayerTimes(prayers) {
             prayerData: prayer
         });
 
-        // Determine card styling and button behavior based on three-state system
+        // Determine card styling based on status_color from API, not prayer_status
         let cardClass = '';
         let buttonText = '';
         let buttonDisabled = false;
         let buttonClass = 'complete-btn';
 
-        switch (prayerStatus) {
-            case 'future':
-                cardClass = 'future'; // Gray - before prayer time
-                buttonText = 'Future';
+        // Use status_color from API response for card styling
+        switch (statusColor) {
+            case 'green':
+                cardClass = 'completed'; // Green - completed prayer
+                buttonText = 'Completed';
                 buttonDisabled = true;
                 break;
                 
-            case 'ongoing':
-                cardClass = 'in-progress'; // Blue - can go to completed
-                if (canComplete) {
-                    buttonText = 'Mark as Complete';
-                    buttonClass = 'complete-btn';
-                    buttonDisabled = false;
-                } else {
-                    buttonText = 'In Progress';
-                    buttonDisabled = true;
-                }
+            case 'yellow':
+                cardClass = 'qada'; // Yellow - qada prayer
+                buttonText = 'Qada';
+                buttonDisabled = true;
                 break;
                 
-            case 'missed':
-                cardClass = 'missed'; // Red - can go to qada
+            case 'red':
+                cardClass = 'missed'; // Red - missed prayer
                 if (canMarkQada) {
                     buttonText = 'Mark as Qada';
                     buttonClass = 'qada-btn';
@@ -930,22 +925,69 @@ function displayPrayerTimes(prayers) {
                 }
                 break;
                 
-            case 'completed':
-                cardClass = 'completed'; // Green - terminal state
-                buttonText = 'Completed';
-                buttonDisabled = true;
+            case 'blue':
+                cardClass = 'in-progress'; // Blue - ongoing prayer
+                if (canComplete) {
+                    buttonText = 'Mark as Complete';
+                    buttonClass = 'complete-btn';
+                    buttonDisabled = false;
+                } else {
+                    buttonText = 'In Progress';
+                    buttonDisabled = true;
+                }
                 break;
                 
-            case 'qada':
-                cardClass = 'qada'; // Yellow - terminal state
-                buttonText = 'Qada';
+            case 'gray':
+                cardClass = 'future'; // Gray - future prayer
+                buttonText = 'Future';
                 buttonDisabled = true;
                 break;
                 
             default:
-                cardClass = 'missed'; // Red - default to missed
-                buttonText = 'Missed';
-                buttonDisabled = true;
+                // Fallback to prayer_status if status_color is not recognized
+                switch (prayerStatus) {
+                    case 'future':
+                        cardClass = 'future';
+                        buttonText = 'Future';
+                        buttonDisabled = true;
+                        break;
+                    case 'ongoing':
+                        cardClass = 'in-progress';
+                        if (canComplete) {
+                            buttonText = 'Mark as Complete';
+                            buttonClass = 'complete-btn';
+                            buttonDisabled = false;
+                        } else {
+                            buttonText = 'In Progress';
+                            buttonDisabled = true;
+                        }
+                        break;
+                    case 'missed':
+                        cardClass = 'missed';
+                        if (canMarkQada) {
+                            buttonText = 'Mark as Qada';
+                            buttonClass = 'qada-btn';
+                            buttonDisabled = false;
+                        } else {
+                            buttonText = 'Missed';
+                            buttonDisabled = true;
+                        }
+                        break;
+                    case 'completed':
+                        cardClass = 'completed';
+                        buttonText = 'Completed';
+                        buttonDisabled = true;
+                        break;
+                    case 'qada':
+                        cardClass = 'qada';
+                        buttonText = 'Qada';
+                        buttonDisabled = true;
+                        break;
+                    default:
+                        cardClass = 'missed';
+                        buttonText = 'Missed';
+                        buttonDisabled = true;
+                }
         }
 
         // Debug button state (remove in production)
@@ -1017,17 +1059,9 @@ async function completePrayer(prayerId) {
 // Dashboard functions
 async function loadDashboard() {
     if (!authToken) {
-        // Hide calendar and show login message
-        document.querySelector('.weekly-calendar-header').style.display = 'none';
-        document.querySelector('.weekly-calendar-container').style.display = 'none';
-        document.querySelector('.selected-day-prayers').style.display = 'none';
-        document.getElementById('dashboardStats').innerHTML = '<div class="loading">Please login to view dashboard</div>';
+        document.getElementById('dashboardOverview').innerHTML = '<div class="loading">Please login to view dashboard</div>';
         return;
     }
-
-    // Show calendar for logged-in users
-    document.querySelector('.weekly-calendar-header').style.display = 'flex';
-    document.querySelector('.weekly-calendar-container').style.display = 'block';
 
     try {
         const response = await fetch(`${API_BASE}/api/dashboard/stats`, {
@@ -1040,38 +1074,336 @@ async function loadDashboard() {
             const data = await response.json();
             displayDashboardStats(data);
         } else {
-            document.getElementById('dashboardStats').innerHTML = '<div class="loading">Error loading dashboard</div>';
+            document.getElementById('dashboardOverview').innerHTML = '<div class="loading">Error loading dashboard</div>';
         }
     } catch (error) {
-        document.getElementById('dashboardStats').innerHTML = '<div class="loading">Error loading dashboard</div>';
+        document.getElementById('dashboardOverview').innerHTML = '<div class="loading">Error loading dashboard</div>';
     }
-
-    // Load weekly calendar
-    loadWeeklyCalendar();
 }
 
-function displayDashboardStats(stats) {
-    const container = document.getElementById('dashboardStats');
+function displayDashboardStats(data) {
+    if (!data.success || !data.statistics) {
+        document.getElementById('dashboardOverview').innerHTML = '<div class="loading">Error loading dashboard data</div>';
+        return;
+    }
 
-    const statsHTML = `
-        <div class="stat-card">
-            <div class="stat-number">${stats.overall.completion_rate}%</div>
-            <div class="stat-label">Completion Rate</div>
-            <div class="stat-description">Since account creation (${stats.period.days} days)</div>
+    const stats = data.statistics;
+    
+    // Display overview cards
+    displayOverviewCards(stats);
+    
+    // Create charts
+    createCharts(stats);
+    
+    // Display detailed statistics
+    displayDetailedStats(stats);
+}
+
+function displayOverviewCards(stats) {
+    const container = document.getElementById('dashboardOverview');
+    
+    const overviewHTML = `
+        <div class="overview-card">
+            <div class="overview-card-icon">
+                <i class="fas fa-chart-pie"></i>
+            </div>
+            <div class="overview-card-number">${stats.completion_rate}%</div>
+            <div class="overview-card-label">Completion Rate</div>
+            <div class="overview-card-description">Overall prayer performance</div>
         </div>
-        <div class="stat-card">
-            <div class="stat-number">${stats.overall.completed_prayers}</div>
-            <div class="stat-label">Prayers Completed</div>
-            <div class="stat-description">Out of ${stats.overall.total_prayers} total</div>
+        <div class="overview-card">
+            <div class="overview-card-icon">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <div class="overview-card-number">${stats.completed_prayers}</div>
+            <div class="overview-card-label">Completed Prayers</div>
+            <div class="overview-card-description">Out of ${stats.total_prayers} total</div>
         </div>
-        <div class="stat-card">
-            <div class="stat-number">${stats.current_streak}</div>
-            <div class="stat-label">Current Streak</div>
-            <div class="stat-description">Consecutive days</div>
+        <div class="overview-card">
+            <div class="overview-card-icon">
+                <i class="fas fa-clock"></i>
+            </div>
+            <div class="overview-card-number">${stats.qada_prayers}</div>
+            <div class="overview-card-label">Qada Prayers</div>
+            <div class="overview-card-description">Made up prayers</div>
+        </div>
+        <div class="overview-card">
+            <div class="overview-card-icon">
+                <i class="fas fa-times-circle"></i>
+            </div>
+            <div class="overview-card-number">${stats.missed_Prayers}</div>
+            <div class="overview-card-label">Missed Prayers</div>
+            <div class="overview-card-description">Not yet completed</div>
         </div>
     `;
+    
+    container.innerHTML = overviewHTML;
+}
 
-    container.innerHTML = statsHTML;
+function createCharts(stats) {
+    // Completion Rate Pie Chart
+    createCompletionChart(stats);
+    
+    // Daily Progress Line Chart
+    createDailyProgressChart(stats);
+    
+    // Prayer Type Performance Bar Chart
+    createPrayerTypeChart(stats);
+    
+    // Status Distribution Doughnut Chart
+    createStatusDistributionChart(stats);
+}
+
+function createCompletionChart(stats) {
+    const ctx = document.getElementById('completionChart').getContext('2d');
+    
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Completed', 'Qada', 'Missed'],
+            datasets: [{
+                data: [stats.completed_prayers, stats.qada_prayers, stats.missed_Prayers],
+                backgroundColor: [
+                    'rgba(76, 175, 80, 0.8)',
+                    'rgba(255, 152, 0, 0.8)',
+                    'rgba(244, 67, 54, 0.8)'
+                ],
+                borderColor: [
+                    'rgba(76, 175, 80, 1)',
+                    'rgba(255, 152, 0, 1)',
+                    'rgba(244, 67, 54, 1)'
+                ],
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        color: 'white',
+                        font: {
+                            size: 12
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+function createDailyProgressChart(stats) {
+    const ctx = document.getElementById('dailyProgressChart').getContext('2d');
+    
+    const dailyData = Object.entries(stats.daily_stats).map(([date, data]) => ({
+        x: date,
+        y: data.completion_rate
+    }));
+    
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            datasets: [{
+                label: 'Completion Rate (%)',
+                data: dailyData,
+                borderColor: 'rgba(79, 172, 254, 1)',
+                backgroundColor: 'rgba(79, 172, 254, 0.1)',
+                borderWidth: 3,
+                fill: true,
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: {
+                    type: 'time',
+                    time: {
+                        unit: 'day'
+                    },
+                    ticks: {
+                        color: 'white'
+                    },
+                    grid: {
+                        color: 'rgba(255, 255, 255, 0.1)'
+                    }
+                },
+                y: {
+                    beginAtZero: true,
+                    max: 100,
+                    ticks: {
+                        color: 'white',
+                        callback: function(value) {
+                            return value + '%';
+                        }
+                    },
+                    grid: {
+                        color: 'rgba(255, 255, 255, 0.1)'
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    labels: {
+                        color: 'white'
+                    }
+                }
+            }
+        }
+    });
+}
+
+function createPrayerTypeChart(stats) {
+    const ctx = document.getElementById('prayerTypeChart').getContext('2d');
+    
+    const prayerTypes = Object.keys(stats.prayer_stats);
+    const completionRates = prayerTypes.map(type => stats.prayer_stats[type].completion_rate);
+    
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: prayerTypes.map(type => type.charAt(0).toUpperCase() + type.slice(1)),
+            datasets: [{
+                label: 'Completion Rate (%)',
+                data: completionRates,
+                backgroundColor: 'rgba(79, 172, 254, 0.8)',
+                borderColor: 'rgba(79, 172, 254, 1)',
+                borderWidth: 2,
+                borderRadius: 8
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: {
+                    ticks: {
+                        color: 'white'
+                    },
+                    grid: {
+                        color: 'rgba(255, 255, 255, 0.1)'
+                    }
+                },
+                y: {
+                    beginAtZero: true,
+                    max: 100,
+                    ticks: {
+                        color: 'white',
+                        callback: function(value) {
+                            return value + '%';
+                        }
+                    },
+                    grid: {
+                        color: 'rgba(255, 255, 255, 0.1)'
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    labels: {
+                        color: 'white'
+                    }
+                }
+            }
+        }
+    });
+}
+
+function createStatusDistributionChart(stats) {
+    const ctx = document.getElementById('statusDistributionChart').getContext('2d');
+    
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Completed', 'Qada', 'Missed'],
+            datasets: [{
+                data: [stats.completed_prayers, stats.qada_prayers, stats.missed_Prayers],
+                backgroundColor: [
+                    'rgba(76, 175, 80, 0.8)',
+                    'rgba(255, 152, 0, 0.8)',
+                    'rgba(244, 67, 54, 0.8)'
+                ],
+                borderColor: [
+                    'rgba(76, 175, 80, 1)',
+                    'rgba(255, 152, 0, 1)',
+                    'rgba(244, 67, 54, 1)'
+                ],
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        color: 'white',
+                        font: {
+                            size: 12
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+function displayDetailedStats(stats) {
+    // Prayer Type Breakdown
+    displayPrayerTypeBreakdown(stats.prayer_stats);
+    
+    // Daily Statistics
+    displayDailyStatistics(stats.daily_stats);
+}
+
+function displayPrayerTypeBreakdown(prayerStats) {
+    const container = document.getElementById('prayerTypeBreakdown');
+    
+    let html = '';
+    Object.entries(prayerStats).forEach(([type, data]) => {
+        html += `
+            <div class="prayer-type-item">
+                <div class="prayer-type-name">${type.charAt(0).toUpperCase() + type.slice(1)}</div>
+                <div class="prayer-type-stats">
+                    <div class="prayer-type-progress">
+                        <div class="prayer-type-progress-bar" style="width: ${data.completion_rate}%"></div>
+                    </div>
+                    <div class="prayer-type-percentage">${data.completion_rate}%</div>
+                </div>
+            </div>
+        `;
+    });
+    
+    container.innerHTML = html;
+}
+
+function displayDailyStatistics(dailyStats) {
+    const container = document.getElementById('dailyStatistics');
+    
+    let html = '';
+    Object.entries(dailyStats).forEach(([date, data]) => {
+        const formattedDate = new Date(date).toLocaleDateString('en-US', {
+            weekday: 'short',
+            month: 'short',
+            day: 'numeric'
+        });
+        
+        html += `
+            <div class="daily-stat-item">
+                <div class="daily-stat-date">${formattedDate}</div>
+                <div class="daily-stat-info">
+                    <div class="daily-stat-completion">${data.completed_prayers}/${data.total_prayers} prayers</div>
+                    <div class="daily-stat-rate">${data.completion_rate}%</div>
+                </div>
+            </div>
+        `;
+    });
+    
+    container.innerHTML = html;
 }
 
 // Weekly Calendar functions

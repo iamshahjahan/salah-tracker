@@ -193,7 +193,6 @@ class UserService(BaseService):
         except Exception as e:
             return self.handle_service_error(e, 'get_user_statistics')
 
-
     def _get_city_from_coordinates(self, latitude: float, longitude: float) -> Dict[str, Any]:
         """Get city information from coordinates using geocoding API.
 
@@ -243,7 +242,7 @@ class UserService(BaseService):
         try:
             # Get date range
             start_date = user.created_at.date()
-            end_date = current_time
+            end_date = current_time.date()
 
             # Get all prayers for the user
             prayers = Prayer.query.filter(

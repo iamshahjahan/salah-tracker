@@ -29,8 +29,18 @@ def get_user_stats():
             return jsonify({'error': 'User not found'}), 404
 
         user_service = UserService(get_config())
-
-        return user_service.get_user_statistics(user_id), 200
+        
+        # Get user statistics
+        result = user_service.get_user_statistics(user_id)
+        
+        # Check if the service call was successful
+        if not result.get('success', False):
+            return jsonify({'error': result.get('error', 'Failed to retrieve statistics')}), 500
+        
+        # Cache the result for 10 minutes
+        cache_service.set_dashboard_stats(user_id, result, 600)
+        
+        return jsonify(result), 200
 
         # Use account creation date as start date, or last 30 days if requested
         # end_date = date.today()

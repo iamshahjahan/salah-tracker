@@ -7,6 +7,9 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+    <!-- Chart.js for beautiful graphs -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
 </head>
 <body>
     <div id="app">
@@ -349,54 +352,106 @@
             <!-- Dashboard Section -->
             <section id="dashboard" class="section">
                 <div class="container">
-                    <h2 class="section-title">Your Prayer Dashboard</h2>
-
-                    <!-- Weekly Calendar Navigation -->
-                    <div class="weekly-calendar-header">
-                        <button class="week-nav-btn" onclick="previousWeek()">
-                            <i class="fas fa-chevron-left"></i>
-                        </button>
-                        <div class="week-info">
-                            <h3 class="week-title" id="weekTitle">Week of September 9, 2025</h3>
-                            <p class="week-subtitle" id="weekSubtitle">Track your daily prayers</p>
-                        </div>
-                        <button class="week-nav-btn" onclick="nextWeek()">
-                            <i class="fas fa-chevron-right"></i>
-                        </button>
+                    <div class="dashboard-header">
+                        <h2 class="section-title">Your Prayer Dashboard</h2>
+                        <div class="dashboard-subtitle">Track your spiritual journey with beautiful insights</div>
                     </div>
 
-                    <!-- Weekly Calendar Grid -->
-                    <div class="weekly-calendar-container">
-                        <!-- Mobile Day Navigation (hidden on desktop) -->
-                        <div class="mobile-day-nav" id="mobileDayNav" style="display: none;">
-                            <button class="mobile-day-nav-btn" id="prevDayBtn" onclick="previousDay()">
-                                <i class="fas fa-chevron-left"></i>
-                            </button>
-                            <div class="mobile-day-info">
-                                <div class="mobile-day-title" id="mobileDayTitle">Thursday, Sep 11</div>
-                                <div class="mobile-day-subtitle" id="mobileDaySubtitle">5/5 Complete</div>
-                            </div>
-                            <button class="mobile-day-nav-btn" id="nextDayBtn" onclick="nextDay()">
-                                <i class="fas fa-chevron-right"></i>
-                            </button>
-                        </div>
-                        
-                        <div class="weekly-calendar-grid" id="weeklyCalendarGrid">
-                            <div class="loading">Loading weekly calendar...</div>
-                        </div>
-                    </div>
-
-                    <!-- Selected Day Prayer Times -->
-                    <div class="selected-day-prayers" id="selectedDayPrayers" style="display: none;">
-                        <h4 class="selected-day-title" id="selectedDayTitle">Prayer Times for Selected Day</h4>
-                        <div class="selected-day-content" id="selectedDayContent">
-                            <div class="loading">Loading prayer times...</div>
-                        </div>
-                    </div>
-
-                    <!-- Dashboard Stats -->
-                    <div class="dashboard-stats" id="dashboardStats">
+                    <!-- Dashboard Stats Overview -->
+                    <div class="dashboard-overview" id="dashboardOverview">
                         <div class="loading">Loading dashboard...</div>
+                    </div>
+
+                    <!-- Charts Section -->
+                    <div class="charts-section">
+                        <div class="charts-grid">
+                            <!-- Completion Rate Chart -->
+                            <div class="chart-container">
+                                <div class="chart-header">
+                                    <h3 class="chart-title">
+                                        <i class="fas fa-chart-pie"></i>
+                                        Prayer Completion Overview
+                                    </h3>
+                                    <div class="chart-subtitle">Your overall prayer performance</div>
+                                </div>
+                                <div class="chart-wrapper">
+                                    <canvas id="completionChart"></canvas>
+                                </div>
+                            </div>
+
+                            <!-- Daily Progress Chart -->
+                            <div class="chart-container">
+                                <div class="chart-header">
+                                    <h3 class="chart-title">
+                                        <i class="fas fa-chart-line"></i>
+                                        Daily Progress
+                                    </h3>
+                                    <div class="chart-subtitle">Completion rate over time</div>
+                                </div>
+                                <div class="chart-wrapper">
+                                    <canvas id="dailyProgressChart"></canvas>
+                                </div>
+                            </div>
+
+                            <!-- Prayer Type Performance -->
+                            <div class="chart-container">
+                                <div class="chart-header">
+                                    <h3 class="chart-title">
+                                        <i class="fas fa-chart-bar"></i>
+                                        Prayer Type Performance
+                                    </h3>
+                                    <div class="chart-subtitle">Completion rate by prayer type</div>
+                                </div>
+                                <div class="chart-wrapper">
+                                    <canvas id="prayerTypeChart"></canvas>
+                                </div>
+                            </div>
+
+                            <!-- Prayer Status Distribution -->
+                            <div class="chart-container">
+                                <div class="chart-header">
+                                    <h3 class="chart-title">
+                                        <i class="fas fa-chart-doughnut"></i>
+                                        Prayer Status Distribution
+                                    </h3>
+                                    <div class="chart-subtitle">Breakdown of prayer states</div>
+                                </div>
+                                <div class="chart-wrapper">
+                                    <canvas id="statusDistributionChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Detailed Statistics -->
+                    <div class="detailed-stats" id="detailedStats">
+                        <div class="stats-grid">
+                            <!-- Prayer Type Breakdown -->
+                            <div class="stats-card">
+                                <div class="stats-card-header">
+                                    <h4 class="stats-card-title">
+                                        <i class="fas fa-mosque"></i>
+                                        Prayer Type Breakdown
+                                    </h4>
+                                </div>
+                                <div class="stats-card-content" id="prayerTypeBreakdown">
+                                    <div class="loading">Loading...</div>
+                                </div>
+                            </div>
+
+                            <!-- Daily Statistics -->
+                            <div class="stats-card">
+                                <div class="stats-card-header">
+                                    <h4 class="stats-card-title">
+                                        <i class="fas fa-calendar-day"></i>
+                                        Daily Statistics
+                                    </h4>
+                                </div>
+                                <div class="stats-card-content" id="dailyStatistics">
+                                    <div class="loading">Loading...</div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </section>
