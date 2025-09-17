@@ -219,15 +219,18 @@ class PrayerService(BaseService):
         Args:
             user_id: ID of the user completing the prayer.
             prayer_id: ID of the prayer to complete.
-            current_time: ID of the prayer to complete.
+            current_time: Current datetime for validation.
 
         Returns:
             Dict[str, Any]: Completion result with success status or error.
         """
         try:
+            self.logger.info(f"Starting complete_prayer for user_id={user_id}, prayer_id={prayer_id}, current_time={current_time}")
+
             # Get prayer
             prayer = self.get_record_by_id(Prayer, prayer_id)
             if not prayer:
+                self.logger.warning(f"Prayer not found: prayer_id={prayer_id}")
                 return {
                     'success': False,
                     'error': 'Prayer not found'
@@ -236,23 +239,31 @@ class PrayerService(BaseService):
             # Get user
             user = self.get_record_by_id(User, user_id)
             if not user:
+                self.logger.warning(f"User not found: user_id={user_id}")
                 return {
                     'success': False,
                     'error': 'User not found'
                 }
 
+            self.logger.info(f"Found prayer: {prayer.prayer_type.value} on {prayer.prayer_date} for user {user.email}")
+
             # Check if already completed
             existing_completion = self._get_prayer_completion(prayer_id)
+            self.logger.info(f"Existing completion found: {existing_completion is not None}")
             if existing_completion:
+                self.logger.warning(f"Prayer already completed: prayer_id={prayer_id}, status={existing_completion.status}")
                 return {
                     'success': False,
                     'error': 'Prayer already completed'
                 }
 
             # Validate prayer time
-            is_valid, is_late = self._validate_prayer_time(prayer, user,current_time)
+            self.logger.info(f"Validating prayer time for prayer {prayer_id}")
+            is_valid, is_late = self._validate_prayer_time(prayer, user, current_time)
+            self.logger.info(f"Prayer time validation result: is_valid={is_valid}, is_late={is_late}")
 
             if not is_valid and not is_late:
+                self.logger.warning(f"Prayer time has not started yet: prayer_id={prayer_id}")
                 return {
                     'success': False,
                     'error': 'Prayer time has not started yet'
@@ -262,11 +273,14 @@ class PrayerService(BaseService):
             if is_late:
                 status = PrayerCompletionStatus.MISSED
                 marked_at = None  # No timestamp for missed prayers
+                self.logger.info(f"Prayer marked as MISSED (late completion): prayer_id={prayer_id}")
             else:
                 status = PrayerCompletionStatus.JAMAAT
                 marked_at = datetime.now(pytz.UTC)
+                self.logger.info(f"Prayer marked as JAMAAT (on-time completion): prayer_id={prayer_id}")
 
             # Create completion record
+            self.logger.info(f"Creating completion record for prayer {prayer_id}")
             completion = self.create_record(
                 PrayerCompletion,
                 prayer_id=prayer_id,
@@ -275,7 +289,7 @@ class PrayerService(BaseService):
                 status=status
             )
 
-            self.logger.info(f"Prayer completed: {prayer.prayer_type.value} for user {user.email}")
+            self.logger.info(f"Prayer completed successfully: {prayer.prayer_type.value} for user {user.email}")
 
             # Invalidate cache for dashboard and calendar (prayer times are no longer cached)
             cache_service.invalidate_dashboard_stats(user_id)
@@ -288,6 +302,7 @@ class PrayerService(BaseService):
             }
 
         except Exception as e:
+            self.logger.error(f"Exception in complete_prayer: {type(e).__name__}: {e}")
             return self.handle_service_error(e, 'complete_prayer')
 
     def mark_prayer_qada(self, user_id: int, prayer_id: int, current_time: datetime) -> Dict[str, Any]:
@@ -302,9 +317,12 @@ class PrayerService(BaseService):
             Dict[str, Any]: Qada marking result with success status or error.
         """
         try:
+            self.logger.info(f"Starting mark_prayer_qada for user_id={user_id}, prayer_id={prayer_id}, current_time={current_time}")
+
             # Get prayer
             prayer = self.get_record_by_id(Prayer, prayer_id)
             if not prayer:
+                self.logger.warning(f"Prayer not found: prayer_id={prayer_id}")
                 return {
                     'success': False,
                     'error': 'Prayer not found'
@@ -313,13 +331,17 @@ class PrayerService(BaseService):
             # Get user
             user = self.get_record_by_id(User, user_id)
             if not user:
+                self.logger.warning(f"User not found: user_id={user_id}")
                 return {
                     'success': False,
                     'error': 'User not found'
                 }
 
+            self.logger.info(f"Found prayer: {prayer.prayer_type.value} on {prayer.prayer_date} for user {user.email}")
+
             # Check if date is before user account creation
             if prayer.prayer_date < user.created_at.date():
+                self.logger.warning(f"Cannot mark prayer as Qada before account creation: prayer_date={prayer.prayer_date}, user_created={user.created_at.date()}")
                 return {
                     'success': False,
                     'error': 'Cannot mark prayers as Qada before account creation'
@@ -327,10 +349,12 @@ class PrayerService(BaseService):
 
             # Get existing completion
             existing_completion = self._get_prayer_completion(prayer_id)
+            self.logger.info(f"Existing completion found: {existing_completion is not None}")
 
             if existing_completion:
                 # Update existing completion to Qada (only from MISSED status)
                 if existing_completion.status == PrayerCompletionStatus.MISSED:
+                    self.logger.info(f"Updating existing MISSED completion to QADA for prayer {prayer_id}")
                     existing_completion = self.update_record(
                         existing_completion,
                         status=PrayerCompletionStatus.QADA,
@@ -338,20 +362,24 @@ class PrayerService(BaseService):
                     )
                     completion = existing_completion
                 else:
+                    self.logger.warning(f"Cannot mark prayer as Qada - current status is {existing_completion.status}")
                     return {
                         'success': False,
                         'error': 'Can only mark missed prayers as Qada'
                     }
             else:
+                self.logger.info("Building prayer info to check if can mark as Qada")
                 prayer_info = self._build_prayer_info(prayer, None, user, prayer.prayer_date, current_time)
 
                 if not prayer_info['can_mark_qada']:
+                    self.logger.warning(f"Cannot mark prayer as Qada - prayer_info: {prayer_info}")
                     return {
                         'success': False,
                         'error': 'Can not mark as Qada'
                     }
 
                 # Create new Qada completion
+                self.logger.info(f"Creating new QADA completion for prayer {prayer_id}")
                 completion = self.create_record(
                     PrayerCompletion,
                     prayer_id=prayer_id,
@@ -360,7 +388,7 @@ class PrayerService(BaseService):
                     status=PrayerCompletionStatus.QADA
                 )
 
-            self.logger.info(f"Prayer marked as Qada: {prayer.prayer_type.value} for user {user.email}")
+            self.logger.info(f"Prayer marked as Qada successfully: {prayer.prayer_type.value} for user {user.email}")
 
             # Invalidate cache for dashboard and calendar (prayer times are no longer cached)
             cache_service.invalidate_dashboard_stats(user_id)
@@ -373,6 +401,7 @@ class PrayerService(BaseService):
             }
 
         except Exception as e:
+            self.logger.error(f"Exception in mark_prayer_qada: {type(e).__name__}: {e}")
             return self.handle_service_error(e, 'mark_prayer_qada')
 
     def auto_update_prayer_status(self, user_id: int, current_time) -> Dict[str, Any]:
@@ -717,21 +746,42 @@ class PrayerService(BaseService):
             Tuple[bool, bool]: (can_complete, is_late) - whether prayer can be completed and if it's late.
         """
         try:
-            # Get user timezone
-            now = current_time
+            self.logger.debug(f"Validating prayer time for prayer {prayer.id}: {prayer.prayer_type.value}")
 
             # Calculate prayer time window using the same logic as the route
             start_time, end_time = self._get_prayer_time_window(prayer)
 
+            self.logger.debug(f"Prayer {prayer.id} validation - time window: start={start_time}, end={end_time}")
+            self.logger.debug(f"Prayer {prayer.id} validation - current_time before normalization: {current_time}")
+
+            # Ensure current_time is timezone-aware and in the same timezone as start_time/end_time
+            if current_time.tzinfo is None:
+                # If current_time is naive, assume it's in the user's timezone
+                user_tz = pytz.timezone(prayer.user.timezone)
+                current_time = user_tz.localize(current_time)
+                self.logger.debug(f"Prayer {prayer.id} validation - localized naive current_time: {current_time}")
+            elif current_time.tzinfo != start_time.tzinfo:
+                # If timezones don't match, convert current_time to the same timezone as start_time
+                current_time = current_time.astimezone(start_time.tzinfo)
+                self.logger.debug(f"Prayer {prayer.id} validation - converted current_time timezone: {current_time}")
+
+            self.logger.debug(f"Prayer {prayer.id} validation - final current_time: {current_time}")
+
             # Check if current time is within prayer window
-            if now < start_time:
+            if current_time < start_time:
+                self.logger.debug(f"Prayer {prayer.id} validation - too early (current < start)")
                 return False, False  # Too early
-            if now <= end_time:
+            if current_time <= end_time:
+                self.logger.debug(f"Prayer {prayer.id} validation - on time (current <= end)")
                 return True, False   # On time
+            self.logger.debug(f"Prayer {prayer.id} validation - too late (current > end)")
             return False, False  # Too late - cannot complete during window
 
         except Exception as e:
-            self.logger.error(f"Error validating prayer time: {e!s}")
+            self.logger.error(f"Error validating prayer time for prayer {prayer.id}: {type(e).__name__}: {e}")
+            self.logger.error(f"Prayer details: type={prayer.prayer_type}, date={prayer.prayer_date}, time={prayer.prayer_time}")
+            self.logger.error(f"User timezone: {prayer.user.timezone}")
+            self.logger.error(f"Current time: {current_time}")
             return False, False
 
     # TODO: Consider breaking down this complex function
@@ -840,14 +890,44 @@ class PrayerService(BaseService):
         Returns:
             str: Time status ('future', 'ongoing', 'missed').
         """
-        # Get prayer time window
-        start_time, end_time = self._get_prayer_time_window(prayer)
-        # Determine status based on current time
-        if current_time < start_time:
-            return PrayerStatus.FUTURE, start_time, end_time  # Before prayer start time
-        if end_time >= current_time >= start_time:
-            return PrayerStatus.ONGOING , start_time, end_time # Between start and end time
-        return PrayerStatus.MISSED, start_time, end_time  # After prayer end time
+        try:
+            # Get prayer time window
+            start_time, end_time = self._get_prayer_time_window(prayer)
+
+            self.logger.debug(f"Prayer {prayer.id} time window: start={start_time}, end={end_time}")
+            self.logger.debug(f"Current time before normalization: {current_time} (tzinfo: {current_time.tzinfo})")
+
+            # Ensure current_time is timezone-aware and in the same timezone as start_time/end_time
+            if current_time.tzinfo is None:
+                # If current_time is naive, assume it's in the user's timezone
+                user_tz = pytz.timezone(prayer.user.timezone)
+                current_time = user_tz.localize(current_time)
+                self.logger.debug(f"Localized naive current_time to user timezone: {current_time}")
+            elif current_time.tzinfo != start_time.tzinfo:
+                # If timezones don't match, convert current_time to the same timezone as start_time
+                current_time = current_time.astimezone(start_time.tzinfo)
+                self.logger.debug(f"Converted current_time to match start_time timezone: {current_time}")
+
+            self.logger.debug(f"Final current_time: {current_time} (tzinfo: {current_time.tzinfo})")
+            self.logger.debug(f"Start time: {start_time} (tzinfo: {start_time.tzinfo})")
+            self.logger.debug(f"End time: {end_time} (tzinfo: {end_time.tzinfo})")
+
+            # Determine status based on current time
+            if current_time < start_time:
+                self.logger.debug(f"Prayer {prayer.id} status: FUTURE (current < start)")
+                return PrayerStatus.FUTURE, start_time, end_time  # Before prayer start time
+            if end_time >= current_time >= start_time:
+                self.logger.debug(f"Prayer {prayer.id} status: ONGOING (start <= current <= end)")
+                return PrayerStatus.ONGOING , start_time, end_time # Between start and end time
+            self.logger.debug(f"Prayer {prayer.id} status: MISSED (current > end)")
+            return PrayerStatus.MISSED, start_time, end_time  # After prayer end time
+
+        except Exception as e:
+            self.logger.error(f"Error in _get_prayer_time_status for prayer {prayer.id}: {type(e).__name__}: {e}")
+            self.logger.error(f"Prayer details: type={prayer.prayer_type}, date={prayer.prayer_date}, time={prayer.prayer_time}")
+            self.logger.error(f"User timezone: {prayer.user.timezone}")
+            self.logger.error(f"Current time: {current_time}")
+            raise
 
 
     def _can_mark_qada(self, _prayer: Prayer, completion: Optional[PrayerCompletion],
@@ -937,77 +1017,3 @@ class PrayerService(BaseService):
         except Exception as e:
             self.logger.error(f"Error checking if prayer is missed: {e!s}")
             return False
-
-    def get_user_statistics(self, user_id: int) -> Dict[str, Any]:
-        """Get prayer completion statistics for a user.
-
-        Args:
-            user_id: The ID of the user
-
-        Returns:
-            Dict containing prayer statistics
-        """
-        try:
-            user = self.get_record_by_id(User, user_id)
-            if not user:
-                return {
-                    'success': False,
-                    'error': 'User not found'
-                }
-
-            # Get today's date
-            today = datetime.now().date()
-
-            # Get prayer completions for the last 30 days
-            thirty_days_ago = today - timedelta(days=30)
-
-            # Query prayer completions
-            completions = self.db.session.query(PrayerCompletion).join(Prayer).filter(
-                Prayer.user_id == user_id,
-                Prayer.prayer_date >= thirty_days_ago
-            ).all()
-
-            # Calculate statistics
-            total_prayers = len(completions)
-            completed_prayers = len([c for c in completions if c.status == PrayerCompletionStatus.JAMAAT])
-            qada_prayers = len([c for c in completions if c.status == PrayerCompletionStatus.QADA])
-
-            completion_rate = (completed_prayers / total_prayers * 100) if total_prayers > 0 else 0
-
-            # Get today's statistics
-            today_completions = [c for c in completions if c.prayer.prayer_date == today]
-            today_completed = len([c for c in today_completions if c.status == PrayerCompletionStatus.JAMAAT])
-            today_total = len(today_completions)
-            today_rate = (today_completed / today_total * 100) if today_total > 0 else 0
-
-            return {
-                'success': True,
-                'statistics': {
-                    'total_prayers': total_prayers,
-                    'completed_prayers': completed_prayers,
-                    'qada_prayers': qada_prayers,
-                    'completion_rate': round(completion_rate, 2),
-                    'today': {
-                        'completed': today_completed,
-                        'total': today_total,
-                        'rate': round(today_rate, 2)
-                    },
-                    'weekly': {
-                        'completed': completed_prayers,
-                        'total': total_prayers,
-                        'rate': round(completion_rate, 2)
-                    },
-                    'monthly': {
-                        'completed': completed_prayers,
-                        'total': total_prayers,
-                        'rate': round(completion_rate, 2)
-                    }
-                }
-            }
-
-        except Exception as e:
-            self.logger.error(f"Error getting statistics for user {user_id}: {e!s}")
-            return {
-                'success': False,
-                'error': str(e)
-            }

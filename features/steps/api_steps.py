@@ -1,10 +1,12 @@
 """Step definitions for API endpoint features."""
 
 import os
+from datetime import datetime
 
 from behave import given, then, when
 
 from app.models.user import User
+from app.services import PrayerService
 from app.services.auth_service import AuthService
 
 
@@ -51,11 +53,29 @@ def step_within_dhuhr_prayer_time_window(context):
     context.prayer_id = 1  # Mock prayer ID
 
 
-@given('I have prayer completion history')
-def step_have_prayer_completion_history(context):
+@given('I am completing prayers at time {datetime_str}')
+def step_have_prayer_completion_history(context, datetime_str):
     """Set up prayer completion history."""
     # This would typically create prayer completion records
+    datetime_str = datetime_str.strip('"')
+    current_datetime = datetime.strptime(datetime_str, '%Y-%m-%d %H:%M')
+
     context.has_completion_history = True
+    prayer_service = PrayerService()
+    for prayer in context.prayer_times['prayers']:
+        prayer_service.complete_prayer(context.current_user.id,prayer['id'], current_datetime)
+
+@given('I am completing prayers as qada at time {datetime_str}')
+def step_have_prayer_completion_history(context, datetime_str):
+    """Set up prayer completion history."""
+    # This would typically create prayer completion records
+    datetime_str = datetime_str.strip('"')
+    current_datetime = datetime.strptime(datetime_str, '%Y-%m-%d %H:%M')
+
+    context.has_completion_history = True
+    prayer_service = PrayerService()
+    for prayer in context.prayer_times['prayers']:
+        prayer_service.mark_prayer_qada(context.current_user.id,prayer['id'], current_datetime)
 
 
 @when('I make a GET request to "{endpoint}"')
@@ -399,12 +419,6 @@ def step_response_contains_completion_rates(context):
     data = context.api_response_data
     assert any(rate in data for rate in ['completion_rate', 'daily_rate', 'weekly_rate', 'monthly_rate'])
 
-
-@then('the prayer times should be in my timezone')
-def step_prayer_times_in_timezone(context):
-    """Verify prayer times are in user's timezone."""
-    # This would typically check that times are in the user's timezone
-    assert 'timezone' in context.api_response_data or 'local_time' in context.api_response_data
 
 
 @then('the response should indicate successful verification')

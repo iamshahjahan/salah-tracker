@@ -167,7 +167,12 @@ class BaseService:
         Returns:
             Dict[str, Any]: Standardized error response.
         """
+        import traceback
+
+        # Log the error with full traceback
         self.logger.error(f"Service error in {operation}: {error!s}")
+        self.logger.error(f"Full traceback for {operation}:")
+        self.logger.error(traceback.format_exc())
 
         return {
             'success': False,

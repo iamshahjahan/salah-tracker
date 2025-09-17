@@ -8,6 +8,9 @@ import random
 from datetime import datetime
 from typing import Any, Dict, Optional
 
+import pytz
+from zoneinfo import ZoneInfo
+
 from config.database import db
 
 
@@ -25,7 +28,13 @@ class QuranicVerse(db.Model):
     english_translation = db.Column(db.Text, nullable=False)
     category = db.Column(db.String(50), nullable=True)  # prayer, patience, guidance, etc.
     is_active = db.Column(db.Boolean, default=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(pytz.UTC))
+
+    def utc_created_at(self):
+        """Return created_at in UTC."""
+        if not self.created_at:
+            return None
+        return self.created_at.replace(tzinfo=ZoneInfo('UTC'))
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert Quranic verse to dictionary."""
@@ -38,7 +47,8 @@ class QuranicVerse(db.Model):
             'arabic_text': self.arabic_text,
             'english_translation': self.english_translation,
             'category': self.category,
-            'reference': f"{self.surah_name_english} {self.surah_number}:{self.verse_number}"
+            'reference': f"{self.surah_name_english} {self.surah_number}:{self.verse_number}",
+            'created_at_utc': self.utc_created_at().isoformat() if self.created_at else None
         }
 
     @classmethod
@@ -67,7 +77,13 @@ class Hadith(db.Model):
     narrator = db.Column(db.String(200), nullable=True)
     category = db.Column(db.String(50), nullable=True)  # prayer, patience, guidance, etc.
     is_active = db.Column(db.Boolean, default=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(pytz.UTC))
+
+    def utc_created_at(self):
+        """Return created_at in UTC."""
+        if not self.created_at:
+            return None
+        return self.created_at.replace(tzinfo=ZoneInfo('UTC'))
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert Hadith to dictionary."""
@@ -79,7 +95,8 @@ class Hadith(db.Model):
             'english_translation': self.english_translation,
             'narrator': self.narrator,
             'category': self.category,
-            'reference': f"{self.collection} {self.hadith_number}" if self.hadith_number else self.collection
+            'reference': f"{self.collection} {self.hadith_number}" if self.hadith_number else self.collection,
+            'created_at_utc': self.utc_created_at().isoformat() if self.created_at else None
         }
 
     @classmethod

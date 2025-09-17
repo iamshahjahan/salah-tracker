@@ -10,9 +10,10 @@ from typing import Any, Dict, List, Optional
 import requests
 
 from app.config.settings import Config
-from app.models.prayer import Prayer, PrayerCompletion
+from app.models.prayer import Prayer, PrayerCompletion, PrayerCompletionStatus
 from app.models.user import User
 
+from ..utils.timezone_utils import get_utc_now
 from .base_service import BaseService
 
 
@@ -181,7 +182,7 @@ class UserService(BaseService):
                 }
 
             # Calculate statistics
-            stats = self._calculate_user_statistics(user)
+            stats = self._calculate_user_statistics(user, get_utc_now())
 
             return {
                 'success': True,
@@ -192,63 +193,6 @@ class UserService(BaseService):
         except Exception as e:
             return self.handle_service_error(e, 'get_user_statistics')
 
-    def get_user_prayer_history(self, user_id: int, start_date: Optional[str] = None,
-                               end_date: Optional[str] = None, limit: int = 30) -> Dict[str, Any]:
-        """Get user prayer completion history.
-
-        Args:
-            user_id: ID of the user.
-            start_date: Start date in YYYY-MM-DD format. If None, uses user creation date.
-            end_date: End date in YYYY-MM-DD format. If None, uses today.
-            limit: Maximum number of records to return.
-
-        Returns:
-            Dict[str, Any]: Prayer history data or error.
-        """
-        try:
-            user = self.get_record_by_id(User, user_id)
-            if not user:
-                return {
-                    'success': False,
-                    'error': 'User not found'
-                }
-
-            # Parse dates
-            if start_date:
-                try:
-                    start_dt = datetime.strptime(start_date, '%Y-%m-%d').date()
-                except ValueError:
-                    return {
-                        'success': False,
-                        'error': 'Invalid start date format. Use YYYY-MM-DD'
-                    }
-            else:
-                start_dt = user.created_at.date()
-
-            if end_date:
-                try:
-                    end_dt = datetime.strptime(end_date, '%Y-%m-%d').date()
-                except ValueError:
-                    return {
-                        'success': False,
-                        'error': 'Invalid end date format. Use YYYY-MM-DD'
-                    }
-            else:
-                end_dt = datetime.now().date()
-
-            # Get prayer history
-            history = self._get_prayer_history(user, start_dt, end_dt, limit)
-
-            return {
-                'success': True,
-                'history': history,
-                'start_date': start_dt.strftime('%Y-%m-%d'),
-                'end_date': end_dt.strftime('%Y-%m-%d'),
-                'message': 'Prayer history retrieved successfully'
-            }
-
-        except Exception as e:
-            return self.handle_service_error(e, 'get_user_prayer_history')
 
     def _get_city_from_coordinates(self, latitude: float, longitude: float) -> Dict[str, Any]:
         """Get city information from coordinates using geocoding API.
@@ -287,20 +231,19 @@ class UserService(BaseService):
                 'timezone': 'UTC'
             }
 
-    def _calculate_user_statistics(self, user: User) -> Dict[str, Any]:
+    def _calculate_user_statistics(self, user: User, current_time: datetime) -> Dict[str, Any]:
         """Calculate comprehensive user statistics.
 
         Args:
             user: User instance.
-
+            current_time: Current time in UTC
         Returns:
             Dict[str, Any]: Dictionary containing various user statistics.
         """
         try:
             # Get date range
             start_date = user.created_at.date()
-            end_date = datetime.now().date()
-            total_days = (end_date - start_date).days + 1
+            end_date = current_time
 
             # Get all prayers for the user
             prayers = Prayer.query.filter(
@@ -311,18 +254,20 @@ class UserService(BaseService):
 
             # Get all completions
             prayer_ids = [prayer.id for prayer in prayers]
-            completions = PrayerCompletion.query.filter(
+            completions : List[PrayerCompletion] = PrayerCompletion.query.filter(
                 PrayerCompletion.prayer_id.in_(prayer_ids)
             ).all()
 
             # Calculate statistics
             total_prayers = len(prayers)
-            completed_prayers = len(completions)
-            qada_prayers = len([c for c in completions if c.is_qada])
-            late_prayers = len([c for c in completions if c.is_late])
+
+            jammat_prayers = len([c for c in completions if c.status == PrayerCompletionStatus.JAMAAT])
+            without_jamat_prayers = len([c for c in completions if c.status == PrayerCompletionStatus.WITHOUT_JAMAAT])
+            qada_prayers = len([c for c in completions if c.status == PrayerCompletionStatus.QADA])
+            missed_prayers = len([c for c in completions if c.status == PrayerCompletionStatus.MISSED])
 
             # Calculate completion rate
-            completion_rate = (completed_prayers / total_prayers * 100) if total_prayers > 0 else 0
+            completion_rate = ((jammat_prayers + without_jamat_prayers) / total_prayers * 100) if total_prayers > 0 else 0
 
             # Calculate daily completion rates
             daily_stats = self._calculate_daily_completion_stats(prayers, completions, start_date, end_date)
@@ -331,11 +276,10 @@ class UserService(BaseService):
             prayer_stats = self._calculate_prayer_specific_stats(prayers, completions)
 
             return {
-                'total_days': total_days,
                 'total_prayers': total_prayers,
-                'completed_prayers': completed_prayers,
+                'completed_prayers': jammat_prayers + without_jamat_prayers,
                 'qada_prayers': qada_prayers,
-                'late_prayers': late_prayers,
+                'missed_Prayers': missed_prayers,
                 'completion_rate': round(completion_rate, 2),
                 'daily_stats': daily_stats,
                 'prayer_stats': prayer_stats,
@@ -406,9 +350,9 @@ class UserService(BaseService):
             # Group prayers by name
             prayers_by_name = {}
             for prayer in prayers:
-                if prayer.name not in prayers_by_name:
-                    prayers_by_name[prayer.name] = []
-                prayers_by_name[prayer.name].append(prayer)
+                if prayer.prayer_type.value not in prayers_by_name:
+                    prayers_by_name[prayer.prayer_type.value] = []
+                prayers_by_name[prayer.prayer_type.value].append(prayer)
 
             # Group completions by prayer_id
             completions_by_prayer = {c.prayer_id: c for c in completions}
@@ -420,7 +364,7 @@ class UserService(BaseService):
                 completed_prayers = sum(1 for p in prayer_list if p.id in completions_by_prayer)
                 qada_prayers = sum(1 for p in prayer_list
                                  if p.id in completions_by_prayer
-                                 and completions_by_prayer[p.id].is_qada)
+                                 and completions_by_prayer[p.id].status == PrayerCompletionStatus.QADA)
 
                 completion_rate = (completed_prayers / total_prayers * 100) if total_prayers > 0 else 0
 
@@ -473,7 +417,7 @@ class UserService(BaseService):
                 completion = completions_by_prayer.get(prayer.id)
                 history.append({
                     'id': prayer.id,
-                    'name': prayer.name,
+                    'name': prayer.prayer_type,
                     'date': prayer.prayer_date.strftime('%Y-%m-%d'),
                     'time': prayer.prayer_time.strftime('%H:%M'),
                     'completed': completion is not None,

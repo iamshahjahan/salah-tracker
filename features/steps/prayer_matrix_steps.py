@@ -15,8 +15,8 @@ def step_checking_prayer_times_at_datetime_matrix(context, date, datetime_str):
     """Set up prayer times check for specific date and datetime."""
     # Parse the date and datetime
     date = date.strip('"')
-    datetime_str = datetime_str.strip('"')
     datetime.strptime(date, '%Y-%m-%d').date()
+    datetime_str = datetime_str.strip('"')
     current_datetime = datetime.strptime(datetime_str, '%Y-%m-%d %H:%M')
 
     # Convert to user's timezone

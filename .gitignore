@@ -166,3 +166,6 @@ screenshots/
 # Temporary files
 *.tmp
 *.temp
+celerybeat-schedule-wal
+dump.rdb
+pretty.output
