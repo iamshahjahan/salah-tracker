@@ -58,17 +58,17 @@ class EmailVerification(db.Model):
         """Check if the verification code is still valid."""
         if self.is_used:
             return False
-        
+
         # Handle timezone comparison - expires_at might be naive when retrieved from DB
         current_time = datetime.now(pytz.UTC)
-        
+
         if self.expires_at.tzinfo is None:
             # If expires_at is naive, assume it's in UTC and make it timezone-aware
             expires_at_aware = pytz.UTC.localize(self.expires_at)
         else:
             # If expires_at is already timezone-aware, use it as is
             expires_at_aware = self.expires_at
-        
+
         return current_time < expires_at_aware
 
     def mark_as_used(self):
@@ -80,7 +80,7 @@ class EmailVerification(db.Model):
         """Return expires_at localized to the user's timezone."""
         if not self.expires_at:
             return None
-        
+
         # Handle timezone conversion properly
         if self.expires_at.tzinfo is None:
             # If naive, assume UTC and localize
@@ -88,7 +88,7 @@ class EmailVerification(db.Model):
         else:
             # If already timezone-aware, convert to UTC first
             utc_time = self.expires_at.astimezone(pytz.UTC)
-        
+
         # Convert to user's timezone
         user_tz = ZoneInfo(self.user.timezone if self.user else 'UTC')
         return utc_time.astimezone(user_tz)
@@ -97,20 +97,19 @@ class EmailVerification(db.Model):
         """Return expires_at in UTC."""
         if not self.expires_at:
             return None
-        
+
         # Handle timezone conversion properly
         if self.expires_at.tzinfo is None:
             # If naive, assume UTC and localize
             return pytz.UTC.localize(self.expires_at)
-        else:
-            # If already timezone-aware, convert to UTC
-            return self.expires_at.astimezone(pytz.UTC)
+        # If already timezone-aware, convert to UTC
+        return self.expires_at.astimezone(pytz.UTC)
 
     def localized_created_at(self):
         """Return created_at localized to the user's timezone."""
         if not self.created_at:
             return None
-        
+
         # Handle timezone conversion properly
         if self.created_at.tzinfo is None:
             # If naive, assume UTC and localize
@@ -118,7 +117,7 @@ class EmailVerification(db.Model):
         else:
             # If already timezone-aware, convert to UTC first
             utc_time = self.created_at.astimezone(pytz.UTC)
-        
+
         # Convert to user's timezone
         user_tz = ZoneInfo(self.user.timezone if self.user else 'UTC')
         return utc_time.astimezone(user_tz)
@@ -127,14 +126,13 @@ class EmailVerification(db.Model):
         """Return created_at in UTC."""
         if not self.created_at:
             return None
-        
+
         # Handle timezone conversion properly
         if self.created_at.tzinfo is None:
             # If naive, assume UTC and localize
             return pytz.UTC.localize(self.created_at)
-        else:
-            # If already timezone-aware, convert to UTC
-            return self.created_at.astimezone(pytz.UTC)
+        # If already timezone-aware, convert to UTC
+        return self.created_at.astimezone(pytz.UTC)
 
     def to_dict(self):
         """Convert verification object to dictionary."""

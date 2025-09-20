@@ -70,19 +70,37 @@ def step_user_with_email_exists(context, email):
 
 @given('I am a registered user with unverified email')
 def step_user_with_unverified_email(context):
-    """Create a user with unverified email."""
-    user = User(
-        username="unverifieduser",
-        email="unverified@example.com",
-        first_name="Unverified",
-        last_name="User",
-        timezone="UTC",
-        email_verified=False
-    )
-    user.set_password("password123")
-    context.db.session.add(user)
-    context.db.session.commit()
-    context.test_user = user
+    """Use the existing user with unverified email from background."""
+    # Check if user already exists from background
+    if hasattr(context, 'existing_user') and context.existing_user:
+        context.test_user = context.existing_user
+    else:
+        # Fallback: find existing user or create new one with different email
+        user = context.db.session.query(User).filter(
+            User.email == "unverified@example.com"
+        ).first()
+        
+        if user:
+            context.test_user = user
+        else:
+            # Create with unique email if none exists
+            import uuid
+            unique_email = f"unverified-{uuid.uuid4().hex[:8]}@example.com"
+            user = User(
+                username=f"unverifieduser-{uuid.uuid4().hex[:8]}",
+                email=unique_email,
+                first_name="Unverified",
+                last_name="User",
+                timezone="UTC",
+                email_verified=False
+            )
+            user.set_password("password123")
+            context.db.session.add(user)
+            context.db.session.commit()
+            context.test_user = user
+
+        auth_service = AuthService()
+        context.resend_result = auth_service.send_email_verification(context.test_user.id)
 
 
 @given('a user with unverified email exists')
@@ -267,8 +285,14 @@ def step_see_error_message(context, error_message):
     elif hasattr(context, 'completion_result'):
         actual = context.completion_result['error']
         assert actual == error_message, f"Expected error '{error_message}' but got '{actual}'"
+    elif hasattr(context, 'verification_result'):
+        actual = context.verification_result['error']
+        assert actual == error_message, f"Expected error '{error_message}' but got '{actual}'"
+    elif hasattr(context, 'duplicate_verification_result'):
+        actual = context.duplicate_verification_result['error']
+        assert actual == error_message, f"Expected error '{error_message}' but got '{actual}'"
     else:
-        raise AssertionError("No error result found in context (neither registration_result, login_result, nor completion_result)")
+        raise AssertionError("No error result found in context (neither registration_result, login_result, completion_result, verification_result, duplicate_verification_result )")
 
 
 

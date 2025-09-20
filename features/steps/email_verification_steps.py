@@ -50,7 +50,8 @@ def step_registering_new_account(context):
         'email': 'newuser@example.com',
         'password': 'password123',
         'first_name': 'New',
-        'last_name': 'User'
+        'last_name': 'User',
+        'timezone': 'America/New_York',
     }
 
 
@@ -120,7 +121,7 @@ def step_click_dismiss_header(context):
 @when('I complete the registration process')
 def step_complete_registration_process(context):
     """Complete the registration process."""
-    auth_service = AuthService()
+    auth_service = AuthService(context.app_config)
     context.registration_result = auth_service.register_user(context.registration_data)
 
 
@@ -138,7 +139,7 @@ def step_request_verification_codes_rapidly(context):
 @when('I try to verify my email again')
 def step_try_verify_email_again(context):
     """Try to verify already verified email."""
-    auth_service = AuthService()
+    auth_service = AuthService(context.app_config)
     context.duplicate_verification_result = auth_service.send_email_verification(context.test_user.id)
 
 
@@ -261,12 +262,6 @@ def step_header_not_appear_again(context):
 def step_email_verification_automatically_sent(context):
     """Verify email verification was automatically sent."""
     assert context.registration_result.get('verification_sent')
-
-
-@then('I should see a message "Please check your email for verification code"')
-def step_see_check_email_message(context):
-    """Verify check email message is displayed."""
-    assert 'check your email' in context.registration_result['message'], "Got email message to be displayed: {}, expected: 'check your email'".format(context.registration_result['message'])
 
 
 @then('the email verification modal should appear')

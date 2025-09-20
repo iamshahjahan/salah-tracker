@@ -167,5 +167,6 @@ screenshots/
 *.tmp
 *.temp
 celerybeat-schedule-wal
-dump.rdb
 pretty.output
+celerybeat-schedule-shm
+celerybeat-schedule-wal
