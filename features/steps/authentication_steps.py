@@ -596,6 +596,3 @@ def step_click_send_reset_link(context):
     auth_service = AuthService(context.app_config)
     auth_service.send_password_reset(email=context.login_data['email'])
 
-@when("I should receive a password reset email")
-def step_should_receive_password_reset_email(context):
-    raise NotImplementedError('STEP: Then I should receive a password reset email')
