@@ -1,14 +1,14 @@
 """Inspirational Content API routes.
 
 This module defines API endpoints for accessing Quranic verses and Hadith
-for use in prayer reminders and notifications.
+from JSON files for use in prayer reminders and notifications.
 """
-
 
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import jwt_required
 
-from app.models.inspirational_content import Hadith, QuranicVerse
+from app.services.inspirational_service import InspirationalService
+from app.config.settings import get_config
 
 # Create blueprint
 inspirational_bp = Blueprint('inspirational', __name__)
@@ -20,13 +20,15 @@ def get_random_verse():
     """Get a random Quranic verse."""
     try:
         category = request.args.get('category', None)
-
-        verse = QuranicVerse.get_random_verse(category)
+        
+        config = get_config()
+        inspirational_service = InspirationalService(config)
+        verse = inspirational_service.get_random_verse(category)
 
         if verse:
             return jsonify({
                 'success': True,
-                'verse': verse.to_dict()
+                'verse': verse
             }), 200
         return jsonify({
             'success': False,
@@ -43,17 +45,19 @@ def get_random_hadith():
     """Get a random Hadith."""
     try:
         category = request.args.get('category', None)
-
-        hadith = Hadith.get_random_hadith(category)
+        
+        config = get_config()
+        inspirational_service = InspirationalService(config)
+        hadith = inspirational_service.get_random_hadith(category)
 
         if hadith:
             return jsonify({
                 'success': True,
-                'hadith': hadith.to_dict()
+                'hadith': hadith
             }), 200
         return jsonify({
             'success': False,
-            'error': 'No Hadith found'
+            'error': 'No hadith found'
         }), 404
 
     except Exception as e:
@@ -65,12 +69,14 @@ def get_random_hadith():
 def get_verse_by_id(verse_id):
     """Get a specific Quranic verse by ID."""
     try:
-        verse = QuranicVerse.query.get(verse_id)
+        config = get_config()
+        inspirational_service = InspirationalService(config)
+        verse = inspirational_service.get_verse_by_id(verse_id)
 
-        if verse and verse.is_active:
+        if verse:
             return jsonify({
                 'success': True,
-                'verse': verse.to_dict()
+                'verse': verse
             }), 200
         return jsonify({
             'success': False,
@@ -86,12 +92,14 @@ def get_verse_by_id(verse_id):
 def get_hadith_by_id(hadith_id):
     """Get a specific Hadith by ID."""
     try:
-        hadith = Hadith.query.get(hadith_id)
+        config = get_config()
+        inspirational_service = InspirationalService(config)
+        hadith = inspirational_service.get_hadith_by_id(hadith_id)
 
-        if hadith and hadith.is_active:
+        if hadith:
             return jsonify({
                 'success': True,
-                'hadith': hadith.to_dict()
+                'hadith': hadith
             }), 200
         return jsonify({
             'success': False,
@@ -105,34 +113,27 @@ def get_hadith_by_id(hadith_id):
 @inspirational_bp.route('/verses', methods=['GET'])
 @jwt_required()
 def get_verses():
-    """Get a list of Quranic verses with optional filtering."""
+    """Get Quranic verses with optional filtering."""
     try:
-        category = request.args.get('category', None)
-        page = int(request.args.get('page', 1))
-        per_page = int(request.args.get('per_page', 10))
-
-        query = QuranicVerse.query.filter_by(is_active=True)
-
+        category = request.args.get('category')
+        limit = request.args.get('limit', type=int)
+        
+        config = get_config()
+        inspirational_service = InspirationalService(config)
+        
         if category:
-            query = query.filter_by(category=category)
-
-        verses = query.paginate(
-            page=page,
-            per_page=per_page,
-            error_out=False
-        )
+            verses = inspirational_service.get_verses_by_category(category, limit)
+        else:
+            # Get all verses from the content and apply limit if specified
+            content = inspirational_service._load_content()
+            verses = content.get('quranic_verses', [])
+            if limit:
+                verses = verses[:limit]
 
         return jsonify({
             'success': True,
-            'verses': [verse.to_dict() for verse in verses.items],
-            'pagination': {
-                'page': page,
-                'per_page': per_page,
-                'total': verses.total,
-                'pages': verses.pages,
-                'has_next': verses.has_next,
-                'has_prev': verses.has_prev
-            }
+            'verses': verses,
+            'total': len(verses)
         }), 200
 
     except Exception as e:
@@ -142,34 +143,27 @@ def get_verses():
 @inspirational_bp.route('/hadiths', methods=['GET'])
 @jwt_required()
 def get_hadiths():
-    """Get a list of Hadith with optional filtering."""
+    """Get Hadith with optional filtering."""
     try:
-        category = request.args.get('category', None)
-        page = int(request.args.get('page', 1))
-        per_page = int(request.args.get('per_page', 10))
-
-        query = Hadith.query.filter_by(is_active=True)
-
+        category = request.args.get('category')
+        limit = request.args.get('limit', type=int)
+        
+        config = get_config()
+        inspirational_service = InspirationalService(config)
+        
         if category:
-            query = query.filter_by(category=category)
-
-        hadiths = query.paginate(
-            page=page,
-            per_page=per_page,
-            error_out=False
-        )
+            hadiths = inspirational_service.get_hadith_by_category(category, limit)
+        else:
+            # Get all hadith from the content and apply limit if specified
+            content = inspirational_service._load_content()
+            hadiths = content.get('hadith', [])
+            if limit:
+                hadiths = hadiths[:limit]
 
         return jsonify({
             'success': True,
-            'hadiths': [hadith.to_dict() for hadith in hadiths.items],
-            'pagination': {
-                'page': page,
-                'per_page': per_page,
-                'total': hadiths.total,
-                'pages': hadiths.pages,
-                'has_next': hadiths.has_next,
-                'has_prev': hadiths.has_prev
-            }
+            'hadiths': hadiths,
+            'total': len(hadiths)
         }), 200
 
     except Exception as e:
@@ -181,33 +175,38 @@ def get_hadiths():
 def get_categories():
     """Get available categories for verses and Hadith."""
     try:
-        from config.database import db
-
-        # Get unique categories from verses
-        verse_categories = db.session.query(QuranicVerse.category).filter(
-            QuranicVerse.is_active,
-            QuranicVerse.category.isnot(None)
-        ).distinct().all()
-
-        # Get unique categories from Hadith
-        hadith_categories = db.session.query(Hadith.category).filter(
-            Hadith.is_active,
-            Hadith.category.isnot(None)
-        ).distinct().all()
-
-        # Combine and deduplicate categories
-        all_categories = set()
-        for category in verse_categories:
-            if category[0]:
-                all_categories.add(category[0])
-        for category in hadith_categories:
-            if category[0]:
-                all_categories.add(category[0])
+        config = get_config()
+        inspirational_service = InspirationalService(config)
+        categories = inspirational_service.get_available_categories()
 
         return jsonify({
             'success': True,
-            'categories': sorted(all_categories)
+            'categories': categories
         }), 200
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@inspirational_bp.route('/reload', methods=['POST'])
+@jwt_required()
+def reload_content():
+    """Reload inspirational content from JSON file."""
+    try:
+        config = get_config()
+        inspirational_service = InspirationalService(config)
+        success = inspirational_service.reload_content()
+
+        if success:
+            return jsonify({
+                'success': True,
+                'message': 'Content reloaded successfully'
+            }), 200
+        else:
+            return jsonify({
+                'success': False,
+                'error': 'Failed to reload content'
+            }), 500
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500

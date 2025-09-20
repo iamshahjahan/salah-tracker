@@ -7,12 +7,11 @@ including prayer reminders, consistency nudges, and completion confirmations.
 from datetime import datetime
 from typing import Optional
 
-from app.models.inspirational_content import Hadith, QuranicVerse
 from app.models.user import User
 
 
 def get_prayer_reminder_template(user: User, prayer_type: str, prayer_time: datetime,
-                                verse: Optional[QuranicVerse], hadith: Optional[Hadith],
+                                verse: Optional[dict], hadith: Optional[dict],
                                 completion_link: str) -> str:
     """Get prayer reminder email template."""
     _ = get_prayer_name_arabic(prayer_type)
@@ -25,7 +24,7 @@ def get_prayer_reminder_template(user: User, prayer_type: str, prayer_time: date
 
 
 def get_arabic_prayer_reminder_template(user: User, prayer_type: str, prayer_time: datetime,
-                                       verse: Optional[QuranicVerse], hadith: Optional[Hadith],
+                                       verse: Optional[dict], hadith: Optional[dict],
                                        completion_link: str) -> str:
     """Get Arabic prayer reminder email template."""
     prayer_name_arabic = get_prayer_name_arabic(prayer_type)
@@ -73,18 +72,18 @@ def get_arabic_prayer_reminder_template(user: User, prayer_type: str, prayer_tim
                 {f'''
                 <div class="verse">
                     <h3>📖 آية قرآنية</h3>
-                    <div class="arabic">{verse.arabic_text}</div>
-                    <div class="english">{verse.english_translation}</div>
-                    <p style="font-size: 12px; color: #999; margin-top: 10px;">{verse.surah_name_english} {verse.surah_number}:{verse.verse_number}</p>
+                    <div class="arabic">{verse['arabic_text']}</div>
+                    <div class="english">{verse['english_translation']}</div>
+                    <p style="font-size: 12px; color: #999; margin-top: 10px;">{verse['surah_name_english']} {verse['surah_number']}:{verse['verse_number']}</p>
                 </div>
                 ''' if verse else ''}
 
                 {f'''
                 <div class="hadith">
                     <h3>💬 حديث شريف</h3>
-                    <div class="arabic">{hadith.arabic_text}</div>
-                    <div class="english">{hadith.english_translation}</div>
-                    <p style="font-size: 12px; color: #999; margin-top: 10px;">{hadith.collection} {hadith.hadith_number}</p>
+                    <div class="arabic">{hadith['arabic_text']}</div>
+                    <div class="english">{hadith['english_translation']}</div>
+                    <p style="font-size: 12px; color: #999; margin-top: 10px;">{hadith['collection']} {hadith['hadith_number']}</p>
                 </div>
                 ''' if hadith else ''}
 
@@ -108,8 +107,8 @@ def get_arabic_prayer_reminder_template(user: User, prayer_type: str, prayer_tim
     """
 
 
-def get_consistency_nudge_template(user: User, verse: Optional[QuranicVerse],
-                                  hadith: Optional[Hadith], frontend_url: str = "https://salah-tracker.com") -> str:
+def get_consistency_nudge_template(user: User, verse: Optional[dict],
+                                  hadith: Optional[dict], frontend_url: str = "https://salah-tracker.com") -> str:
     """Get consistency nudge email template."""
     return f"""
     <!DOCTYPE html>
@@ -150,18 +149,18 @@ def get_consistency_nudge_template(user: User, verse: Optional[QuranicVerse],
                 {f'''
                 <div class="verse">
                     <h3>📖 آية قرآنية</h3>
-                    <div class="arabic">{verse.arabic_text}</div>
-                    <div class="english">{verse.english_translation}</div>
-                    <p style="font-size: 12px; color: #999; margin-top: 10px;">{verse.surah_name_english} {verse.surah_number}:{verse.verse_number}</p>
+                    <div class="arabic">{verse['arabic_text']}</div>
+                    <div class="english">{verse['english_translation']}</div>
+                    <p style="font-size: 12px; color: #999; margin-top: 10px;">{verse['surah_name_english']} {verse['surah_number']}:{verse['verse_number']}</p>
                 </div>
                 ''' if verse else ''}
 
                 {f'''
                 <div class="hadith">
                     <h3>💬 حديث شريف</h3>
-                    <div class="arabic">{hadith.arabic_text}</div>
-                    <div class="english">{hadith.english_translation}</div>
-                    <p style="font-size: 12px; color: #999; margin-top: 10px;">{hadith.collection} {hadith.hadith_number}</p>
+                    <div class="arabic">{hadith['arabic_text']}</div>
+                    <div class="english">{hadith['english_translation']}</div>
+                    <p style="font-size: 12px; color: #999; margin-top: 10px;">{hadith['collection']} {hadith['hadith_number']}</p>
                 </div>
                 ''' if hadith else ''}
 
@@ -208,7 +207,7 @@ def get_prayer_name_english(prayer_type: str) -> str:
 
 
 def get_english_prayer_reminder_template(user: User, prayer_type: str, prayer_time: datetime,
-                                        verse: Optional[QuranicVerse], hadith: Optional[Hadith],
+                                        verse: Optional[dict], hadith: Optional[dict],
                                         completion_link: str) -> str:
     """Get English prayer reminder email template."""
     prayer_name_english = get_prayer_name_english(prayer_type)
@@ -256,18 +255,18 @@ def get_english_prayer_reminder_template(user: User, prayer_type: str, prayer_ti
                 {f'''
                 <div class="verse">
                     <h3>📖 Quranic Verse</h3>
-                    <div class="arabic">{verse.arabic_text}</div>
-                    <div class="english">{verse.english_translation}</div>
-                    <p style="font-size: 12px; color: #999; margin-top: 10px;">{verse.surah_name_english} {verse.surah_number}:{verse.verse_number}</p>
+                    <div class="arabic">{verse['arabic_text']}</div>
+                    <div class="english">{verse['english_translation']}</div>
+                    <p style="font-size: 12px; color: #999; margin-top: 10px;">{verse['surah_name_english']} {verse['surah_number']}:{verse['verse_number']}</p>
                 </div>
                 ''' if verse else ''}
 
                 {f'''
                 <div class="hadith">
                     <h3>💬 Hadith</h3>
-                    <div class="arabic">{hadith.arabic_text}</div>
-                    <div class="english">{hadith.english_translation}</div>
-                    <p style="font-size: 12px; color: #999; margin-top: 10px;">{hadith.collection} {hadith.hadith_number}</p>
+                    <div class="arabic">{hadith['arabic_text']}</div>
+                    <div class="english">{hadith['english_translation']}</div>
+                    <p style="font-size: 12px; color: #999; margin-top: 10px;">{hadith['collection']} {hadith['hadith_number']}</p>
                 </div>
                 ''' if hadith else ''}
 
@@ -292,7 +291,7 @@ def get_english_prayer_reminder_template(user: User, prayer_type: str, prayer_ti
 
 
 def get_prayer_window_reminder_template(user: User, prayer_type: str, prayer_time: datetime,
-                                       verse: Optional[QuranicVerse], hadith: Optional[Hadith],
+                                       verse: Optional[dict], hadith: Optional[dict],
                                        completion_link: str, end_time: str) -> str:
     """Get prayer window reminder email template."""
     _ = get_prayer_name_english(prayer_type)
@@ -304,7 +303,7 @@ def get_prayer_window_reminder_template(user: User, prayer_type: str, prayer_tim
 
 
 def get_english_prayer_window_reminder_template(user: User, prayer_type: str, prayer_time: datetime,
-                                               verse: Optional[QuranicVerse], hadith: Optional[Hadith],
+                                               verse: Optional[dict], hadith: Optional[dict],
                                                completion_link: str, end_time: str) -> str:
     """Get English prayer window reminder email template."""
     prayer_name_english = get_prayer_name_english(prayer_type)
@@ -359,18 +358,18 @@ def get_english_prayer_window_reminder_template(user: User, prayer_type: str, pr
                 {f'''
                 <div class="verse">
                     <h3>📖 Quranic Verse</h3>
-                    <div class="arabic">{verse.arabic_text}</div>
-                    <div class="english">{verse.english_translation}</div>
-                    <p style="font-size: 12px; color: #999; margin-top: 10px;">{verse.surah_name_english} {verse.surah_number}:{verse.verse_number}</p>
+                    <div class="arabic">{verse['arabic_text']}</div>
+                    <div class="english">{verse['english_translation']}</div>
+                    <p style="font-size: 12px; color: #999; margin-top: 10px;">{verse['surah_name_english']} {verse['surah_number']}:{verse['verse_number']}</p>
                 </div>
                 ''' if verse else ''}
 
                 {f'''
                 <div class="hadith">
                     <h3>💬 Hadith</h3>
-                    <div class="arabic">{hadith.arabic_text}</div>
-                    <div class="english">{hadith.english_translation}</div>
-                    <p style="font-size: 12px; color: #999; margin-top: 10px;">{hadith.collection} {hadith.hadith_number}</p>
+                    <div class="arabic">{hadith['arabic_text']}</div>
+                    <div class="english">{hadith['english_translation']}</div>
+                    <p style="font-size: 12px; color: #999; margin-top: 10px;">{hadith['collection']} {hadith['hadith_number']}</p>
                 </div>
                 ''' if hadith else ''}
 

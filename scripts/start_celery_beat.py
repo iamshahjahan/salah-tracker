@@ -1,9 +1,3 @@
-import os
-import sys
-
-from config.celery_config import celery_app
-from config.logging_config import get_logger, setup_logging
-
 #!/usr/bin/env python3
 """Celery Beat scheduler startup script.
 
@@ -12,9 +6,16 @@ Run this script to start the scheduler that will trigger prayer reminders
 and other scheduled jobs.
 """
 
-# Add the project root to the Python path
+import os
+import sys
+
+# Add the project root to the Python path FIRST
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
+
+# Now import after path is set up
+from config.celery_config import celery_app
+from config.logging_config import get_logger, setup_logging
 
 # Set up logging
 setup_logging(log_level=os.getenv('LOG_LEVEL', 'INFO'))

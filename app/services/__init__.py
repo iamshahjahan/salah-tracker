@@ -5,12 +5,14 @@ following the service layer pattern for better maintainability and testability.
 """
 
 from .auth_service import AuthService
+from .inspirational_service import InspirationalService
 from .notification_service import NotificationService
 from .prayer_service import PrayerService
 from .user_service import UserService
 
 __all__ = [
     'AuthService',
+    'InspirationalService',
     'NotificationService',
     'PrayerService',
     'UserService'

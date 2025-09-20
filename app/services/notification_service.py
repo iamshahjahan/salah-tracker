@@ -9,13 +9,13 @@ from typing import Any, Dict
 
 from flask import current_app
 
-from app.models.inspirational_content import Hadith, QuranicVerse
 from app.models.prayer import PrayerCompletion, PrayerCompletionStatus
 from app.models.prayer_notification import PrayerNotification
 from app.models.user import User
 
 from .base_service import BaseService
 from .email_service import EmailService
+from .inspirational_service import InspirationalService
 from .email_templates import (
     get_consistency_nudge_template,
     get_prayer_reminder_template,
@@ -33,6 +33,7 @@ class NotificationService(BaseService):
         """Initialize the notification service."""
         super().__init__(config)
         self.email_service = EmailService(config)
+        self.inspirational_service = InspirationalService(config)
 
     def send_prayer_reminder(self, user: User, prayer_type: str, prayer_time: datetime) -> Dict[str, Any]:
         """Send a prayer reminder to a user.
@@ -53,8 +54,8 @@ class NotificationService(BaseService):
                 }
 
             # Get inspirational content
-            verse = QuranicVerse.get_random_verse('prayer')
-            hadith = Hadith.get_random_hadith('prayer')
+            verse = self.inspirational_service.get_random_verse('prayer')
+            hadith = self.inspirational_service.get_random_hadith('prayer')
 
             # Create notification record
             notification = self.create_record(
@@ -125,9 +126,8 @@ class NotificationService(BaseService):
                 }
 
             # Get inspirational content
-            from app.models.inspirational_content import Hadith, QuranicVerse
-            verse = QuranicVerse.get_random_verse('prayer')
-            hadith = Hadith.get_random_hadith('prayer')
+            verse = self.inspirational_service.get_random_verse('prayer')
+            hadith = self.inspirational_service.get_random_hadith('prayer')
 
             # Create notification record
             notification = self.create_record(
@@ -289,9 +289,8 @@ class NotificationService(BaseService):
                 }
 
             # Get inspirational content for motivation
-            from app.models.inspirational_content import Hadith, QuranicVerse
-            verse = QuranicVerse.get_random_verse('patience')
-            hadith = Hadith.get_random_hadith('motivation')
+            verse = self.inspirational_service.get_random_verse('patience')
+            hadith = self.inspirational_service.get_random_hadith('motivation')
 
             subject = "💪 دعنا نعود إلى المسار الصحيح - SalahTracker"
             template = get_consistency_nudge_template(user, verse, hadith)

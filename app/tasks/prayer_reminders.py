@@ -449,6 +449,114 @@ def cleanup_old_notifications(self, days_old: int = DEFAULT_CLEANUP_DAYS) -> Dic
             raise
 
 
+@celery_app.task(bind=True, name='app.tasks.prayer_reminders.send_prayer_window_reminders')
+def send_prayer_window_reminders(self) -> Dict[str, Any]:
+    """Send prayer window reminders to users for prayers ending soon.
+
+    This task checks for prayers that are about to end and sends
+    window reminders to users who haven't completed them yet.
+    
+    Returns:
+        Dict containing task execution results
+    """
+    with app.app_context():
+        try:
+            # Update task state
+            self.update_state(state='PROGRESS', meta={'task': 'send_prayer_window_reminders'})
+            logger.info("Starting prayer window reminders task")
+            
+            now_utc = datetime.utcnow()
+            logger.info(f"Current UTC time: {now_utc}")
+
+            # Get eligible users
+            users = _get_eligible_users()
+            logger.info(f"Found {len(users)} eligible users for window reminders")
+            
+            if not users:
+                logger.info("No eligible users found for window reminders")
+                return _create_task_result(0, 0, 0, now_utc)
+
+            # Process each user for window reminders
+            total_reminders_sent = 0
+            total_errors = 0
+
+            for i, user in enumerate(users, 1):
+                try:
+                    # Get user's timezone and current time
+                    user_tz = pytz.timezone(user.timezone or DEFAULT_TIMEZONE)
+                    now_user_tz = now_utc.replace(tzinfo=pytz.UTC).astimezone(user_tz)
+                    
+                    # Get prayer data
+                    prayer_data_list = _get_user_prayer_data(user, now_user_tz)
+                    if not prayer_data_list:
+                        continue
+                    
+                    # Check for prayers ending soon (within 30 minutes)
+                    for prayer_data in prayer_data_list:
+                        prayer_status = prayer_data.get('status', '')
+                        is_completed = prayer_data.get('completed', False)
+                        
+                        # Send window reminder if prayer is ongoing and not completed
+                        if prayer_status == 'ongoing' and not is_completed:
+                            prayer_type = prayer_data.get('prayer_type', '').lower()
+                            
+                            # Check if we already sent a window reminder
+                            existing_notification = PrayerNotification.query.filter_by(
+                                user_id=user.id,
+                                prayer_type=prayer_type,
+                                prayer_date=now_user_tz.date(),
+                                notification_type='window_reminder'
+                            ).first()
+                            
+                            if not existing_notification:
+                                # Send window reminder using notification service
+                                config = get_config()
+                                notification_service = NotificationService(config)
+                                
+                                prayer_time_str = prayer_data.get('prayer_time', '')
+                                prayer_datetime = _parse_prayer_datetime(prayer_time_str, now_user_tz.date(), user_tz)
+                                
+                                result = notification_service.send_prayer_window_reminder(
+                                    user, prayer_type, prayer_datetime
+                                )
+                                
+                                if result.get('success'):
+                                    total_reminders_sent += 1
+                                    logger.info(f"Window reminder sent for {prayer_type} to {user.email}")
+                                else:
+                                    total_errors += 1
+                                    logger.error(f"Failed to send window reminder to {user.email}: {result.get('error')}")
+                
+                except Exception as e:
+                    total_errors += 1
+                    logger.error(f"Error processing window reminders for user {user.email}: {e}")
+                    continue
+                
+                # Update task progress
+                self.update_state(
+                    state='PROGRESS',
+                    meta={
+                        'current_user': user.email,
+                        'reminders_sent': total_reminders_sent,
+                        'errors': total_errors,
+                        'processed': i,
+                        'total': len(users)
+                    }
+                )
+
+            result = _create_task_result(total_reminders_sent, total_errors, len(users), now_utc)
+            logger.info(f"Prayer window reminders task completed: {result}")
+            return result
+
+        except Exception as e:
+            logger.error(f"Fatal error in prayer window reminders task: {e}")
+            current_task.update_state(
+                state='FAILURE',
+                meta={'error': str(e)}
+            )
+            raise
+
+
 @celery_app.task(bind=True, name='app.tasks.prayer_reminders.test_reminder_system')
 def test_reminder_system(self) -> Dict[str, Any]:
     """Test the reminder system by sending a test reminder to all users.

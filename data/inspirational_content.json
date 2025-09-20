@@ -1,0 +1,271 @@
+{
+  "quranic_verses": [
+    {
+      "id": 1,
+      "surah_number": 2,
+      "surah_name_arabic": "البقرة",
+      "surah_name_english": "Al-Baqarah",
+      "verse_number": 255,
+      "arabic_text": "اللَّهُ لَا إِلَٰهَ إِلَّا هُوَ الْحَيُّ الْقَيُّومُ ۚ لَا تَأْخُذُهُ سِنَةٌ وَلَا نَوْمٌ ۚ لَّهُ مَا فِي السَّمَاوَاتِ وَمَا فِي الْأَرْضِ",
+      "english_translation": "Allah - there is no deity except Him, the Ever-Living, the Sustainer of existence. Neither drowsiness overtakes Him nor sleep. To Him belongs whatever is in the heavens and whatever is on the earth.",
+      "category": "prayer",
+      "reference": "Al-Baqarah 2:255"
+    },
+    {
+      "id": 2,
+      "surah_number": 1,
+      "surah_name_arabic": "الفاتحة",
+      "surah_name_english": "Al-Fatihah",
+      "verse_number": 2,
+      "arabic_text": "الْحَمْدُ لِلَّهِ رَبِّ الْعَالَمِينَ",
+      "english_translation": "All praise is due to Allah, Lord of the worlds.",
+      "category": "prayer",
+      "reference": "Al-Fatihah 1:2"
+    },
+    {
+      "id": 3,
+      "surah_number": 17,
+      "surah_name_arabic": "الإسراء",
+      "surah_name_english": "Al-Isra",
+      "verse_number": 78,
+      "arabic_text": "أَقِمِ الصَّلَاةَ لِدُلُوكِ الشَّمْسِ إِلَىٰ غَسَقِ اللَّيْلِ وَقُرْآنَ الْفَجْرِ ۖ إِنَّ قُرْآنَ الْفَجْرِ كَانَ مَشْهُودًا",
+      "english_translation": "Establish prayer at the decline of the sun until the darkness of the night and the dawn recitation. Indeed, the dawn recitation is ever witnessed.",
+      "category": "prayer",
+      "reference": "Al-Isra 17:78"
+    },
+    {
+      "id": 4,
+      "surah_number": 2,
+      "surah_name_arabic": "البقرة",
+      "surah_name_english": "Al-Baqarah",
+      "verse_number": 3,
+      "arabic_text": "الَّذِينَ يُؤْمِنُونَ بِالْغَيْبِ وَيُقِيمُونَ الصَّلَاةَ وَمِمَّا رَزَقْنَاهُمْ يُنفِقُونَ",
+      "english_translation": "Who believe in the unseen, establish prayer, and spend out of what We have provided for them.",
+      "category": "prayer",
+      "reference": "Al-Baqarah 2:3"
+    },
+    {
+      "id": 5,
+      "surah_number": 20,
+      "surah_name_arabic": "طه",
+      "surah_name_english": "Taha",
+      "verse_number": 14,
+      "arabic_text": "إِنَّنِي أَنَا اللَّهُ لَا إِلَٰهَ إِلَّا أَنَا فَاعْبُدْنِي وَأَقِمِ الصَّلَاةَ لِذِكْرِي",
+      "english_translation": "Indeed, I am Allah. There is no deity except Me, so worship Me and establish prayer for My remembrance.",
+      "category": "prayer",
+      "reference": "Taha 20:14"
+    },
+    {
+      "id": 6,
+      "surah_number": 4,
+      "surah_name_arabic": "النساء",
+      "surah_name_english": "An-Nisa",
+      "verse_number": 103,
+      "arabic_text": "فَإِذَا قَضَيْتُمُ الصَّلَاةَ فَاذْكُرُوا اللَّهَ قِيَامًا وَقُعُودًا وَعَلَىٰ جُنُوبِكُمْ",
+      "english_translation": "When you have completed the prayer, remember Allah standing, sitting, and lying on your sides.",
+      "category": "prayer",
+      "reference": "An-Nisa 4:103"
+    },
+    {
+      "id": 7,
+      "surah_number": 29,
+      "surah_name_arabic": "العنكبوت",
+      "surah_name_english": "Al-Ankabut",
+      "verse_number": 45,
+      "arabic_text": "اتْلُ مَا أُوحِيَ إِلَيْكَ مِنَ الْكِتَابِ وَأَقِمِ الصَّلَاةَ ۖ إِنَّ الصَّلَاةَ تَنْهَىٰ عَنِ الْفَحْشَاءِ وَالْمُنكَرِ",
+      "english_translation": "Recite what has been revealed to you of the Book and establish prayer. Indeed, prayer prohibits immorality and wrongdoing.",
+      "category": "prayer",
+      "reference": "Al-Ankabut 29:45"
+    },
+    {
+      "id": 8,
+      "surah_number": 2,
+      "surah_name_arabic": "البقرة",
+      "surah_name_english": "Al-Baqarah",
+      "verse_number": 45,
+      "arabic_text": "وَاسْتَعِينُوا بِالصَّبْرِ وَالصَّلَاةِ ۚ وَإِنَّهَا لَكَبِيرَةٌ إِلَّا عَلَى الْخَاشِعِينَ",
+      "english_translation": "And seek help through patience and prayer, and indeed, it is difficult except for the humbly submissive.",
+      "category": "patience",
+      "reference": "Al-Baqarah 2:45"
+    },
+    {
+      "id": 9,
+      "surah_number": 2,
+      "surah_name_arabic": "البقرة",
+      "surah_name_english": "Al-Baqarah",
+      "verse_number": 153,
+      "arabic_text": "يَا أَيُّهَا الَّذِينَ آمَنُوا اسْتَعِينُوا بِالصَّبْرِ وَالصَّلَاةِ ۚ إِنَّ اللَّهَ مَعَ الصَّابِرِينَ",
+      "english_translation": "O you who believe! Seek help through patience and prayer. Indeed, Allah is with the patient.",
+      "category": "patience",
+      "reference": "Al-Baqarah 2:153"
+    },
+    {
+      "id": 10,
+      "surah_number": 11,
+      "surah_name_arabic": "هود",
+      "surah_name_english": "Hud",
+      "verse_number": 114,
+      "arabic_text": "وَأَقِمِ الصَّلَاةَ طَرَفَيِ النَّهَارِ وَزُلَفًا مِّنَ اللَّيْلِ ۚ إِنَّ الْحَسَنَاتِ يُذْهِبْنَ السَّيِّئَاتِ",
+      "english_translation": "And establish prayer at the two ends of the day and at the approach of the night. Indeed, good deeds do away with misdeeds.",
+      "category": "prayer",
+      "reference": "Hud 11:114"
+    },
+    {
+      "id": 11,
+      "surah_number": 3,
+      "surah_name_arabic": "آل عمران",
+      "surah_name_english": "Ali 'Imran",
+      "verse_number": 200,
+      "arabic_text": "يَا أَيُّهَا الَّذِينَ آمَنُوا اصْبِرُوا وَصَابِرُوا وَرَابِطُوا وَاتَّقُوا اللَّهَ لَعَلَّكُمْ تُفْلِحُونَ",
+      "english_translation": "O you who believe! Persevere in patience and constancy; vie in such perseverance; strengthen each other; and fear Allah that you may prosper.",
+      "category": "patience",
+      "reference": "Ali 'Imran 3:200"
+    },
+    {
+      "id": 12,
+      "surah_number": 25,
+      "surah_name_arabic": "الفرقان",
+      "surah_name_english": "Al-Furqan",
+      "verse_number": 63,
+      "arabic_text": "وَعِبَادُ الرَّحْمَٰنِ الَّذِينَ يَمْشُونَ عَلَى الْأَرْضِ هَوْنًا وَإِذَا خَاطَبَهُمُ الْجَاهِلُونَ قَالُوا سَلَامًا",
+      "english_translation": "And the servants of the Most Merciful are those who walk upon the earth easily, and when the ignorant address them, they say words of peace.",
+      "category": "guidance",
+      "reference": "Al-Furqan 25:63"
+    },
+    {
+      "id": 13,
+      "surah_number": 31,
+      "surah_name_arabic": "لقمان",
+      "surah_name_english": "Luqman",
+      "verse_number": 17,
+      "arabic_text": "يَا بُنَيَّ أَقِمِ الصَّلَاةَ وَأْمُرْ بِالْمَعْرُوفِ وَانْهَ عَنِ الْمُنكَرِ وَاصْبِرْ عَلَىٰ مَا أَصَابَكَ",
+      "english_translation": "O my son, establish prayer, enjoin what is right, forbid what is wrong, and be patient over what befalls you.",
+      "category": "guidance",
+      "reference": "Luqman 31:17"
+    },
+    {
+      "id": 14,
+      "surah_number": 50,
+      "surah_name_arabic": "ق",
+      "surah_name_english": "Qaf",
+      "verse_number": 39,
+      "arabic_text": "فَاصْبِرْ عَلَىٰ مَا يَقُولُونَ وَسَبِّحْ بِحَمْدِ رَبِّكَ قَبْلَ طُلُوعِ الشَّمْسِ وَقَبْلَ الْغُرُوبِ",
+      "english_translation": "So be patient over what they say and exalt Allah with praise of your Lord before the rising of the sun and before its setting.",
+      "category": "patience",
+      "reference": "Qaf 50:39"
+    },
+    {
+      "id": 15,
+      "surah_number": 73,
+      "surah_name_arabic": "المزمل",
+      "surah_name_english": "Al-Muzzammil",
+      "verse_number": 20,
+      "arabic_text": "إِنَّ رَبَّكَ يَعْلَمُ أَنَّكَ تَقُومُ أَدْنَىٰ مِن ثُلُثَيِ اللَّيْلِ وَنِصْفَهُ وَثُلُثَهُ وَطَائِفَةٌ مِّنَ الَّذِينَ مَعَكَ",
+      "english_translation": "Indeed, your Lord knows that you stand in prayer almost two-thirds of the night or half of it or a third of it, and so do a group of those with you.",
+      "category": "prayer",
+      "reference": "Al-Muzzammil 73:20"
+    }
+  ],
+  "hadith": [
+    {
+      "id": 1,
+      "collection": "Sahih Bukhari",
+      "hadith_number": "527",
+      "arabic_text": "الصَّلاةُ نُورٌ، والصَّدَقَةُ بُرْهانٌ، والصَّبْرُ ضِياءٌ",
+      "english_translation": "Prayer is light, charity is proof, and patience is illumination.",
+      "narrator": "Abu Malik al-Ash'ari",
+      "category": "prayer",
+      "reference": "Sahih Bukhari 527"
+    },
+    {
+      "id": 2,
+      "collection": "Sahih Muslim",
+      "hadith_number": "233",
+      "arabic_text": "بَيْنَ الرَّجُلِ وَبَيْنَ الشِّرْكِ وَالْكُفْرِ تَرْكُ الصَّلاةِ",
+      "english_translation": "Between a man and shirk and kufr is the abandonment of prayer.",
+      "narrator": "Jabir ibn Abdullah",
+      "category": "prayer",
+      "reference": "Sahih Muslim 233"
+    },
+    {
+      "id": 3,
+      "collection": "Sunan Abu Dawood",
+      "hadith_number": "425",
+      "arabic_text": "إِذَا نُودِيَ لِلصَّلاةِ أَدْبَرَ الشَّيْطَانُ وَلَهُ ضُرَاطٌ",
+      "english_translation": "When the call to prayer is made, Satan turns away with a loud noise.",
+      "narrator": "Abu Hurairah",
+      "category": "prayer",
+      "reference": "Sunan Abu Dawood 425"
+    },
+    {
+      "id": 4,
+      "collection": "Sahih Bukhari",
+      "hadith_number": "528",
+      "arabic_text": "أَوَّلُ مَا يُحَاسَبُ عَلَيْهِ الْعَبْدُ يَوْمَ الْقِيَامَةِ الصَّلاةُ",
+      "english_translation": "The first thing for which a servant will be held accountable on the Day of Resurrection is prayer.",
+      "narrator": "Abu Hurairah",
+      "category": "prayer",
+      "reference": "Sahih Bukhari 528"
+    },
+    {
+      "id": 5,
+      "collection": "Sahih Muslim",
+      "hadith_number": "234",
+      "arabic_text": "الصَّلَوَاتُ الْخَمْسُ وَالْجُمُعَةُ إِلَى الْجُمُعَةِ كَفَّارَةٌ لِمَا بَيْنَهُنَّ",
+      "english_translation": "The five daily prayers and Friday prayer to Friday prayer are expiation for what is between them.",
+      "narrator": "Abu Hurairah",
+      "category": "prayer",
+      "reference": "Sahih Muslim 234"
+    },
+    {
+      "id": 6,
+      "collection": "Sahih Bukhari",
+      "hadith_number": "506",
+      "arabic_text": "مَنْ تَوَضَّأَ فَأَحْسَنَ الْوُضُوءَ ثُمَّ صَلَّى رَكْعَتَيْنِ يُقْبِلُ عَلَيْهِمَا بِقَلْبِهِ وَوَجْهِهِ وُجِبَتْ لَهُ الْجَنَّةُ",
+      "english_translation": "Whoever performs ablution perfectly and then prays two rak'ahs with his heart and face focused on them, Paradise becomes obligatory for him.",
+      "narrator": "Uqbah ibn Amir",
+      "category": "prayer",
+      "reference": "Sahih Bukhari 506"
+    },
+    {
+      "id": 7,
+      "collection": "Sahih Muslim",
+      "hadith_number": "507",
+      "arabic_text": "مَا مِنْ مُسْلِمٍ يَتَوَضَّأُ فَيُحْسِنُ وُضُوءَهُ ثُمَّ يَقُومُ فَيُصَلِّي رَكْعَتَيْنِ مُقْبِلٌ عَلَيْهِمَا بِقَلْبِهِ وَوَجْهِهِ إِلاَّ وَجَبَتْ لَهُ الْجَنَّةُ",
+      "english_translation": "No Muslim performs ablution perfectly and then stands and prays two rak'ahs with his heart and face focused on them except that Paradise becomes obligatory for him.",
+      "narrator": "Uqbah ibn Amir",
+      "category": "prayer",
+      "reference": "Sahih Muslim 507"
+    },
+    {
+      "id": 8,
+      "collection": "Sunan Abu Dawood",
+      "hadith_number": "508",
+      "arabic_text": "الصَّبْرُ ضِيَاءٌ",
+      "english_translation": "Patience is illumination.",
+      "narrator": "Abu Malik al-Ash'ari",
+      "category": "patience",
+      "reference": "Sunan Abu Dawood 508"
+    },
+    {
+      "id": 9,
+      "collection": "Sahih Bukhari",
+      "hadith_number": "509",
+      "arabic_text": "وَمَنْ يَصْبِرْ يُصَبِّرْهُ اللَّهُ",
+      "english_translation": "And whoever is patient, Allah will make him patient.",
+      "narrator": "Abu Sa'id al-Khudri",
+      "category": "patience",
+      "reference": "Sahih Bukhari 509"
+    },
+    {
+      "id": 10,
+      "collection": "Sahih Muslim",
+      "hadith_number": "510",
+      "arabic_text": "عَجَبًا لِأَمْرِ الْمُؤْمِنِ إِنَّ أَمْرَهُ كُلَّهُ خَيْرٌ وَلَيْسَ ذَاكَ لِأَحَدٍ إِلَّا لِلْمُؤْمِنِ",
+      "english_translation": "How wonderful is the affair of the believer, for his affairs are all good, and this applies to no one but the believer.",
+      "narrator": "Suhaib",
+      "category": "motivation",
+      "reference": "Sahih Muslim 510"
+    }
+  ]
+}
