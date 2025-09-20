@@ -52,5 +52,5 @@ Feature: Prayer Completion
       | timezone     | date       | datetime         | in_valid_prayer |
       | Asia/Kolkata | 2025-06-21 | 2025-06-21 07:30 | Dhuhr        |
       | Asia/Kolkata | 2025-06-21 | 2025-06-21 16:00 | Asr          |
-      | Asia/Kolkata | 2025-06-21 | 2025-06-21 19:30 | Maghrib      |
+      | Asia/Kolkata | 2025-06-21 | 2025-06-21 19:00 | Maghrib      |
       | Asia/Kolkata | 2025-06-21 | 2025-06-21 21:00 | Isha         |

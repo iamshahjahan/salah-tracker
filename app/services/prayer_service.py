@@ -474,10 +474,12 @@ class PrayerService(BaseService):
         for prayer_name, prayer_time in prayer_times.items():
             # Only create prayer records for the 5 main prayers, not sunrise
             if prayer_name in ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha']:
+                # Convert to enum name (uppercase) to match database enum
+                prayer_type_value = prayer_name.upper()
                 prayer = self.create_record(
                     Prayer,
                     user_id=user.id,
-                    prayer_type=prayer_name,
+                    prayer_type=prayer_type_value,
                     prayer_time=prayer_time,
                     prayer_date=target_date
                 )

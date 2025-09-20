@@ -251,3 +251,4 @@ All migration activities are logged in the application logs. Check `logs/salah_t
 - [Flask-Migrate Documentation](https://flask-migrate.readthedocs.io/)
 - [Alembic Documentation](https://alembic.sqlalchemy.org/)
 - [SQLAlchemy Migration Tutorial](https://docs.sqlalchemy.org/en/14/core/metadata.html)
+
