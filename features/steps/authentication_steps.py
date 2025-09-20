@@ -79,7 +79,7 @@ def step_user_with_unverified_email(context):
         user = context.db.session.query(User).filter(
             User.email == "unverified@example.com"
         ).first()
-        
+
         if user:
             context.test_user = user
         else:
